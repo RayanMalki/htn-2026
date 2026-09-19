@@ -106,6 +106,37 @@ class Verdict(StrictModel):
     limitations: list[str] = Field(max_length=10)
 
 
+class DetectedSentence(StrictModel):
+    text: str = Field(max_length=1000)
+    generated_prob: float = Field(ge=0, le=1)
+
+
+class Scan(StrictModel):
+    basis: Literal["verbatim", "filler_removed"]
+    characters: int = Field(ge=0)
+    predicted_class: str | None = None
+    ai_probability: float | None = Field(default=None, ge=0, le=1)
+    confidence_category: str | None = None
+    summary: str | None = None
+    top_sentences: list[DetectedSentence] = Field(default_factory=list, max_length=3)
+
+
+class Detection(StrictModel):
+    """Authorship signal for the spoken script. Never an input to a medical verdict."""
+
+    provider: str = "GPTZero"
+    status: Literal["scored", "skipped", "unavailable"]
+    scanned_at: str
+    detector_version: str | None = None
+    prepared_transcript: bool = False
+    fillers_removed: int = Field(default=0, ge=0)
+    filler_ratio: float = Field(default=0.0, ge=0, le=1)
+    removed_examples: list[str] = Field(default_factory=list, max_length=12)
+    verbatim: Scan | None = None
+    cleaned: Scan | None = None
+    note: str | None = Field(default=None, max_length=500)
+
+
 def validate_verdict(verdict: Verdict, passages: list[Passage]) -> Verdict:
     evidence = {p.id: p for p in passages if not p.known_retracted}
     if verdict.label != "uncertain" and not verdict.citations:

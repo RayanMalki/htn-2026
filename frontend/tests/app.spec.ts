@@ -19,6 +19,18 @@ const complete = {
   },
 };
 
+const detection = {
+  provider: 'GPTZero', status: 'scored', scanned_at: new Date().toISOString(),
+  detector_version: '2026-09-13-base', prepared_transcript: false,
+  fillers_removed: 17, filler_ratio: 0.148, removed_examples: ['basically', 'like', 'um'],
+  verbatim: { basis: 'verbatim', characters: 718, predicted_class: 'human', ai_probability: 0.12,
+    confidence_category: 'high', summary: 'Detector message.', top_sentences: [] },
+  cleaned: { basis: 'filler_removed', characters: 605, predicted_class: 'ai', ai_probability: 0.94,
+    confidence_category: 'high', summary: 'Detector message.',
+    top_sentences: [{ text: 'However, emerging research suggests otherwise.', generated_prob: 0.97 }] },
+  note: null,
+};
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/config', route => route.fulfill({ json: { model_mode: 'mock' } }));
 });
@@ -66,6 +78,22 @@ test('download failure offers upload and resumes the same case', async ({ page }
   await page.getByLabel('Upload video').setInputFiles({ name: 'clip.mp4', mimeType: 'video/mp4', buffer: Buffer.from('browser fixture') });
   await expect(page.getByRole('heading', { name: 'Analysis complete' })).toBeVisible();
   expect(uploaded).toBeTruthy();
+});
+
+test('authorship panel shows both readings of the script', async ({ page }, testInfo) => {
+  const scanned = { ...complete, result: { ...complete.result, detection } };
+  await page.route('**/api/cases', route => route.fulfill({ status: 202, json: scanned }));
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: scanned }));
+  await page.goto('/');
+  await page.getByLabel('Start with an Instagram Reel').fill(complete.source_url);
+  await page.getByRole('button', { name: 'Check the evidence' }).click();
+  await expect(page.getByRole('heading', { name: 'The delivery and the script disagree' })).toBeVisible();
+  await expect(page.getByText('Written by a person')).toBeVisible();
+  await expect(page.getByText('Written by a machine')).toBeVisible();
+  await expect(page.getByText('17 filler words removed (15% of the speech).')).toBeVisible();
+  await expect(page.getByText('This measures authorship, not whether the claims are true.')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  await page.screenshot({ path: `../artifacts/authorship-${testInfo.project.name}.png`, fullPage: true });
 });
 
 test('observatory renders recorded measurements', async ({ page }) => {

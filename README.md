@@ -27,6 +27,7 @@ The repository includes `.env.example`; `scripts/init_env.py` creates an ignored
 | `ELASTIC_INFERENCE_ID` | Existing Elastic inference endpoint; defaults to `.elser-2-elastic` |
 | `SENTRY_DSN`, `VITE_SENTRY_DSN` | Backend and frontend Sentry project DSNs; frontend DSN is public by design |
 | `GEMINI_API_KEY`, `GEMINI_MODEL`, `MODEL_MODE=live` | Enable real video transcription and evidence judgment |
+| `GPTZERO_API_KEY` | Authorship detection over the transcript; the stage is skipped when unset |
 | `DOMAIN` | Public DNS name for Caddy HTTPS |
 
 `setup-elastic` validates the inference endpoint and creates the passage index. If your deployment does not provide the default inference ID, enable an Elastic-managed endpoint in Elastic Cloud and configure its ID. `ELASTIC_SEMANTIC=false` explicitly selects keyword-only retrieval; it is not equivalent to the intended hybrid demo. Never silently replace a failed search with a mock search.
@@ -64,6 +65,7 @@ Use http://127.0.0.1:5173. Vite proxies `/api` to FastAPI. For a local worker, s
 - Instagram downloads time out after 15 seconds. A blocked download offers a 100 MB video upload into the same case. File validity/duration/audio are checked by FFprobe; private-network redirects are rejected in the isolated downloader.
 - Search discovers title matches, reviews/meta-analyses/trials, and broader literature through Europe PMC. Up to 15 deduplicated papers and five open-access full texts per claim are considered. Known retracted publications are excluded; this is not a complete retraction registry.
 - Exact stored-source passages go into a shared Elasticsearch index. BM25 and semantic queries are fused with RRF and filtered to the claim's discovered papers. Results are capped at six passages and two passages per paper. A failed semantic operation may fall back to keyword search, explicitly labeled in the result.
+- Authorship of the spoken script is read twice by GPTZero: once verbatim, and once with speech fillers removed, because disfluent delivery reads as human whoever wrote the words. Both readings are shown with the removal count. This is a signal about authorship only. It never enters a verdict, and a detector failure never fails a case.
 - Conclusions are `supports`, `contradicts`, or `uncertain`, with validated verbatim citations. Service errors or invalid citations produce `incomplete`, not `uncertain`. Results are bounded research assessments, not treatment advice.
 - Events are committed to PostgreSQL before a Redis notification is published. SSE replays persisted events using `Last-Event-ID`; its one-second database poll remains usable if notifications are missed.
 - Celery jobs are acknowledged after processing. A Redis lease prevents duplicate execution; persisted checkpoints reuse transcription and completed claim research after interruption. Beat recovers abandoned cases after three minutes.

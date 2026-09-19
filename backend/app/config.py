@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     elastic_index: str = "hypecheck-passages-v1"
     elastic_inference_id: str = ".elser-2-elastic"
     elastic_semantic: bool = True
+    gptzero_api_key: str = ""
     sentry_dsn: str = ""
     sentry_environment: str = "development"
     release: str = "hypecheck-local"

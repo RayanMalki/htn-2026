@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useState, type FormEvent } from 'react';
 import { api, finished, seconds } from './api';
+import Authorship from './Authorship';
 import Evidence from './Evidence';
 import type { Case, ClaimResult } from './types';
 
@@ -60,6 +61,7 @@ function CaseView({ value, onUpdate }: { value: Case; onUpdate: (c: Case) => voi
     {value.result.outcome ? <div className="notice">{value.result.outcome}</div> : null}
     {items.length ? <div className="claims-list">{items.map((item, i) => <Evidence key={item.claim.id} item={item} index={i} mock={value.result.model_mode === 'mock'} />)}</div> : null}
     {value.result.analysis?.omitted_claims ? <p className="notice">{value.result.analysis.omitted_claims} additional claim(s) were omitted from this bounded analysis.</p> : null}
+    {value.result.detection ? <Authorship value={value.result.detection} /> : null}
     {value.result.analysis?.transcript.length ? <details className="transcript"><summary>Read the transcript</summary>
       {value.result.analysis.transcript.map((s, i) => <p key={i}><span>{Math.floor(s.start)}s</span>{s.text}</p>)}</details> : null}
     {finished(value.status) ? <div className="result-footer"><p>Evidence is contextual. This search is limited and is not personal medical advice.</p>
