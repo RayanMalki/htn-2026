@@ -34,7 +34,7 @@ class OpenAIModels(GeminiModels):
             raise RuntimeError("OPENAI_API_KEY is not configured")
         return {"Authorization": f"Bearer {settings().openai_api_key}"}
 
-    async def generate(self, prompt: str, schema, audio: Path | None = None):
+    async def generate(self, prompt: str, schema, audio: Path | None = None, *, operation: str = "generate"):
         if audio is not None:
             raise ValueError("Use the transcription endpoint for audio")
         async with httpx.AsyncClient(timeout=20) as client:

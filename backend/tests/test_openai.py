@@ -66,13 +66,30 @@ async def test_incomplete_or_refused_model_output_fails(body):
 
 
 @respx.mock
+async def test_text_judgment_uses_responses_endpoint(passage):
+    configure()
+    route = respx.post(BASE + '/responses').respond(200, json=response({
+        'label': 'contradicts', 'explanation': 'The review did not find prevention.', 'limitations': [],
+        'citations': [{'passage_id': passage.id, 'quote': passage.text}],
+    }))
+    result = await OpenAIModels().judge(
+        Claim(id='c1', text='Vitamin C prevents colds', start=0, end=1, search_terms=['vitamin C cold']),
+        [passage],
+    )
+    assert result.label == 'contradicts'
+    assert result.citations[0].quote == passage.text
+    assert route.call_count == 1
+    assert json.loads(route.calls[0].request.content)['text']['format']['name'] == 'Verdict'
+
+
+@respx.mock
 async def test_invalid_citations_are_rejected(passage):
     configure()
     respx.post(BASE + '/responses').respond(200, json=response({
         'label': 'supports', 'explanation': 'Incorrect quote', 'limitations': [],
         'citations': [{'passage_id': passage.id, 'quote': 'Invented quotation'}],
     }))
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match='Citation is not verbatim'):
         await OpenAIModels().judge(Claim(id='c1', text='claim', start=0, end=1, search_terms=['topic']), [passage])
 
 

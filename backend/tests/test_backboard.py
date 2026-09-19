@@ -51,6 +51,21 @@ async def test_text_wire_contract_and_validated_judgment(passage):
 
 
 @respx.mock
+async def test_invalid_citations_are_rejected(passage):
+    configure()
+    route = respx.post(BASE + '/threads/messages').respond(200, json={
+        'status': 'COMPLETED', 'content': json.dumps({
+            'label': 'supports', 'explanation': 'Incorrect quote', 'limitations': [],
+            'citations': [{'passage_id': passage.id, 'quote': 'Invented quotation'}],
+        }),
+    })
+    claim = Claim(id='c1', text='claim', start=0, end=1, search_terms=['topic'])
+    with pytest.raises(ValueError, match='Citation is not verbatim'):
+        await BackboardModels().judge(claim, [passage])
+    assert route.call_count == 1
+
+
+@respx.mock
 @pytest.mark.parametrize('response', [
     {'status': 'FAILED', 'content': '{}'},
     {'status': 'REQUIRES_ACTION', 'content': '{}'},
