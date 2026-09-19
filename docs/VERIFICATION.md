@@ -16,8 +16,8 @@
 
 ## Latest local test results
 
-- 57 backend tests passed, including an in-memory Sentry trace capture proving stage timings and metadata are serialized without sensitive payloads, and a hard-deadline test that ensures unfinished claims never masquerade as completed judgments.
-- Eight browser tests passed across desktop and mobile viewports; production TypeScript/Vite build succeeded.
+- 64 backend tests passed, including an in-memory Sentry trace capture proving stage timings and metadata are serialized without sensitive payloads, and a hard-deadline test that ensures unfinished claims never masquerade as completed judgments.
+- Twelve browser tests passed across desktop and mobile viewports; production TypeScript/Vite build succeeded.
 - Frontend production dependency audit reported zero known vulnerabilities.
 - Deployment Compose configuration validated and all container images built.
 - The actual container-served page was opened in Chrome with no browser errors. A downloaded replay was opened with browser networking disabled; its recorded results rendered successfully without network resources.
@@ -31,3 +31,10 @@
 - Vultr deployment, public DNS/TLS, phone access over venue Wi-Fi, and physical offline rehearsal.
 
 Required secrets and VM/domain details were not available at implementation start. Mock tests and local screenshots must not be presented as having passed these live gates.
+
+## Multi-source review verification
+
+- Required Europe PMC outages fail research even if MedlinePlus returns zero or nonzero results; pipeline tests verify no judgment is called and discovered source references remain available.
+- A stalled MedlinePlus request is cancelled at its separate deadline while primary evidence remains usable; supplemental failure is included in verdict limitations.
+- Desktop and mobile browser tests verify health-summary labels, MedlinePlus citation links, source counts, provider-outage messages, and incomplete retrieval display.
+- Production frontend build and CI-configured Ruff checks passed. These checks use controlled fixtures and do not replace live service acceptance or retrieval-quality evaluation.

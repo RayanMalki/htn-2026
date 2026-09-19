@@ -3,7 +3,6 @@ import json
 import httpx
 import pytest
 import respx
-
 from app.config import settings
 from app.literature import BASE, MEDLINEPLUS_BASE, Literature, build_query, chunks
 from app.schemas import Claim
@@ -142,3 +141,48 @@ async def test_elastic_unavailable_fails_instead_of_empty_evidence():
     async with httpx.AsyncClient() as client:
         with pytest.raises(httpx.HTTPStatusError):
             await ElasticSearch(client).retrieve("query", ["MED:123"])
+
+
+@pytest.mark.parametrize('supplement_has_results', [False, True])
+async def test_required_provider_failure_is_not_empty_success(monkeypatch, passage, supplement_has_results):
+    from unittest.mock import AsyncMock
+
+    from app.literature import DiscoveryIncomplete
+
+    monkeypatch.setattr(Literature, '_europe_pmc', AsyncMock(side_effect=httpx.ReadTimeout('outage')))
+    found = [passage] if supplement_has_results else []
+    monkeypatch.setattr(Literature, '_medlineplus', AsyncMock(return_value=(found, {
+        'provider': 'MedlinePlus', 'sources_found': len(found),
+    })))
+    async with httpx.AsyncClient() as client:
+        with pytest.raises(DiscoveryIncomplete) as caught:
+            await Literature(client).discover(Claim(id='c1', text='claim', start=0, end=1, search_terms=['topic']))
+    assert caught.value.passages == found
+    assert caught.value.provenance['provider_failures'] == [{'provider': 'Europe PMC', 'error': 'ReadTimeout'}]
+
+
+async def test_supplement_timeout_preserves_primary_results(monkeypatch, passage):
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    import app.literature as literature
+
+    cancelled = asyncio.Event()
+
+    async def stalled(self, claim):
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.set()
+
+    monkeypatch.setattr(literature, 'MEDLINEPLUS_TIMEOUT_SECONDS', 0.01)
+    monkeypatch.setattr(Literature, '_medlineplus', stalled)
+    monkeypatch.setattr(Literature, '_europe_pmc', AsyncMock(return_value=([passage], {
+        'provider': 'Europe PMC', 'sources_found': 1,
+    })))
+    async with httpx.AsyncClient() as client, asyncio.timeout(1):
+        found, provenance = await Literature(client).discover(
+            Claim(id='c1', text='claim', start=0, end=1, search_terms=['topic']))
+    assert found == [passage]
+    assert cancelled.is_set()
+    assert provenance['provider_failures'] == [{'provider': 'MedlinePlus', 'error': 'TimeoutError'}]

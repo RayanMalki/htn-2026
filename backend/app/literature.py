@@ -13,7 +13,15 @@ from app.http import request
 from app.schemas import Claim, Passage
 
 BASE = "https://www.ebi.ac.uk/europepmc/webservices/rest"
+MEDLINEPLUS_TIMEOUT_SECONDS = 5.0
 MEDLINEPLUS_BASE = "https://wsearch.nlm.nih.gov/ws/query"
+
+
+class DiscoveryIncomplete(RuntimeError):
+    def __init__(self, passages, provenance):
+        super().__init__("Required Europe PMC research failed")
+        self.passages = passages
+        self.provenance = provenance
 
 
 def plain_text(value: str) -> str:
@@ -68,7 +76,7 @@ class Literature:
         providers = [self._europe_pmc(claim)]
         provider_names = ["Europe PMC"]
         if settings().medlineplus_enabled:
-            providers.append(self._medlineplus(claim))
+            providers.append(self._bounded_medlineplus(claim))
             provider_names.append("MedlinePlus")
         results = await asyncio.gather(*providers, return_exceptions=True)
         passages = []
@@ -81,11 +89,9 @@ class Literature:
                 found, details = result
                 passages.extend(found)
                 provenance.append(details)
-        if not provenance:
-            raise results[0]
         europe = next((item for item in provenance if item["provider"] == "Europe PMC"), None)
-        primary = europe or provenance[0]
-        return passages, {
+        primary = europe or (provenance[0] if provenance else {})
+        combined = {
             **primary,
             "provider": " + ".join(item["provider"] for item in provenance),
             "providers": provenance,
@@ -95,6 +101,14 @@ class Literature:
             "candidate_ids": sorted({p.id for p in passages}),
             "candidate_paper_ids": sorted({p.paper_id for p in passages}),
         }
+        if europe is None:
+            raise DiscoveryIncomplete(passages, combined)
+        return passages, combined
+
+    async def _bounded_medlineplus(self, claim: Claim):
+        # Includes semaphore wait, network requests, and retry delay.
+        async with asyncio.timeout(MEDLINEPLUS_TIMEOUT_SECONDS):
+            return await self._medlineplus(claim)
 
     async def _europe_pmc(self, claim: Claim) -> tuple[list[Passage], dict]:
         query = build_query(claim.search_terms)
