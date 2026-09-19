@@ -10,6 +10,7 @@
 ## Live services exercised
 
 - Europe PMC search and open-access full-text retrieval were reached successfully during implementation. An initial vitamin C/common-cold query returned 15 candidate papers and 228 passages, 214 from full text. Several high-ranked broad matches were poorly focused; title-focused and study-type discovery tiers were added in response. These counts are a connectivity observation, not a retrieval accuracy score.
+- A live MedlinePlus health-topic query for `common cold` returned five normalized sources and 12 passages. Provider failure isolation and source normalization are also covered by backend tests; this connectivity check is not a medical relevance evaluation.
 - The Docker stack built and started successfully: Caddy, FastAPI, PostgreSQL, Redis, Celery workers, and beat. PostgreSQL/Redis readiness checks passed; Elastic readiness correctly failed without credentials.
 - A real API submission and queued Celery job attempted an unavailable Reel, offered upload, accepted a generated two-second video, extracted audio with FFmpeg, used the explicitly mocked transcript, and queried real Europe PMC. It terminated as `incomplete` when Elastic was unconfigured. This verifies infrastructure failure behavior, not medical inference.
 

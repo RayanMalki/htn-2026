@@ -2,7 +2,7 @@
 
 Instagram Reel → spoken claims → medical literature → Elasticsearch passages → cited verdicts.
 
-Iteration one is implemented as a FastAPI/Celery backend, PostgreSQL/Redis persistence, a React/Vite interface, and a Docker Compose deployment with Caddy HTTPS. Gemini adapters support structured audio analysis and judgment. Model mode defaults to **mock**; a mock verdict is never presented as a real medical assessment. Europe PMC and Elasticsearch are real services even in mock model mode.
+Iteration one is implemented as a FastAPI/Celery backend, PostgreSQL/Redis persistence, a React/Vite interface, and a Docker Compose deployment with Caddy HTTPS. Gemini adapters support structured audio analysis and judgment. Model mode defaults to **mock**; a mock verdict is never presented as a real medical assessment. Europe PMC, MedlinePlus, and Elasticsearch are real services even in mock model mode.
 
 ## Start here
 
@@ -62,8 +62,8 @@ Use http://127.0.0.1:5173. Vite proxies `/api` to FastAPI. For a local worker, s
 
 - Public Instagram Reel URLs only, English speech, up to 60 seconds, up to three claims. Clips without usable audio/medical claims receive an explicit outcome.
 - Instagram downloads time out after 15 seconds. A blocked download offers a 100 MB video upload into the same case. File validity/duration/audio are checked by FFprobe; private-network redirects are rejected in the isolated downloader.
-- Search discovers title matches, reviews/meta-analyses/trials, and broader literature through Europe PMC. Up to 15 deduplicated papers and five open-access full texts per claim are considered. Known retracted publications are excluded; this is not a complete retraction registry.
-- Exact stored-source passages go into a shared Elasticsearch index. BM25 and semantic queries are fused with RRF and filtered to the claim's discovered papers. Results are capped at six passages and two passages per paper. A failed semantic operation may fall back to keyword search, explicitly labeled in the result.
+- Search reserves candidates for title matches, reviews/meta-analyses/trials, and broader literature through Europe PMC. Up to 15 deduplicated papers and five relevance-prioritized open-access full texts per claim are considered. MedlinePlus adds up to five curated health-topic summaries and degrades independently if unavailable. Known retracted publications are excluded; this is not a complete retraction registry.
+- Exact stored-source passages go into a shared Elasticsearch index. BM25 and semantic queries are fused with RRF and filtered to the exact passages discovered for the current claim. Results are capped at six passages and two passages per source. A failed semantic operation may fall back to keyword search, explicitly labeled in the result.
 - Conclusions are `supports`, `contradicts`, or `uncertain`, with validated verbatim citations. Service errors or invalid citations produce `incomplete`, not `uncertain`. Results are bounded research assessments, not treatment advice.
 - Events are committed to PostgreSQL before a Redis notification is published. SSE replays persisted events using `Last-Event-ID`; its one-second database poll remains usable if notifications are missed.
 - Celery jobs are acknowledged after processing. A Redis lease prevents duplicate execution; persisted checkpoints reuse transcription and completed claim research after interruption. Beat recovers abandoned cases after three minutes.

@@ -110,7 +110,8 @@ async def run_case(case_id: str):
                                 for key in ["papers_found", "passages_found", "cache_hits", "full_text_fallbacks"]:
                                     span.set_data(key, provenance.get(key, 0))
                             sources = {p.paper_id: {"title": p.title, "source_url": p.source_url,
-                                "access_type": p.access_type} for p in passages}
+                                "access_type": p.access_type, "provider": p.provider,
+                                "source_kind": p.source_kind} for p in passages}
                             completed[claim.id] = {"claim": claim.model_dump(), "status": "indexing",
                                 "discovered_sources": list(sources.values()), "timings": local_timings}
                             save(claims=dict(completed))

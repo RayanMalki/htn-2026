@@ -37,9 +37,9 @@ function render(c){status.textContent=c.status+' · '+c.result.model_mode+' mode
 if(c.error)add(results,'p',c.error.message);
 for(const item of Object.values(c.result.claims||{})){const card=add(results,'article','');add(card,'h2',item.claim.text);
 add(card,'p',item.verdict?.label||item.status);add(card,'p',item.verdict?.explanation||item.error||'');
-for(const p of item.evidence||[]){add(card,'h3',p.title);add(card,'small',p.access_type+' · '+p.section);
+for(const p of item.evidence||[]){add(card,'h3',p.title);add(card,'small',(p.provider||'source')+' · '+p.access_type+' · '+p.section);
 add(card,'blockquote',p.text);const a=add(card,'a','Open source');
-if(p.source_url.startsWith('https://europepmc.org/')){a.href=p.source_url;a.target='_blank';a.rel='noopener noreferrer';}}
+try{const u=new URL(p.source_url);if(u.protocol==='https:'&&['europepmc.org','medlineplus.gov','www.medlineplus.gov'].includes(u.hostname)){a.href=p.source_url;a.target='_blank';a.rel='noopener noreferrer';}}catch{}}
 }}
 render(recording.case);let playing=false;
 document.getElementById('play').onclick=async()=>{if(playing)return;playing=true;const btn=document.getElementById('play');btn.disabled=true;
