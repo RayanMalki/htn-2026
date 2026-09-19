@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock
 import httpx
 import pytest
 import respx
+
 from app.backboard import BASE, BackboardModels, ExtractedClaims
 from app.config import settings
 from app.models import GeminiModels, MockModels, models
@@ -47,6 +48,21 @@ async def test_text_wire_contract_and_validated_judgment(passage):
     assert 'thread_id' not in sent and 'assistant_id' not in sent
     assert route.calls[0].request.headers['X-API-Key'] == 'test-backboard-key'
     assert 'key' not in str(route.calls[0].request.url)
+
+
+@respx.mock
+async def test_invalid_citations_are_rejected(passage):
+    configure()
+    route = respx.post(BASE + '/threads/messages').respond(200, json={
+        'status': 'COMPLETED', 'content': json.dumps({
+            'label': 'supports', 'explanation': 'Incorrect quote', 'limitations': [],
+            'citations': [{'passage_id': passage.id, 'quote': 'Invented quotation'}],
+        }),
+    })
+    claim = Claim(id='c1', text='claim', start=0, end=1, search_terms=['topic'])
+    with pytest.raises(ValueError, match='Citation is not verbatim'):
+        await BackboardModels().judge(claim, [passage])
+    assert route.call_count == 1
 
 
 @respx.mock

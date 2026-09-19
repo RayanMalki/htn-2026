@@ -13,15 +13,17 @@ if missing:
 org = os.environ["SENTRY_ORG"]
 base = os.getenv("SENTRY_API_BASE", "https://sentry.io/api/0").rstrip("/")
 title = "HypeCheck pipeline"
+duration_field = "tags[case.duration_seconds,number]"
+duration_filter = f"is_transaction:true transaction:app.tasks.process_case {duration_field}:>=0"
 queries = [
-    ("Completed cases", "count()", "has:case_id case_status:complete"),
-    ("Incomplete cases", "count()", "has:case_id case_status:incomplete"),
-    ("Case duration p50", "p50(measurements.case.duration)", "has:case_id has:measurements.case.duration"),
-    ("Case duration p95", "p95(measurements.case.duration)", "has:case_id has:measurements.case.duration"),
+    ("Completed cases", "count()", "has:case_id case_status:complete", "transaction-like"),
+    ("Incomplete cases", "count()", "has:case_id case_status:incomplete", "transaction-like"),
+    ("Case duration p50 (seconds)", f"p50({duration_field})", duration_filter, "spans"),
+    ("Case duration p95 (seconds)", f"p95({duration_field})", duration_filter, "spans"),
 ]
 widgets = []
-for i, (name, aggregate, condition) in enumerate(queries):
-    widgets.append({"title": name, "displayType": "big_number", "widgetType": "transaction-like",
+for i, (name, aggregate, condition, widget_type) in enumerate(queries):
+    widgets.append({"title": name, "displayType": "big_number", "widgetType": widget_type,
         "interval": "5m", "queries": [{"name": name, "fields": [aggregate], "aggregates": [aggregate],
                                         "columns": [], "conditions": condition, "orderby": f"-{aggregate}"}],
         "layout": {"x": i % 2 * 3, "y": i // 2 * 2, "w": 3, "h": 2, "minH": 2}})

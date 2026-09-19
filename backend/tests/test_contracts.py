@@ -1,6 +1,7 @@
 import pytest
-from app.schemas import CaseCreate, Citation, Verdict, validate_verdict
 from pydantic import ValidationError
+
+from app.schemas import CaseCreate, Citation, Verdict, validate_verdict
 
 
 @pytest.mark.parametrize("url", [
