@@ -1,0 +1,4 @@
+*.db
+.venv/
+test/
+probe/
