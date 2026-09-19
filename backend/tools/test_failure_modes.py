@@ -342,7 +342,6 @@ def test_single_literature_search_is_fast():
     _net()
     q = {"query": 'TITLE:"vitamin D" AND TITLE_ABS:"respiratory tract infections"', "format": "json",
          "resultType": "core", "pageSize": 5, "sort": "CITED desc"}
-    t = time.time()
     data, dt, err = resolver._get("https://www.ebi.ac.uk/europepmc/webservices/rest/search?" + urllib.parse.urlencode(q), EMAIL)
     assert data and not err, err
     assert dt < 5.0, f"search took {dt:.2f}s, judges will feel anything over 3"
