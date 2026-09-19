@@ -18,8 +18,6 @@ class Settings(BaseSettings):
     elastic_index: str = "hypecheck-passages-v1"
     elastic_inference_id: str = ".elser-2-elastic"
     elastic_semantic: bool = True
-    gptzero_api_key: str = ""
-    gptzero_filler_reading: bool = False
     sentry_dsn: str = ""
     sentry_environment: str = "development"
     release: str = "hypecheck-local"
@@ -30,6 +28,10 @@ class Settings(BaseSettings):
     case_timeout_seconds: int = 120
     research_timeout_seconds: int = 35
     uptime_url: str = "http://127.0.0.1:8000/healthz"
+    # Appended rather than grouped with the other providers, so that concurrent
+    # branches adding their own settings do not collide on the same anchor line.
+    gptzero_api_key: str = ""
+    gptzero_filler_reading: bool = False
 
 
 @lru_cache
