@@ -1,10 +1,14 @@
 """GPTZero authorship detection over the spoken transcript.
 
-Two readings are taken. The verbatim transcript is what was actually said. The
-filler-removed transcript approximates the script behind the delivery, because
-speech disfluencies read as human to a detector regardless of who wrote the words.
-Both are reported; neither is an input to a medical verdict, and a detection
-failure never fails a case.
+The transcript is read once, and the response carries a document class, a
+subclass saying how the text was produced (straight from a model, put through a
+humaniser, stitched together, or written then polished), and a probability per
+sentence used to shade the transcript.
+
+A second reading with speech fillers stripped sits behind GPTZERO_FILLER_READING
+and is off: across eight measured samples it never changed a classification.
+This is never an input to a medical verdict, and a detector failure never fails
+a case.
 """
 
 import asyncio
@@ -15,7 +19,14 @@ import sentry_sdk
 from app.config import settings
 from app.db import now
 from app.http import request
-from app.schemas import AudioAnalysis, DetectedParagraph, DetectedSentence, Detection, Scan
+from app.schemas import (
+    AudioAnalysis,
+    DetectedParagraph,
+    DetectedSentence,
+    Detection,
+    Scan,
+    Subclass,
+)
 from app.speech import strip_fillers
 
 ENDPOINT = "https://api.gptzero.me/v2/predict/text"
@@ -31,6 +42,22 @@ def transcript_text(analysis: AudioAnalysis) -> str:
 
 def clamp(value) -> float | None:
     return min(1.0, max(0.0, float(value))) if isinstance(value, (int, float)) else None
+
+
+def read_subclass(document: dict) -> Subclass | None:
+    """Only ai and mixed documents carry one; human text reports an empty object."""
+    raw = document.get("subclass") or {}
+    for kind in ("ai", "mixed"):
+        body = raw.get(kind)
+        if isinstance(body, dict) and body.get("predicted_class"):
+            return Subclass(
+                kind=kind, predicted_class=str(body["predicted_class"])[:60],
+                confidence_category=body.get("confidence_category"),
+                probabilities={str(k): clamp(v) for k, v in
+                               (body.get("class_probabilities") or {}).items()
+                               if isinstance(v, (int, float))},
+            )
+    return None
 
 
 def read_scan(document: dict, basis: str, characters: int) -> Scan:
@@ -57,6 +84,7 @@ def read_scan(document: dict, basis: str, characters: int) -> Scan:
         confidence_category=document.get("confidence_category"),
         summary=document.get("result_message"),
         flagged_share=clamp(document.get("average_generated_prob")),
+        subclass=read_subclass(document),
     )
 
 

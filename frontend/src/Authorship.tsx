@@ -4,6 +4,12 @@ const HEADLINE: Record<string, string> = {
   AI_ONLY: 'Read from a script', HUMAN_ONLY: "The creator's own words",
   MIXED: 'Partly read from a script',
 };
+const SUBCLASS: Record<string, string> = {
+  pure_ai: 'written straight out of a model, not reworked',
+  ai_paraphrased: 'put through a paraphrasing or humanising tool afterwards',
+  concatenated: 'human and machine passages stitched together',
+  polished: 'written by a person, then smoothed over by a model',
+};
 
 export default function Authorship({ value }: { value: Detection }) {
   const scan = value.verbatim;
@@ -24,7 +30,12 @@ export default function Authorship({ value }: { value: Detection }) {
   return <section className="authorship" aria-label="Script authorship">
     <div className="authorship-head">
       <div><span className="eyebrow">WHO WROTE THIS SCRIPT</span>
-        <h3 className={`authorship-verdict ${tone}`}>{headline}</h3></div>
+        <h3 className={`authorship-verdict ${tone}`}>{headline}</h3>
+        {scan.subclass && SUBCLASS[scan.subclass.predicted_class]
+          ? <p className="authorship-subclass">{SUBCLASS[scan.subclass.predicted_class]}
+            {scan.subclass.confidence_category
+              ? <span className="subtle"> · {scan.subclass.confidence_category} confidence</span> : null}</p>
+          : null}</div>
       <span className="authorship-source">{value.provider}
         {value.detector_version ? ` · ${value.detector_version}` : ''}</span>
     </div>

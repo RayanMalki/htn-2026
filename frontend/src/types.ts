@@ -16,6 +16,8 @@ export type Scan = {
   document_classification: string | null; ai_probability: number | null;
   human_probability: number | null; mixed_probability: number | null;
   confidence_category: string | null; summary: string | null; flagged_share: number | null;
+  subclass: { kind: 'ai' | 'mixed'; predicted_class: string; confidence_category: string | null;
+    probabilities: Record<string, number> } | null;
   sentences: { text: string; generated_prob: number }[];
   paragraphs: { index: number; sentences: number; generated_prob: number }[];
 };

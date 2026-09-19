@@ -32,9 +32,10 @@ def analysis(text: str) -> AudioAnalysis:
     })
 
 
-def reply(ai: float, sentences=None, classification="AI_ONLY", mixed=0.0):
+def reply(ai: float, sentences=None, classification="AI_ONLY", mixed=0.0, subclass=None):
     scored = sentences if sentences is not None else [("One scored sentence.", ai)]
     return {"documents": [{
+        "subclass": subclass if subclass is not None else {},
         "version": "2026-09-13-base", "predicted_class": "ai" if ai > 0.5 else "human",
         "document_classification": classification, "confidence_category": "high",
         "result_message": "Detector message.", "average_generated_prob": ai,
@@ -144,6 +145,29 @@ async def test_document_fields_and_sentence_order_are_parsed(keyed):
     assert outcome.script_threshold == 0.5
     assert outcome.prepared_transcript is True
     assert scan.__class__.model_fields.get("sentences") is not None
+
+
+@respx.mock
+async def test_paraphrased_subclass_is_surfaced(keyed):
+    # The evasion case: a model script run through a humaniser before being read out.
+    respx.post(ENDPOINT).mock(return_value=httpx.Response(200, json=reply(0.99, subclass={"ai": {
+        "predicted_class": "ai_paraphrased", "confidence_category": "high",
+        "class_probabilities": {"pure_ai": 0.12, "ai_paraphrased": 0.88}}})))
+    async with httpx.AsyncClient() as client:
+        outcome = await Detector(client).scan(analysis(SPOKEN))
+    sub = outcome.verbatim.subclass
+    assert sub.kind == "ai" and sub.predicted_class == "ai_paraphrased"
+    assert sub.probabilities == {"pure_ai": 0.12, "ai_paraphrased": 0.88}
+    assert sub.confidence_category == "high"
+
+
+@respx.mock
+async def test_human_text_reports_no_subclass(keyed):
+    respx.post(ENDPOINT).mock(return_value=httpx.Response(200,
+        json=reply(0.01, classification="HUMAN_ONLY")))
+    async with httpx.AsyncClient() as client:
+        outcome = await Detector(client).scan(analysis(SPOKEN))
+    assert outcome.verbatim.subclass is None
 
 
 @respx.mock

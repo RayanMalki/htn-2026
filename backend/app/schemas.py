@@ -117,6 +117,20 @@ class DetectedParagraph(StrictModel):
     generated_prob: float = Field(ge=0, le=1)
 
 
+class Subclass(StrictModel):
+    """How the text was produced within its class. Empty for human-written text.
+
+    ai: pure_ai (straight from a model) or ai_paraphrased (run through a humaniser).
+    mixed: concatenated (distinct blocks stitched) or polished (a person wrote it,
+    a model smoothed it).
+    """
+
+    kind: Literal["ai", "mixed"]
+    predicted_class: str = Field(max_length=60)
+    confidence_category: str | None = None
+    probabilities: dict[str, float] = Field(default_factory=dict)
+
+
 class Scan(StrictModel):
     basis: Literal["verbatim", "filler_removed"]
     characters: int = Field(ge=0)
@@ -128,6 +142,7 @@ class Scan(StrictModel):
     confidence_category: str | None = None
     summary: str | None = None
     flagged_share: float | None = Field(default=None, ge=0, le=1)
+    subclass: Subclass | None = None
     # Every sentence, so the transcript can be shaded in place. The vendor's own
     # highlight flag is not used: it marked 9 of 9 sentences including one at 0.18.
     sentences: list[DetectedSentence] = Field(default_factory=list, max_length=200)
