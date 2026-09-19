@@ -21,14 +21,17 @@ literature.py (a record dict from Europe PMC, an access_type badge) so porting i
 mostly moving functions, not rewriting them.
 """
 
+import hashlib
 import json
 import re
+import sqlite3
 import subprocess
 import tempfile
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import UTC, datetime
 from pathlib import Path
 
 UA = "HypeCheck/0.1 (hackathon fact-checker; mailto:{email})"
@@ -59,6 +62,31 @@ def _get(url: str, email: str, timeout: float = 25.0):
 def _is_block_status(err: str | None) -> bool:
     """True when the failure was the server actively refusing us, not a dead host."""
     return bool(err) and err.startswith("HTTP ") and err[5:] in ("403", "429", "503")
+
+
+# Responses that mean "back off", not "this paper is unavailable". Measured tonight:
+# after a day of traffic from one address plus the test suite re-fetching everything
+# on every run, Europe PMC's full-text endpoint answered 500 twice and NCBI answered
+# 429, and a paper that had been full text all day fell through to "gated". That is
+# exactly the venue scenario, 1,300 hackers behind one address. A result reached
+# while throttled is not trusted enough to cache unless it actually got full text.
+THROTTLE = ("HTTP 429", "HTTP 500", "HTTP 502", "HTTP 503")
+
+# Fetch each paper once per machine. The cache is the fix for rate limiting, the
+# reason the second demo run is instant, and how the demo papers get pre-loaded
+# before judging. Keyed by PMCID, then DOI, then PMID, then a hash of the abstract.
+CACHE_PATH = Path(__file__).with_name("resolver_cache.db")
+
+
+def _cache() -> sqlite3.Connection:
+    conn = sqlite3.connect(CACHE_PATH)
+    conn.execute("CREATE TABLE IF NOT EXISTS fulltext (key TEXT PRIMARY KEY, result TEXT NOT NULL, saved_at TEXT NOT NULL)")
+    return conn
+
+
+def cache_key(record: dict) -> str:
+    return (record.get("pmcid") or record.get("doi") or record.get("pmid")
+            or "abs:" + hashlib.sha1(((record.get("title") or "") + (record.get("abstractText") or "")).encode()).hexdigest()[:16])
 
 
 def verify_match(record: dict, want_year: int | None = None, want_author: str | None = None) -> bool:
@@ -123,7 +151,7 @@ def _candidate_urls(url: str, doi: str | None) -> list[str]:
     return candidates
 
 
-def resolve_fulltext(record: dict, email: str, gap: float = 0.35) -> dict:
+def _resolve_uncached(record: dict, email: str, gap: float, seen: list) -> dict:
     """
     Try, in order of quality, to get the real text of a paper. Returns a dict with:
       access_type : "full_text", "free_needs_browser", or "abstract_only"
@@ -149,6 +177,14 @@ def resolve_fulltext(record: dict, email: str, gap: float = 0.35) -> dict:
     doi = record.get("doi")
     spent = 0.0
 
+    def _g(url, email_, timeout=25.0):
+        # Every request goes through here so the caller can tell afterwards whether
+        # any of them was a throttle response. _get is looked up at call time, so the
+        # tests can still swap it for a stub.
+        r = _get(url, email_, timeout)
+        seen.append(r[2])
+        return r
+
     # Route 1: Europe PMC full text, for the open PubMed Central subset. Gives clean
     # sectioned XML and, via BioC elsewhere, character offsets for the exact-sentence view.
     if record.get("isOpenAccess") == "Y" and pmcid:
@@ -158,21 +194,27 @@ def resolve_fulltext(record: dict, email: str, gap: float = 0.35) -> dict:
         # paper that had been full text all day came back "free_needs_browser". An
         # upstream hiccup costs 1.5 s to absorb. A wrong access badge costs credibility.
         for attempt in range(2):
-            data, dt, err = _get(f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML", email)
+            data, dt, err = _g(f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML", email)
             spent += dt
             if data and data[:5] == b"<?xml":
                 text = " ".join(re.sub(r"<[^>]+>", " ", data.decode("utf-8", "replace")).split())
                 if len(text) > 1500:
                     return {"access_type": "full_text", "route": "europe_pmc_xml", "text": text, "chars": len(text), "seconds": round(spent, 2)}
             if attempt == 0:
-                time.sleep(1.5)
+                # A throttle response gets a longer pause than a plain hiccup.
+                time.sleep(3.0 if err in THROTTLE else 1.5)
         time.sleep(gap)
         # Second official source for the same open subset. No auth, JSON, about 0.2 s
         # all day, and it returns passages with character offsets, which is what the
         # exact-sentence highlight needs anyway. A miss comes back as "[Error]", not
         # as a non-200, so check the body.
-        data, dt, err = _get(f"https://www.ncbi.nlm.nih.gov/research/bionlp/RESTful/pmcoa.cgi/BioC_json/{pmcid}/unicode", email)
+        data, dt, err = _g(f"https://www.ncbi.nlm.nih.gov/research/bionlp/RESTful/pmcoa.cgi/BioC_json/{pmcid}/unicode", email)
         spent += dt
+        if err == "HTTP 429":
+            # NCBI enforces its per-second limit and says so. One retry after a real pause.
+            time.sleep(3.0)
+            data, dt, err = _g(f"https://www.ncbi.nlm.nih.gov/research/bionlp/RESTful/pmcoa.cgi/BioC_json/{pmcid}/unicode", email)
+            spent += dt
         time.sleep(gap)
         if data and data[:2] == b"[{":
             try:
@@ -213,7 +255,7 @@ def resolve_fulltext(record: dict, email: str, gap: float = 0.35) -> dict:
         # dead. A dead legacy domain (connection refused) is not the same finding as a
         # live page that blocks scripts, and the two should not collapse to one result.
         for candidate in _candidate_urls(url, doi):
-            data, dt, err = _get(candidate, email, timeout=20)
+            data, dt, err = _g(candidate, email, timeout=20)
             spent += dt
             time.sleep(gap)
             blocked = _is_block_status(err) or (data and _bot_blocked(data))
@@ -238,7 +280,7 @@ def resolve_fulltext(record: dict, email: str, gap: float = 0.35) -> dict:
     # Route 3: Unpaywall points at the free copy the publisher or a repository hosts.
     if doi:
         clean = doi.replace("https://doi.org/", "").strip()
-        data, dt, err = _get(f"https://api.unpaywall.org/v2/{clean}?email={urllib.parse.quote(email)}", email)
+        data, dt, err = _g(f"https://api.unpaywall.org/v2/{clean}?email={urllib.parse.quote(email)}", email)
         spent += dt
         time.sleep(gap)
         if data:
@@ -250,7 +292,7 @@ def resolve_fulltext(record: dict, email: str, gap: float = 0.35) -> dict:
             if info.get("is_oa") and (loc.get("url_for_pdf") or loc.get("url")):
                 pdf_url = loc.get("url_for_pdf")
                 if pdf_url:
-                    pdf, dt2, err = _get(pdf_url, email, timeout=30)
+                    pdf, dt2, err = _g(pdf_url, email, timeout=30)
                     spent += dt2
                     time.sleep(gap)
                     if pdf and pdf[:4] == b"%PDF":
@@ -268,3 +310,34 @@ def resolve_fulltext(record: dict, email: str, gap: float = 0.35) -> dict:
     # Route 4: the abstract, badged so the page never pretends it read the whole paper.
     abstract = record.get("abstractText", "") or ""
     return {"access_type": "abstract_only", "route": "abstract", "text": abstract, "chars": len(abstract), "seconds": round(spent, 2)}
+
+
+def resolve_fulltext(record: dict, email: str, gap: float = 0.35, use_cache: bool = True) -> dict:
+    """
+    The public entry point. Same contract as before, plus a cache in front.
+
+    A cache hit costs zero requests and returns in microseconds, with "cached": True.
+    A miss runs the full chain. The result is cached when it is full text, or when
+    no throttle response was seen on the way to it. A result reached while a service
+    was throttling us is not trusted: "abstract only" under a 429 usually means "ask
+    again later", not "no free copy exists", and caching it would lock in a wrong
+    badge. Pass use_cache=False to measure the network itself.
+    """
+    key = cache_key(record)
+    if use_cache:
+        with _cache() as conn:
+            row = conn.execute("SELECT result FROM fulltext WHERE key = ?", (key,)).fetchone()
+        if row:
+            hit = json.loads(row[0])
+            hit["cached"] = True
+            hit["seconds"] = 0.0
+            return hit
+    seen: list = []
+    result = _resolve_uncached(record, email, gap, seen)
+    throttled = any(e in THROTTLE for e in seen if e)
+    result["throttled"] = throttled
+    if use_cache and (result["access_type"] == "full_text" or not throttled):
+        with _cache() as conn:
+            conn.execute("INSERT OR REPLACE INTO fulltext (key, result, saved_at) VALUES (?, ?, ?)",
+                         (key, json.dumps(result), datetime.now(UTC).isoformat()))
+    return result

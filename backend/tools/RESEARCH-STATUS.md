@@ -91,7 +91,9 @@ Fed the eight blue-light studies with the stances found in the papers, it return
 
 Measured with the network on: one literature search 1.0 s, twelve spaced requests 11 s with zero socket errors, local transcription 4.9 s, a timeout to a dead address returns in under 2 s instead of hanging.
 
-**The one failure it found:** a paper that was full text all day came back gated, because the Europe PMC XML route failed once transiently right after a burst of searches and the code fell straight through to a mirror that is behind a permanent bot wall. The fix is in the resolver now: one retry with a 1.5 s backoff, then NCBI's BioC service as a second official source for the same open-access set. The lesson for the demo is broader than one endpoint: **cache the demo papers ahead of time**, because upstream services hiccup and a wrong access badge in front of a judge is worse than a slow one.
+**The failure it found, and what it actually was:** a paper that was full text all day came back gated. First guess was a transient hiccup. Per-request timing showed the truth: Europe PMC's full-text endpoint answered **500 twice** and NCBI's BioC answered **429**. After a day of traffic from one address, plus a test suite that re-fetched every paper on every run, both services were throttling us, and the code fell through to a mirror that sits behind a permanent bot wall. That is exactly the venue scenario, 1,300 hackers behind one address.
+
+Three fixes are in the resolver now. **A cache**, keyed by PMCID, DOI or PMID, so each paper is fetched once per machine: the second resolve of a known paper makes zero requests, which is also how the demo papers get pre-loaded before judging. **Throttle-aware backoff**, a longer pause on 429 and 500 before the retry, and BioC as a second official source. And **a rule about what to trust**: a result reached while a service was throttling is not cached unless it actually got full text, because "abstract only" under a 429 means "ask again later", not "no free copy exists". Two tests cover the cache: a second resolve makes zero requests, and a throttled non-full-text result is retried next time rather than locked in.
 
 ## 7. When the papers run thin
 
@@ -102,6 +104,25 @@ Measured with the network on: one literature search 1.0 s, twelve spaced request
 In `video-lab/ffmpeg/post.py`, two toggles on top of the finished render: `SFX=1` mixes a whoosh on every scene change, a pop when the study badges land and a thud when the finding card lands, all synthesized by ffmpeg from noise and sine waves, so nothing is downloaded or licensed. `BRAINROT=1` makes the split screen, rebuttal on top over a blurred copy of itself, a muted looping gameplay clip below, captions at the seam. The gameplay clip is whatever sits at `assets/brainrot.mp4`. Subway Surfers footage is copyrighted by its maker and is not fetched or bundled, pick a lookalike runner from a free-licence stock site. Without a file a Mandelbrot zoom stands in. The transitions in `render.py` are now fade, smoothup, circleopen and fadeblack, from the 59 this ffmpeg build supports.
 
 That folder is a pre-event prototype, so `post.py` is not on the branch. Its logic is plain ffmpeg on a finished MP4 plus the cue times, and it ports as-is once the repo has its own renderer, which it does not yet.
+
+## 9. Finding videos on our own, and scanning them
+
+`crawl/` is the discovery crawler and transcript scan, the GPTZero track's first criterion and the feed for the leaderboard. Logged out, no login, no stealth, a headed muted browser with jittered scrolling and a cap of 30 per run.
+
+**Which discovery routes work logged out, tested:**
+
+| Route | Result |
+|---|---|
+| `tiktok.com/discover/<topic>` | **Works.** cortisol and blue-light gave links, seed-oils and raw-milk rendered empty |
+| `tiktok.com/search?q=` | **Works** |
+| `tiktok.com/tag/<hashtag>` | Renders, no video links, no wall. Recorded, not fought |
+| A creator's profile grid | Renders, no video links. The bio reads fine, the grid is gated or lazy |
+
+Ten links in about two minutes, no bot check on any route. Five videos scanned end to end with audio-only downloads (0.4 to 2.5 MB each, no video bytes), 9 to 14 s per download, 0.6 to 2.2 s per transcription, stored in `crawl/transcripts.db`. All five recorded as GPTZero skipped, no key on the machine.
+
+**The catch:** only 1 of 5 transcripts is longer than GPTZero's 200-character minimum. Most discovered clips are short or music-heavy. The report counts "long enough and waiting on a key" separately so the denominator stays honest, and the crawl should favor longer talking videos. The pipeline's own verdict step is what decides which are false. This is a sample, not a census.
+
+Two bugs found in the scan and fixed: `yt-dlp` sometimes exits non-zero while printing complete metadata, and the scanner trusted the exit code, so one video falsely showed as failed. It now trusts the JSON.
 
 ## What is in this folder
 
@@ -116,6 +137,7 @@ That folder is a pre-event prototype, so `post.py` is not on the branch. Its log
 | `test_failure_modes.py` | 31 tests for logic, inputs, robustness and speed, with its own runner |
 | `websearch_fallback.py` | Guideline and public-health web search when papers run thin, badged as web sources |
 | `test_websearch_fallback.py`, `WIRING.md` | Its tests and where it slots into the backend |
+| `crawl/` | Logged-out TikTok discovery scroller, audio-only transcript scan, report, and which routes work |
 
 `fulltext_render.mjs` needs `playwright` installed. The frontend already has it as a dev dependency, so run it from there or `npm i playwright` in this folder.
 
