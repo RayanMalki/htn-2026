@@ -85,6 +85,13 @@ Set `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT_ID` only if you want 
 
 The token needs organization dashboard write access. For a regional account, set `SENTRY_API_BASE` to its API origin. The script updates a same-name dashboard instead of creating duplicates.
 
+Case duration is stored as numeric transaction data under `case.duration_seconds`, using `set_data`.
+The p50/p95 widgets use the spans dataset and aggregate `tags[case.duration_seconds,number]`,
+filtered to `app.tasks.process_case` transactions. Widget titles specify seconds because custom data
+does not carry a measurement unit. The existing total-time calculation still includes queue wait and
+prior attempts. Re-run the provisioner to update an already-created dashboard; live widget queries
+must be verified after ingestion into the connected Sentry workspace.
+
 Create alerts for new or regressed backend issues, production error volume, missed cron check-ins, and external uptime failures. If the plan supports trace-metric alerts, add one for `app.tasks.process_case` over 90 seconds. Installing the SDK does not create notification routes automatically.
 
 ## Controlled failure demonstration

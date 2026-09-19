@@ -44,6 +44,13 @@ def log_event(message: str, **attributes):
     sentry_logger.info(message, attributes=safe)
 
 
+def record_case_duration(seconds: float):
+    """Attach total case time to the transaction, even inside a child span."""
+    transaction = sentry_sdk.get_current_scope().transaction
+    if transaction is not None:
+        transaction.set_data("case.duration_seconds", seconds)
+
+
 def configure_sentry():
     cfg = settings()
     if not cfg.sentry_dsn:

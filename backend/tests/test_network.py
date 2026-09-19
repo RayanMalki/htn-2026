@@ -1,6 +1,7 @@
 import socket
 
 import pytest
+
 from app.downloader import public_resolver
 
 

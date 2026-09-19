@@ -61,6 +61,8 @@ services:
       test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
       interval: 15s
       retries: 5
+    ports:
+      - "8000:8000"
   worker:
     <<: *backend
     command: [celery, -A, app.queue.celery, worker, --loglevel=INFO, --concurrency=2, --hostname=worker@%h]
