@@ -1,0 +1,188 @@
+import asyncio
+from datetime import datetime
+from pathlib import Path
+from time import monotonic
+
+import httpx
+import sentry_sdk
+
+from app.config import settings
+from app.db import now, read_case, update_case
+from app.literature import Literature
+from app.media import MediaError, download, extract_audio
+from app.models import models
+from app.observability import stage
+from app.schemas import AudioAnalysis, Claim, validate_verdict
+from app.search import ElasticSearch
+
+TERMINAL = {"complete", "no_claims", "incomplete", "awaiting_upload"}
+
+
+async def run_case(case_id: str):
+    existing = read_case(case_id)
+    if existing["status"] in TERMINAL:
+        return
+    from app.db import Case, session
+    with session() as db:
+        saved = db.get(Case, case_id)
+        media_path = saved.media_path
+    cfg = settings()
+    result = dict(existing["result"])
+    if "analysis" in result and result.get("model_mode") != cfg.model_mode:
+        update_case(case_id, status="incomplete", finished_at=now(), error={
+            "code": "model_configuration_changed", "message": "Model mode changed during this case. Submit a new case to use the new model configuration.",
+        })
+        return
+    timings = dict(result.get("timings", {}))
+    previous_attempt = timings.get("total", 0)
+    queue_wait = max(0, (now() - datetime.fromisoformat(existing["updated_at"])).total_seconds())
+    timings["queue_wait"] = round(queue_wait, 3)
+    started = monotonic() - queue_wait
+    stage_name = "intake"
+    update_case(case_id, started_at=now(), error=None, result_patch={
+        "schema_version": 1, "model_mode": cfg.model_mode,
+        "model_id": cfg.gemini_model if cfg.model_mode == "live" else "prepared-fixture-v1",
+        "limitations": ["Spoken English only; at most three claims; literature search is not exhaustive."]
+        + (["MOCK MODE: the transcript and claim are prepared inputs, not extracted from this video."]
+           if cfg.model_mode == "mock" else []),
+    })
+    sentry_sdk.set_tag("case_id", case_id)
+    sentry_sdk.set_tag("model_mode", cfg.model_mode)
+
+    def save(**patch):
+        update_case(case_id, result_patch={**patch, "timings": dict(timings)})
+
+    try:
+        async with asyncio.timeout(cfg.case_timeout_seconds):
+            if not media_path:
+                update_case(case_id, status="downloading")
+                try:
+                    with stage("download", timings):
+                        path = await download(case_id, existing["source_url"])
+                    media_path = str(path)
+                    update_case(case_id, media_path=media_path)
+                except MediaError as exc:
+                    timings["total"] = round(monotonic() - started + previous_attempt, 3)
+                    update_case(case_id, status="awaiting_upload", error={"code": "download_blocked",
+                        "message": str(exc)}, result_patch={"timings": timings})
+                    return
+
+            stage_name = "transcription"
+            update_case(case_id, status="transcribing")
+            adapter = models()
+            if "analysis" in result:
+                analysis = AudioAnalysis.model_validate(result["analysis"])
+            else:
+                with stage("audio_extraction", timings):
+                    audio, duration = await extract_audio(Path(media_path))
+                with stage("transcription", timings):
+                    async with asyncio.timeout(25):
+                        analysis = await adapter.analyze(audio)
+                if any(c.end > duration + 0.5 for c in analysis.claims):
+                    raise ValueError("Claim timestamp exceeds media duration")
+                save(analysis=analysis.model_dump(), duration_seconds=duration)
+            if analysis.language.lower() not in {"en", "english"}:
+                raise MediaError("Only spoken English is supported in this iteration")
+            if not analysis.usable_speech or not analysis.claims:
+                timings["total"] = round(monotonic() - started + previous_attempt, 3)
+                update_case(case_id, status="no_claims", finished_at=now(), result_patch={
+                    "timings": timings, "outcome": "No usable spoken medical claims were found.",
+                })
+                return
+
+            stage_name = "research"
+            update_case(case_id, status="researching")
+            completed = dict(result.get("claims", {}))
+            failures = []
+            async with httpx.AsyncClient(timeout=10) as client:
+                literature = Literature(client)
+                search = ElasticSearch(client)
+
+                async def research(claim: Claim):
+                    # Checkpoints are persisted after every completed claim and reused on redelivery.
+                    if completed.get(claim.id, {}).get("evidence") is not None:
+                        return
+                    local_timings = {}
+                    try:
+                        async with asyncio.timeout(cfg.research_timeout_seconds):
+                            with stage("literature", local_timings) as span:
+                                passages, provenance = await literature.discover(claim)
+                                for key in ["papers_found", "passages_found", "cache_hits", "full_text_fallbacks"]:
+                                    span.set_data(key, provenance.get(key, 0))
+                            sources = {p.paper_id: {"title": p.title, "source_url": p.source_url,
+                                "access_type": p.access_type} for p in passages}
+                            completed[claim.id] = {"claim": claim.model_dump(), "status": "indexing",
+                                "discovered_sources": list(sources.values()), "timings": local_timings}
+                            save(claims=dict(completed))
+                            with stage("indexing", local_timings) as span:
+                                indexing = await search.index(passages)
+                                span.set_data("indexed", indexing.get("indexed", 0))
+                                span.set_data("cache_hits", indexing.get("index_cache_hits", 0))
+                            with stage("retrieval", local_timings):
+                                evidence, mode = await search.retrieve(claim.text, provenance["candidate_ids"],
+                                    hybrid=cfg.elastic_semantic and indexing["index_mode"] == "hybrid")
+                        completed[claim.id] = {"claim": claim.model_dump(),
+                            "evidence": [p.model_dump() for p in evidence],
+                            "provenance": {**provenance, **indexing, "retrieval_mode": mode},
+                            "timings": local_timings, "status": "researched"}
+                    except Exception as exc:
+                        sentry_sdk.capture_exception(exc)
+                        failures.append(claim.id)
+                        completed[claim.id] = {**completed.get(claim.id, {}), "claim": claim.model_dump(), "status": "incomplete",
+                            "error": "Medical research could not complete. No verdict was assigned.",
+                            "timings": local_timings}
+                    save(claims=dict(completed))
+
+                with stage("research", timings):
+                    await asyncio.gather(*(research(c) for c in analysis.claims))
+
+            stage_name = "judgment"
+            update_case(case_id, status="judging")
+
+            async def judge(claim: Claim):
+                from app.schemas import Passage
+                item = completed[claim.id]
+                if item.get("verdict") or item["status"] == "incomplete":
+                    return
+                try:
+                    evidence = [Passage.model_validate(p) for p in item["evidence"]]
+                    with stage("judgment", item["timings"]):
+                        async with asyncio.timeout(20):
+                            verdict = validate_verdict(await adapter.judge(claim, evidence), evidence)
+                    item.update(verdict=verdict.model_dump(), status="complete")
+                except Exception as exc:
+                    sentry_sdk.capture_exception(exc)
+                    failures.append(claim.id)
+                    item.update(status="incomplete", error="Evidence judgment failed validation or timed out.")
+                save(claims=dict(completed))
+
+            with stage("judgment", timings):
+                await asyncio.gather(*(judge(c) for c in analysis.claims))
+            timings["total"] = round(monotonic() - started + previous_attempt, 3)
+            status = "incomplete" if failures or any(c["status"] == "incomplete" for c in completed.values()) else "complete"
+            sentry_sdk.set_tag("case_status", status)
+            sentry_sdk.set_measurement("case.duration", timings["total"], "second")
+            update_case(case_id, status=status, finished_at=now(), result_patch={
+                "claims": completed, "timings": timings, "target_met": timings["total"] <= 90,
+            })
+    except Exception as exc:
+        sentry_sdk.capture_exception(exc)
+        timings["total"] = round(monotonic() - started + previous_attempt, 3)
+        message = str(exc) if isinstance(exc, MediaError) else f"The {stage_name} stage did not complete. No unsupported verdict was assigned."
+        latest = read_case(case_id)["result"]
+        partial_claims = latest.get("claims", {})
+        for claim in latest.get("analysis", {}).get("claims", []):
+            item = partial_claims.setdefault(claim["id"], {"claim": claim})
+            if item.get("status") != "complete":
+                item.update(status="incomplete", error=message)
+        update_case(case_id, status="incomplete", finished_at=now(), error={
+            "code": f"{stage_name}_failed", "message": message,
+        }, result_patch={"timings": timings, "claims": partial_claims})
+    finally:
+        final_status = read_case(case_id)["status"]
+        sentry_sdk.set_tag("case_status", final_status)
+        if "total" in timings:
+            sentry_sdk.set_measurement("case.duration", timings["total"], "second")
+        if final_status in {"complete", "no_claims", "incomplete"}:
+            from app.replay import export_case
+            export_case(case_id)

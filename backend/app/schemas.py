@@ -1,0 +1,116 @@
+import re
+from typing import Literal
+from urllib.parse import urlsplit
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+class StrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class CaseCreate(StrictModel):
+    source_url: str = Field(max_length=2048)
+
+    @field_validator("source_url")
+    @classmethod
+    def instagram_only(cls, value: str) -> str:
+        url = urlsplit(value.strip())
+        if (url.scheme != "https" or url.hostname not in {"instagram.com", "www.instagram.com"}
+                or url.username or url.password or url.port not in (None, 443)
+                or not re.fullmatch(r"/reels?/[A-Za-z0-9_-]+/?", url.path)):
+            raise ValueError("Use a public https://www.instagram.com/reel/… link.")
+        return f"https://www.instagram.com{url.path.rstrip('/')}/"
+
+
+class TranscriptSegment(StrictModel):
+    start: float = Field(ge=0, le=60)
+    end: float = Field(ge=0, le=60)
+    text: str = Field(min_length=1, max_length=4000)
+
+    @model_validator(mode="after")
+    def ordered(self):
+        if self.end < self.start:
+            raise ValueError("Segment end precedes start")
+        return self
+
+
+class Claim(StrictModel):
+    id: str = Field(pattern=r"^c[1-3]$")
+    text: str = Field(min_length=1, max_length=1000)
+    start: float = Field(ge=0, le=60)
+    end: float = Field(ge=0, le=60)
+    search_terms: list[str] = Field(min_length=1, max_length=3)
+
+    @field_validator("search_terms")
+    @classmethod
+    def bounded_terms(cls, terms):
+        if any(not t.strip() or len(t) > 200 for t in terms):
+            raise ValueError("Search terms must be 1–200 characters")
+        return terms
+
+    @model_validator(mode="after")
+    def ordered(self):
+        if self.end < self.start:
+            raise ValueError("Claim end precedes start")
+        return self
+
+
+class AudioAnalysis(StrictModel):
+    transcript: list[TranscriptSegment] = Field(max_length=120)
+    claims: list[Claim] = Field(max_length=3)
+    omitted_claims: int = Field(ge=0)
+    language: str
+    usable_speech: bool
+
+    @model_validator(mode="after")
+    def unique_claims(self):
+        if len({c.id for c in self.claims}) != len(self.claims):
+            raise ValueError("Duplicate claim identifiers")
+        if self.claims and (not self.usable_speech or not self.transcript):
+            raise ValueError("Claims require usable speech and transcript")
+        return self
+
+
+class Passage(StrictModel):
+    id: str
+    paper_id: str
+    title: str
+    source_url: str
+    published: str | None
+    study_types: list[str]
+    access_type: Literal["full_text", "abstract_only"]
+    section: str
+    text: str
+    context: str
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+    known_retracted: bool = False
+
+    @model_validator(mode="after")
+    def exact_offsets(self):
+        if self.context[self.start:self.end] != self.text:
+            raise ValueError("Passage offsets must address exact stored source text")
+        return self
+
+
+class Citation(StrictModel):
+    passage_id: str
+    quote: str = Field(min_length=1, max_length=3000)
+
+
+class Verdict(StrictModel):
+    label: Literal["supports", "contradicts", "uncertain"]
+    explanation: str = Field(min_length=1, max_length=2500)
+    citations: list[Citation] = Field(max_length=6)
+    limitations: list[str] = Field(max_length=10)
+
+
+def validate_verdict(verdict: Verdict, passages: list[Passage]) -> Verdict:
+    evidence = {p.id: p for p in passages if not p.known_retracted}
+    if verdict.label != "uncertain" and not verdict.citations:
+        raise ValueError("A conclusive verdict requires evidence")
+    for citation in verdict.citations:
+        if citation.passage_id not in evidence or citation.quote not in evidence[citation.passage_id].text:
+            raise ValueError("Citation is not verbatim in retrieved evidence")
+    return verdict

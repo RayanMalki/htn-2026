@@ -1,0 +1,25 @@
+export type Passage = {
+  id: string; paper_id: string; title: string; source_url: string; published: string | null;
+  study_types: string[]; access_type: 'full_text' | 'abstract_only'; section: string;
+  text: string; context: string; start: number; end: number;
+};
+export type Claim = { id: string; text: string; start: number; end: number; search_terms: string[] };
+export type ClaimResult = {
+  claim: Claim; status: string; evidence?: Passage[]; error?: string; timings?: Record<string, number>;
+  discovered_sources?: { title: string; source_url: string; access_type: string }[];
+  provenance?: { retrieval_mode: string; papers_found: number; cache_hits: number; query: string; provider: string; searched_at: string };
+  verdict?: { label: 'supports' | 'contradicts' | 'uncertain'; explanation: string;
+    citations: { passage_id: string; quote: string }[]; limitations: string[] };
+};
+export type Case = {
+  id: string; source_url: string; status: string; created_at: string; updated_at: string;
+  started_at: string | null; finished_at: string | null; sequence: number;
+  error: { code: string; message: string } | null;
+  result: { schema_version: number; model_mode: 'mock' | 'live'; input_mode?: string;
+    submitted_at?: string;
+    timings?: Record<string, number>; limitations?: string[]; outcome?: string;
+    analysis?: { transcript: { start: number; end: number; text: string }[]; claims: Claim[]; omitted_claims: number };
+    claims?: Record<string, ClaimResult> };
+};
+export type Metrics = { total_cases: number; finished: number; complete: number; failed: number;
+  queued: number; p50_seconds: number | null; p95_seconds: number | null; stages: Record<string, number> };

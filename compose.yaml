@@ -1,0 +1,102 @@
+name: hypecheck
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+psycopg://hypecheck:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/hypecheck
+    REDIS_URL: redis://redis:6379/0
+    MEDIA_ROOT: /data
+    UPTIME_URL: ${UPTIME_URL:-http://api:8000/healthz}
+  volumes:
+    - media:/data
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: hypecheck
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: hypecheck
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U hypecheck"]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, "yes", --maxmemory, 256mb, --maxmemory-policy, noeviction]
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      retries: 10
+    restart: unless-stopped
+  migrate:
+    <<: *backend
+    command: [python, -m, app.cli, init-db]
+    restart: "no"
+  api:
+    <<: *backend
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 15s
+      retries: 5
+  worker:
+    <<: *backend
+    command: [celery, -A, app.queue.celery, worker, --loglevel=INFO, --concurrency=2, --hostname=worker@%h]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  beat:
+    <<: *backend
+    command: [celery, -A, app.queue.celery, beat, --loglevel=INFO, --schedule=/data/celerybeat-schedule]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_SENTRY_DSN: ${VITE_SENTRY_DSN:-}
+        VITE_SENTRY_ENVIRONMENT: ${VITE_SENTRY_ENVIRONMENT:-development}
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres:
+  redis:
+  media:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,131 @@
+import json
+
+import httpx
+import sentry_sdk
+
+from app.config import settings
+from app.http import request
+from app.schemas import Passage
+
+
+def diversify(passages: list[Passage], limit: int = 6) -> list[Passage]:
+    counts: dict[str, int] = {}
+    selected = []
+    for p in passages:
+        if p.known_retracted or counts.get(p.paper_id, 0) >= 2:
+            continue
+        counts[p.paper_id] = counts.get(p.paper_id, 0) + 1
+        selected.append(p)
+        if len(selected) == limit:
+            break
+    return selected
+
+
+class ElasticSearch:
+    def __init__(self, client: httpx.AsyncClient):
+        self.client = client
+        self.cfg = settings()
+        self.base = self.cfg.elasticsearch_url.rstrip("/")
+        self.headers = {"Authorization": f"ApiKey {self.cfg.elasticsearch_api_key}"}
+
+    async def call(self, method: str, path: str, **kwargs):
+        if not self.base or not self.cfg.elasticsearch_api_key:
+            raise RuntimeError("Elasticsearch is not configured")
+        return await request(self.client, method, self.base + path, headers={**self.headers, "Content-Type": "application/x-ndjson" if "_bulk" in path else "application/json"}, **kwargs)
+
+    async def provision(self):
+        properties = {
+            "paper_id": {"type": "keyword"}, "title": {"type": "text"},
+            "text": {"type": "text", "analyzer": "english"},
+            "section": {"type": "keyword"}, "access_type": {"type": "keyword"},
+            "known_retracted": {"type": "boolean"}, "id": {"type": "keyword"},
+            "context": {"type": "text", "index": False},
+        }
+        if self.cfg.elastic_semantic:
+            await self.call("GET", f"/_inference/{self.cfg.elastic_inference_id}")
+            properties["semantic"] = {"type": "semantic_text", "inference_id": self.cfg.elastic_inference_id}
+        try:
+            await self.call("PUT", f"/{self.cfg.elastic_index}", json={
+                "mappings": {"properties": properties},
+            })
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 400 or "resource_already_exists_exception" not in exc.response.text:
+                raise
+        # Detect an incompatible existing index instead of silently claiming hybrid support.
+        mapping = (await self.call("GET", f"/{self.cfg.elastic_index}/_mapping")).json()
+        props = next(iter(mapping.values()))["mappings"].get("properties", {})
+        if self.cfg.elastic_semantic and props.get("semantic", {}).get("inference_id") != self.cfg.elastic_inference_id:
+            raise RuntimeError("Existing index does not match semantic configuration; use a new ELASTIC_INDEX")
+
+    async def index(self, passages: list[Passage]) -> dict:
+        if not passages:
+            return {"index_cache_hits": 0, "indexed": 0, "index_mode": "hybrid"}
+        unique = {p.id: p for p in passages}
+        current = (await self.call("POST", f"/{self.cfg.elastic_index}/_mget", json={
+            "ids": list(unique), "_source": ["semantic", "study_types", "known_retracted"],
+        })).json()
+        existing = {d["_id"]: d.get("_source", {}) for d in current["docs"] if d.get("found")}
+        pending = [p for p in unique.values() if p.id not in existing
+                   or existing[p.id].get("study_types") != p.study_types
+                   or (self.cfg.elastic_semantic and "semantic" not in existing[p.id])]
+        semantic = self.cfg.elastic_semantic
+
+        async def bulk(items, use_semantic):
+            lines = []
+            for passage in items:
+                data = passage.model_dump()
+                if use_semantic:
+                    data["semantic"] = passage.text
+                lines.extend([json.dumps({"index": {"_id": passage.id}}), json.dumps(data)])
+            if not lines:
+                return []
+            reply = (await self.call("POST", f"/{self.cfg.elastic_index}/_bulk?refresh=wait_for",
+                                     content="\n".join(lines) + "\n",
+                                     # Authorization header remains on call; content-type is accepted by HTTPX.
+                                     )).json()
+            return [item["index"] for item in reply["items"] if item["index"].get("error")]
+
+        failures = await bulk(pending, semantic)
+        if failures and semantic:
+            sentry_sdk.capture_message("Elastic semantic indexing degraded to keyword", level="warning")
+            failed_ids = {f["_id"] for f in failures}
+            failures = await bulk([p for p in pending if p.id in failed_ids], False)
+            semantic = False
+        if failures:
+            raise RuntimeError("Elasticsearch bulk indexing failed")
+        return {"index_cache_hits": len(unique) - len(pending), "indexed": len(pending),
+                "index_mode": "hybrid" if semantic else "keyword_only"}
+
+    def query(self, query: str, candidate_ids: list[str], hybrid: bool):
+        filters = [{"terms": {"paper_id": candidate_ids}}, {"term": {"known_retracted": False}}]
+        lexical = {"bool": {"must": {"multi_match": {
+            "query": query, "fields": ["text", "title^1.5"],
+        }}, "filter": filters}}
+        base = {"size": 30, "_source": {"excludes": ["semantic"]}}
+        if hybrid:
+            return {**base, "retriever": {"rrf": {
+                "retrievers": [
+                    {"standard": {"query": lexical}},
+                    {"standard": {"query": {"bool": {
+                        "must": {"semantic": {"field": "semantic", "query": query}}, "filter": filters,
+                    }}}},
+                ], "rank_window_size": 50, "rank_constant": 60,
+            }}}
+        return {**base, "query": lexical}
+
+    async def retrieve(self, query: str, candidate_ids: list[str], hybrid: bool | None = None):
+        hybrid = self.cfg.elastic_semantic if hybrid is None else hybrid
+        if not candidate_ids:
+            return [], "hybrid" if hybrid else "keyword_only"
+        try:
+            reply = await self.call("POST", f"/{self.cfg.elastic_index}/_search",
+                                    json=self.query(query, candidate_ids, hybrid))
+        except httpx.HTTPStatusError as exc:
+            if not hybrid or exc.response.status_code not in {400, 402, 403, 429, 500, 503}:
+                raise
+            sentry_sdk.capture_message("Elastic hybrid retrieval degraded to keyword", level="warning")
+            reply = await self.call("POST", f"/{self.cfg.elastic_index}/_search",
+                                    json=self.query(query, candidate_ids, False))
+            hybrid = False
+        passages = [Passage.model_validate(h["_source"]) for h in reply.json()["hits"]["hits"]]
+        return diversify(passages), "hybrid" if hybrid else "keyword_only"

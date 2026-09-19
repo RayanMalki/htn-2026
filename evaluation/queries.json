@@ -1,0 +1,5 @@
+[
+  {"query": "Vitamin C prevents the common cold", "search_terms": ["vitamin C common cold prevention"], "expected_paper_ids": []},
+  {"query": "Creatine improves strength during resistance training", "search_terms": ["creatine resistance training strength"], "expected_paper_ids": []},
+  {"query": "Alkaline water prevents cancer", "search_terms": ["alkaline water cancer"], "expected_paper_ids": []}
+]
