@@ -15,7 +15,7 @@ import sentry_sdk
 from app.config import settings
 from app.db import now
 from app.http import request
-from app.schemas import AudioAnalysis, DetectedSentence, Detection, Scan
+from app.schemas import AudioAnalysis, DetectedParagraph, DetectedSentence, Detection, Scan
 from app.speech import strip_fillers
 
 ENDPOINT = "https://api.gptzero.me/v2/predict/text"
@@ -37,7 +37,14 @@ def read_scan(document: dict, basis: str, characters: int) -> Scan:
     ]
     top = sorted(scored, key=lambda s: s["generated_prob"], reverse=True)[:3]
     ai = probabilities.get("ai", document.get("completely_generated_prob"))
+    paragraphs = [
+        DetectedParagraph(index=i, sentences=max(0, int(p.get("num_sentences") or 0)),
+                          generated_prob=min(1.0, max(0.0, float(p["completely_generated_prob"]))))
+        for i, p in enumerate(document.get("paragraphs") or [])
+        if isinstance(p.get("completely_generated_prob"), (int, float))
+    ][:40]
     return Scan(
+        paragraphs=paragraphs,
         basis=basis, characters=characters,
         predicted_class=document.get("predicted_class"),
         ai_probability=min(1.0, max(0.0, float(ai))) if isinstance(ai, (int, float)) else None,

@@ -83,7 +83,23 @@ def _tidy(text: str) -> str:
 
 
 def strip_fillers(text: str) -> tuple[str, list[str]]:
-    """Return the text with speech fillers removed, plus what was removed."""
+    """Return the text with speech fillers removed, plus what was removed.
+
+    Paragraph breaks survive, because the detector scores per paragraph.
+    """
+    removed: list[str] = []
+    blocks = []
+    for block in re.split(r"\n\s*\n", text):
+        if not block.strip():
+            continue
+        cleaned, dropped = _strip_block(block)
+        removed.extend(dropped)
+        if cleaned:
+            blocks.append(cleaned)
+    return "\n\n".join(blocks), removed
+
+
+def _strip_block(text: str) -> tuple[str, list[str]]:
     removed: list[str] = []
     working = text
 

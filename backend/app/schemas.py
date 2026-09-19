@@ -111,6 +111,12 @@ class DetectedSentence(StrictModel):
     generated_prob: float = Field(ge=0, le=1)
 
 
+class DetectedParagraph(StrictModel):
+    index: int = Field(ge=0)
+    sentences: int = Field(ge=0)
+    generated_prob: float = Field(ge=0, le=1)
+
+
 class Scan(StrictModel):
     basis: Literal["verbatim", "filler_removed"]
     characters: int = Field(ge=0)
@@ -119,6 +125,8 @@ class Scan(StrictModel):
     confidence_category: str | None = None
     summary: str | None = None
     top_sentences: list[DetectedSentence] = Field(default_factory=list, max_length=3)
+    # The vendor states paragraph-level accuracy exceeds sentence-level, so keep both.
+    paragraphs: list[DetectedParagraph] = Field(default_factory=list, max_length=40)
 
 
 class Detection(StrictModel):
