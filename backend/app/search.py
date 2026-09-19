@@ -38,6 +38,12 @@ class ElasticSearch:
             "paper_id": {"type": "keyword"}, "title": {"type": "text"},
             "text": {"type": "text", "analyzer": "english"},
             "section": {"type": "keyword"}, "access_type": {"type": "keyword"},
+            "provider": {"type": "keyword"}, "external_id": {"type": "keyword"},
+            "source_kind": {"type": "keyword"}, "license": {"type": "keyword"},
+            "published": {"type": "date", "ignore_malformed": True},
+            "updated_at": {"type": "date", "ignore_malformed": True},
+            "retrieved_at": {"type": "date", "ignore_malformed": True},
+            "study_types": {"type": "keyword"},
             "known_retracted": {"type": "boolean"}, "id": {"type": "keyword"},
             "context": {"type": "text", "index": False},
         }
@@ -56,17 +62,30 @@ class ElasticSearch:
         props = next(iter(mapping.values()))["mappings"].get("properties", {})
         if self.cfg.elastic_semantic and props.get("semantic", {}).get("inference_id") != self.cfg.elastic_inference_id:
             raise RuntimeError("Existing index does not match semantic configuration; use a new ELASTIC_INDEX")
+        expected_types = {name: definition["type"] for name, definition in properties.items()}
+        incompatible = [name for name, expected in expected_types.items()
+                        if name in props and props[name].get("type") != expected]
+        if incompatible:
+            raise RuntimeError(
+                f"Existing index has incompatible mappings for {', '.join(incompatible)}; use a new ELASTIC_INDEX")
+        missing = {name: definition for name, definition in properties.items() if name not in props}
+        if missing:
+            await self.call("PUT", f"/{self.cfg.elastic_index}/_mapping", json={"properties": missing})
 
     async def index(self, passages: list[Passage]) -> dict:
         if not passages:
             return {"index_cache_hits": 0, "indexed": 0, "index_mode": "hybrid"}
         unique = {p.id: p for p in passages}
         current = (await self.call("POST", f"/{self.cfg.elastic_index}/_mget", json={
-            "ids": list(unique), "_source": ["semantic", "study_types", "known_retracted"],
+            "ids": list(unique), "_source": ["semantic", "study_types", "known_retracted",
+                                               "provider", "source_kind", "access_type"],
         })).json()
         existing = {d["_id"]: d.get("_source", {}) for d in current["docs"] if d.get("found")}
         pending = [p for p in unique.values() if p.id not in existing
                    or existing[p.id].get("study_types") != p.study_types
+                   or existing[p.id].get("provider") != p.provider
+                   or existing[p.id].get("source_kind") != p.source_kind
+                   or existing[p.id].get("access_type") != p.access_type
                    or (self.cfg.elastic_semantic and "semantic" not in existing[p.id])]
         semantic = self.cfg.elastic_semantic
 
@@ -97,7 +116,7 @@ class ElasticSearch:
                 "index_mode": "hybrid" if semantic else "keyword_only"}
 
     def query(self, query: str, candidate_ids: list[str], hybrid: bool):
-        filters = [{"terms": {"paper_id": candidate_ids}}, {"term": {"known_retracted": False}}]
+        filters = [{"ids": {"values": candidate_ids}}, {"term": {"known_retracted": False}}]
         lexical = {"bool": {"must": {"multi_match": {
             "query": query, "fields": ["text", "title^1.5"],
         }}, "filter": filters}}

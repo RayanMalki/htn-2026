@@ -98,7 +98,7 @@ async def ready():
     except Exception:
         checks.setdefault("elasticsearch", False)
         checks["semantic_endpoint"] = False
-    checks["model_configured"] = settings().model_mode == "mock" or bool(settings().gemini_api_key)
+    checks["model_configured"] = settings().model_configured
     return JSONResponse({"status": "ready" if all(checks.values()) else "not_ready", "checks": checks,
                          "model_mode": settings().model_mode}, status_code=200 if all(checks.values()) else 503)
 

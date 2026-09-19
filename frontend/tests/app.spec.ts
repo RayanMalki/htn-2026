@@ -76,3 +76,35 @@ test('observatory renders recorded measurements', async ({ page }) => {
   await expect(page.getByText('42s', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Average time by stage' })).toBeVisible();
 });
+
+test('health summaries have working citations and disclose supplemental outages', async ({ page }) => {
+  const result = structuredClone(complete);
+  const item = result.result.claims.c1;
+  Object.assign(item.evidence[0], { title: 'Common Cold', source_url: 'https://medlineplus.gov/commoncold.html',
+    access_type: 'summary', provider: 'medlineplus', study_types: ['Curated health topic'] });
+  Object.assign(item.provenance, { sources_found: 16,
+    provider_failures: [{ provider: 'MedlinePlus', error: 'TimeoutError' }] });
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByText('Health summary', { exact: true })).toBeVisible();
+  await expect(page.getByText('16 sources discovered')).toBeVisible();
+  await expect(page.getByText(/MedlinePlus unavailable/)).toBeVisible();
+  await page.locator('summary').filter({ hasText: 'Common Cold' }).click();
+  await expect(page.getByRole('link', { name: 'Read the health topic' })).toHaveAttribute('href', 'https://medlineplus.gov/commoncold.html');
+});
+
+test('required provider outage shows incomplete research and preserves source links', async ({ page }) => {
+  const result = { ...complete, status: 'incomplete', result: { ...complete.result, claims: { c1: {
+    claim, status: 'incomplete', error: 'Medical research could not complete. No verdict was assigned.',
+    provenance: { provider: 'MedlinePlus', sources_found: 1,
+      provider_failures: [{ provider: 'Europe PMC', error: 'ReadTimeout' }] },
+    discovered_sources: [{ title: 'Common Cold health topic', source_url: 'https://medlineplus.gov/commoncold.html', access_type: 'summary' }],
+  } } } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByText(/Europe PMC unavailable/)).toBeVisible();
+  await expect(page.getByText('Retrieval not completed')).toBeVisible();
+  await expect(page.getByText('Keyword only · degraded retrieval')).toHaveCount(0);
+  await page.getByText('Sources discovered before the interruption').click();
+  await expect(page.getByRole('link', { name: 'Common Cold health topic' })).toHaveAttribute('href', 'https://medlineplus.gov/commoncold.html');
+});

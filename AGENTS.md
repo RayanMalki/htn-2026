@@ -87,3 +87,21 @@ npm --prefix frontend run test:e2e
 - `frontend/src/`: React interface and API client.
 
 Keep `.env`, `.venv`, `node_modules`, build outputs, caches, local media/data, and artifacts out of Git. Commit source, tests, lockfiles, documentation, and `.env.example`. Preserve existing data volumes when restarting the stack; `docker compose down -v` deletes them.
+
+## Multi-source follow-up
+
+The multi-source branch adds supplemental MedlinePlus health topics, balanced Europe PMC candidate selection, study-design prioritization for full-text downloads, explicit provider metadata, and exact-passage Elasticsearch filters. The default index is now `hypecheck-passages-v2`; existing `.env` overrides are not automatically migrated. Run index provisioning before using a newly selected index.
+
+Review fixes make Europe PMC mandatory for a verdict, preserve discovered source references on its failure, disclose supplemental-provider outages, and cap MedlinePlus at five seconds including retry and semaphore wait. The React interface supports health-summary labels, MedlinePlus source links, per-provider queries, source counts, and incomplete-research messages. These changes do not establish live medical accuracy or the 90-second target.
+
+## Backboard provider follow-up
+
+The team has Backboard credits rather than Google credits. `MODEL_PROVIDER=backboard` is now the default live route, using `BACKBOARD_API_KEY`, `BACKBOARD_LLM_PROVIDER=openai`, and `BACKBOARD_MODEL=gpt-4o-mini`. Mock mode remains the default until live credentials are configured. `backend/app/backboard.py` sends ten-second audio windows to Backboard's Whisper STT with three concurrent requests, then extracts claims with validated window references. Timestamps are explicitly coarse window ranges. Judgment shares the evidence-only prompt and citation validation with Gemini; no direct Google/OpenAI key is needed by the Backboard adapter. Readiness and preflight are provider-aware. Live STT/credit coverage and the 90-second target still need account-backed verification; do not infer them from mocked contract tests. The direct Gemini adapter remains selectable.
+
+Live Backboard checks authenticated and found the text model, but actual chat and STT were rejected because the account credits are restricted to Memory & RAG. The key is stored only in ignored `.env`; mock mode remains enabled. Current verification: 76 backend tests, 12 browser tests, frontend production build, and CI-configured Ruff checks passed.
+
+## Current provider: direct OpenAI
+
+The user chose a direct OpenAI key after evaluating Backboard. `MODEL_PROVIDER=openai` is now the default; local `.env` uses `MODEL_MODE=live`. The key is stored only in ignored `.env`. `backend/app/openai_models.py` uses Whisper `verbose_json` segment timestamps and `gpt-4.1-mini` Responses structured output with `store=false`. Claim timestamps come from validated segment indices. Backboard and Gemini remain optional and are not used on this path. Provider-aware preflight performs a small real text request. Changing providers/models mid-case is rejected when saved analysis has a different model identity.
+
+Real OpenAI text inference and transcription/claim extraction succeeded on a short synthetic spoken clip (approximately 4.35 and 5.42 seconds respectively). These timings are not an end-to-end benchmark. All 86 backend tests and lint passed; the production Docker stack rebuilt and restarted in live mode. Health is OK; readiness correctly reports Elasticsearch and its semantic endpoint missing. The 12 browser checks passed during the preceding provider integration; no further frontend changes were needed for the direct OpenAI adapter.

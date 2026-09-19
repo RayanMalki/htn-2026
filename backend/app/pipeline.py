@@ -8,7 +8,7 @@ import sentry_sdk
 
 from app.config import settings
 from app.db import now, read_case, update_case
-from app.literature import Literature
+from app.literature import DiscoveryIncomplete, Literature
 from app.media import MediaError, download, extract_audio
 from app.models import models
 from app.observability import log_event, record_case_duration, stage
@@ -28,7 +28,8 @@ async def run_case(case_id: str):
         media_path = saved.media_path
     cfg = settings()
     result = dict(existing["result"])
-    if "analysis" in result and result.get("model_mode") != cfg.model_mode:
+    if "analysis" in result and (result.get("model_mode") != cfg.model_mode
+            or (result.get("model_id") is not None and result["model_id"] != cfg.model_id)):
         update_case(case_id, status="incomplete", finished_at=now(), error={
             "code": "model_configuration_changed", "message": "Model mode changed during this case. Submit a new case to use the new model configuration.",
         })
@@ -41,10 +42,12 @@ async def run_case(case_id: str):
     stage_name = "intake"
     update_case(case_id, started_at=now(), error=None, result_patch={
         "schema_version": 1, "model_mode": cfg.model_mode,
-        "model_id": cfg.gemini_model if cfg.model_mode == "live" else "prepared-fixture-v1",
+        "model_id": cfg.model_id,
         "limitations": ["Spoken English only; at most three claims; literature search is not exhaustive."]
         + (["MOCK MODE: the transcript and claim are prepared inputs, not extracted from this video."]
-           if cfg.model_mode == "mock" else []),
+           if cfg.model_mode == "mock" else [])
+        + (["Claim timestamps are approximate 10-second audio-window ranges, not word-level timing."]
+           if cfg.model_mode == "live" and cfg.model_provider == "backboard" else []),
     })
     sentry_sdk.set_tag("case_id", case_id)
     sentry_sdk.set_tag("model_mode", cfg.model_mode)
@@ -78,7 +81,7 @@ async def run_case(case_id: str):
                     audio, duration = await extract_audio(Path(media_path))
                 with stage("transcription", timings):
                     async with asyncio.timeout(25):
-                        analysis = await adapter.analyze(audio)
+                        analysis = await adapter.analyze(audio, duration=duration)
                 if any(c.end > duration + 0.5 for c in analysis.claims):
                     raise ValueError("Claim timestamp exceeds media duration")
                 save(analysis=analysis.model_dump(), duration_seconds=duration)
@@ -111,7 +114,8 @@ async def run_case(case_id: str):
                                 for key in ["papers_found", "passages_found", "cache_hits", "full_text_fallbacks"]:
                                     span.set_data(key, provenance.get(key, 0))
                             sources = {p.paper_id: {"title": p.title, "source_url": p.source_url,
-                                "access_type": p.access_type} for p in passages}
+                                "access_type": p.access_type, "provider": p.provider,
+                                "source_kind": p.source_kind} for p in passages}
                             completed[claim.id] = {"claim": claim.model_dump(), "status": "indexing",
                                 "discovered_sources": list(sources.values()), "timings": local_timings}
                             save(claims=dict(completed))
@@ -129,6 +133,15 @@ async def run_case(case_id: str):
                     except Exception as exc:
                         sentry_sdk.capture_exception(exc)
                         failures.append(claim.id)
+                        if isinstance(exc, DiscoveryIncomplete):
+                            completed[claim.id] = {
+                                "provenance": exc.provenance,
+                                "discovered_sources": list({p.paper_id: {
+                                    "title": p.title, "source_url": p.source_url,
+                                    "access_type": p.access_type, "provider": p.provider,
+                                    "source_kind": p.source_kind,
+                                } for p in exc.passages}.values()),
+                            }
                         completed[claim.id] = {**completed.get(claim.id, {}), "claim": claim.model_dump(), "status": "incomplete",
                             "error": "Medical research could not complete. No verdict was assigned.",
                             "timings": local_timings}
@@ -150,6 +163,9 @@ async def run_case(case_id: str):
                     with stage("judgment", item["timings"]):
                         async with asyncio.timeout(20):
                             verdict = validate_verdict(await adapter.judge(claim, evidence), evidence)
+                    for failure in item.get("provenance", {}).get("provider_failures", []):
+                        verdict.limitations.append(
+                            f"{failure['provider']} was unavailable; this assessment uses the remaining sources.")
                     item.update(verdict=verdict.model_dump(), status="complete")
                 except Exception as exc:
                     sentry_sdk.capture_exception(exc)

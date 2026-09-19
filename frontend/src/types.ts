@@ -1,13 +1,17 @@
 export type Passage = {
   id: string; paper_id: string; title: string; source_url: string; published: string | null;
-  study_types: string[]; access_type: 'full_text' | 'abstract_only'; section: string;
+  study_types: string[]; access_type: 'full_text' | 'abstract_only' | 'summary';
+  provider?: 'europe_pmc' | 'medlineplus'; source_kind?: string; section: string;
   text: string; context: string; start: number; end: number;
 };
 export type Claim = { id: string; text: string; start: number; end: number; search_terms: string[] };
 export type ClaimResult = {
   claim: Claim; status: string; evidence?: Passage[]; error?: string; timings?: Record<string, number>;
   discovered_sources?: { title: string; source_url: string; access_type: string }[];
-  provenance?: { retrieval_mode: string; papers_found: number; cache_hits: number; query: string; provider: string; searched_at: string };
+  provenance?: { retrieval_mode?: string; papers_found?: number; sources_found?: number; cache_hits?: number;
+    query?: string; provider: string; searched_at?: string;
+    provider_failures?: { provider: string; error: string }[];
+    providers?: { provider: string; query: string; searched_at: string }[] };
   verdict?: { label: 'supports' | 'contradicts' | 'uncertain'; explanation: string;
     citations: { passage_id: string; quote: string }[]; limitations: string[] };
 };

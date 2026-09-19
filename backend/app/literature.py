@@ -2,15 +2,26 @@ import asyncio
 import hashlib
 import re
 from datetime import UTC, timedelta
+from urllib.parse import urlsplit
 
 import httpx
 from defusedxml import ElementTree
 
+from app.config import settings
 from app.db import PaperCache, now, session
 from app.http import request
 from app.schemas import Claim, Passage
 
 BASE = "https://www.ebi.ac.uk/europepmc/webservices/rest"
+MEDLINEPLUS_TIMEOUT_SECONDS = 5.0
+MEDLINEPLUS_BASE = "https://wsearch.nlm.nih.gov/ws/query"
+
+
+class DiscoveryIncomplete(RuntimeError):
+    def __init__(self, passages, provenance):
+        super().__init__("Required Europe PMC research failed")
+        self.passages = passages
+        self.provenance = provenance
 
 
 def plain_text(value: str) -> str:
@@ -62,6 +73,44 @@ class Literature:
         self.limiter = asyncio.Semaphore(5)
 
     async def discover(self, claim: Claim) -> tuple[list[Passage], dict]:
+        providers = [self._europe_pmc(claim)]
+        provider_names = ["Europe PMC"]
+        if settings().medlineplus_enabled:
+            providers.append(self._bounded_medlineplus(claim))
+            provider_names.append("MedlinePlus")
+        results = await asyncio.gather(*providers, return_exceptions=True)
+        passages = []
+        provenance = []
+        failures = []
+        for name, result in zip(provider_names, results, strict=True):
+            if isinstance(result, BaseException):
+                failures.append({"provider": name, "error": type(result).__name__})
+            else:
+                found, details = result
+                passages.extend(found)
+                provenance.append(details)
+        europe = next((item for item in provenance if item["provider"] == "Europe PMC"), None)
+        primary = europe or (provenance[0] if provenance else {})
+        combined = {
+            **primary,
+            "provider": " + ".join(item["provider"] for item in provenance),
+            "providers": provenance,
+            "provider_failures": failures,
+            "sources_found": sum(item["sources_found"] for item in provenance),
+            "passages_found": len(passages),
+            "candidate_ids": sorted({p.id for p in passages}),
+            "candidate_paper_ids": sorted({p.paper_id for p in passages}),
+        }
+        if europe is None:
+            raise DiscoveryIncomplete(passages, combined)
+        return passages, combined
+
+    async def _bounded_medlineplus(self, claim: Claim):
+        # Includes semaphore wait, network requests, and retry delay.
+        async with asyncio.timeout(MEDLINEPLUS_TIMEOUT_SECONDS):
+            return await self._medlineplus(claim)
+
+    async def _europe_pmc(self, claim: Claim) -> tuple[list[Passage], dict]:
         query = build_query(claim.search_terms)
         title_query = query.replace("TITLE_ABS:", "TITLE:")
         review_query = f'({query}) AND (PUB_TYPE:"Systematic Review" OR PUB_TYPE:"Meta-Analysis" OR PUB_TYPE:"Randomized Controlled Trial")'
@@ -75,26 +124,83 @@ class Literature:
             return response.json().get("resultList", {}).get("result", [])
 
         tiers = await asyncio.gather(*(find(expression) for expression in queries))
-        raw = [record for tier in tiers for record in tier]
         unique = {}
-        for record in raw:
+
+        def add(record, tier):
             types = record.get("pubTypeList", {}).get("pubType", [])
-            # References to a retraction are not themselves reliable evidence for a verdict.
             if any("retract" in kind.lower() for kind in types):
-                continue
+                return
             key = record.get("pmid") or record.get("doi") or f"{record.get('source')}:{record['id']}"
-            unique.setdefault(key, record)
+            if key not in unique:
+                unique[key] = {**record, "_discovery_tier": tier}
+
+        # Reserve space for exact-title, strong-study-design, and broad discovery results.
+        for tier_number, tier in enumerate(tiers):
+            for record in tier[:5]:
+                add(record, tier_number)
+        for tier_number, tier in enumerate(tiers):
+            for record in tier:
+                if len(unique) == 15:
+                    break
+                add(record, tier_number)
         records = list(unique.values())[:15]
-        eligible = {r.get("pmcid") for r in records if r.get("isOpenAccess") == "Y" and r.get("pmcid")}
-        full_ids = set(sorted(eligible)[:5])
+
+        def full_text_priority(record):
+            kinds = " ".join(record.get("pubTypeList", {}).get("pubType", [])).lower()
+            design = 4 if "systematic review" in kinds or "meta-analysis" in kinds else 3 if "randomized" in kinds else 1
+            return (design, -record.get("_discovery_tier", 2), int(record.get("citedByCount") or 0))
+
+        eligible = [r for r in records if r.get("isOpenAccess") == "Y" and r.get("pmcid")]
+        full_ids = {r["pmcid"] for r in sorted(eligible, key=full_text_priority, reverse=True)[:5]}
         outcomes = await asyncio.gather(*(self.paper(r, r.get("pmcid") in full_ids) for r in records))
         passages = [p for ps, _, _ in outcomes for p in ps]
         return passages, {
             "query": query, "queries": queries, "provider": "Europe PMC", "searched_at": now().isoformat(),
             "papers_found": len(records), "passages_found": len(passages),
+            "sources_found": len(records),
             "cache_hits": sum(c for _, c, _ in outcomes),
             "full_text_fallbacks": sum(f for _, _, f in outcomes),
-            "candidate_ids": sorted({p.paper_id for p in passages}),
+            "candidate_ids": sorted({p.id for p in passages}),
+            "candidate_paper_ids": sorted({p.paper_id for p in passages}),
+        }
+
+    async def _medlineplus(self, claim: Claim) -> tuple[list[Passage], dict]:
+        term = " ".join(claim.search_terms)
+        async with self.limiter:
+            response = await request(self.client, "GET", MEDLINEPLUS_BASE, params={
+                "db": "healthTopics", "term": term, "retmax": 5,
+            })
+        root = ElementTree.fromstring(response.content)
+        passages = []
+        seen = set()
+        retrieved = now().isoformat()
+        for document in root.findall(".//document"):
+            url = document.get("url", "")
+            parsed = urlsplit(url)
+            if parsed.scheme != "https" or parsed.hostname not in {"medlineplus.gov", "www.medlineplus.gov"}:
+                continue
+            fields = {}
+            for content in document.findall("content"):
+                fields[content.get("name", "")] = plain_text(" ".join(content.itertext()))
+            summary = fields.get("FullSummary") or fields.get("snippet") or ""
+            title = fields.get("title") or "MedlinePlus health topic"
+            if len(summary) < 40 or url in seen:
+                continue
+            seen.add(url)
+            external_id = hashlib.sha256(url.encode()).hexdigest()[:20]
+            meta = {
+                "paper_id": f"MEDLINEPLUS:{external_id}", "title": title, "source_url": url,
+                "provider": "medlineplus", "external_id": external_id, "source_kind": "health_topic",
+                "published": None, "study_types": ["Curated health topic"], "access_type": "summary",
+                "license": None, "retrieved_at": retrieved, "updated_at": None, "known_retracted": False,
+            }
+            passages.extend(chunks(meta, [("Health topic summary", summary)]))
+        return passages, {
+            "query": term, "queries": [term], "provider": "MedlinePlus", "searched_at": retrieved,
+            "papers_found": 0, "sources_found": len(seen), "passages_found": len(passages),
+            "cache_hits": 0, "full_text_fallbacks": 0,
+            "candidate_ids": sorted({p.id for p in passages}),
+            "candidate_paper_ids": sorted({p.paper_id for p in passages}),
         }
 
     async def paper(self, record: dict, fetch_full: bool):
@@ -103,6 +209,9 @@ class Literature:
         meta = {
             "paper_id": paper_id, "title": plain_text(record.get("title", "Untitled")),
             "source_url": f"https://europepmc.org/article/{record.get('source', 'MED')}/{record['id']}",
+            "provider": "europe_pmc", "external_id": record.get("pmcid") or record.get("pmid") or record.get("doi"),
+            "source_kind": "research_paper", "license": None, "retrieved_at": now().isoformat(),
+            "updated_at": None,
             "published": record.get("firstPublicationDate"), "study_types": types,
             "access_type": "abstract_only", "known_retracted": False,
         }
@@ -112,7 +221,8 @@ class Literature:
                 saved = [Passage.model_validate(p) for p in cached.data["passages"]]
                 if saved and (not fetch_full or saved[0].access_type == "full_text"):
                     # Refresh study metadata from the current discovery response, including retractions.
-                    return [p.model_copy(update={"study_types": types}) for p in saved], 1, 0
+                    refreshed = {key: value for key, value in meta.items() if key not in {"access_type"}}
+                    return [p.model_copy(update=refreshed) for p in saved], 1, 0
         sections = [("Abstract", record.get("abstractText", ""))]
         fallback = 0
         if fetch_full:

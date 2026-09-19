@@ -77,9 +77,15 @@ class Passage(StrictModel):
     paper_id: str
     title: str
     source_url: str
+    provider: Literal["europe_pmc", "medlineplus"] = "europe_pmc"
+    external_id: str | None = None
+    source_kind: Literal["research_paper", "health_topic", "fact_sheet", "guideline"] = "research_paper"
     published: str | None
     study_types: list[str]
-    access_type: Literal["full_text", "abstract_only"]
+    access_type: Literal["full_text", "abstract_only", "summary"]
+    license: str | None = None
+    retrieved_at: str | None = None
+    updated_at: str | None = None
     section: str
     text: str
     context: str

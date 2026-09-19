@@ -2,14 +2,14 @@
 
 Instagram Reel → spoken claims → medical literature → Elasticsearch passages → cited verdicts.
 
-Iteration one is implemented as a FastAPI/Celery backend, PostgreSQL/Redis persistence, a React/Vite interface, and a Docker Compose deployment with Caddy HTTPS. Gemini adapters support structured audio analysis and judgment. Model mode defaults to **mock**; a mock verdict is never presented as a real medical assessment. Europe PMC and Elasticsearch are real services even in mock model mode.
+Iteration one is implemented as a FastAPI/Celery backend, PostgreSQL/Redis persistence, a React/Vite interface, and a Docker Compose deployment with Caddy HTTPS. OpenAI is the default live provider for transcription, claim extraction, and judgment; the direct Gemini adapter remains optional. Model mode defaults to **mock**; a mock verdict is never presented as a real medical assessment. Europe PMC, MedlinePlus, and Elasticsearch are real services even in mock model mode.
 
 ## Start here
 
 ```bash
 python3 scripts/init_env.py
 # Edit .env: add Elasticsearch credentials and Sentry DSNs.
-# Keep MODEL_MODE=mock until Gemini credentials are available.
+# Keep MODEL_MODE=mock until OpenAI credentials are available.
 docker compose up -d --build
 docker compose exec api python -m app.cli setup-elastic
 docker compose exec api python -m app.cli preflight
@@ -28,13 +28,19 @@ The repository includes `.env.example`; `scripts/init_env.py` creates an ignored
 | `SENTRY_DSN`, `VITE_SENTRY_DSN` | Backend and frontend Sentry project DSNs; frontend DSN is public by design |
 | `SENTRY_*_SAMPLE_RATE`, `VITE_SENTRY_*_SAMPLE_RATE` | Trace, profile, and masked error-Replay sampling; see `docs/OBSERVABILITY.md` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL`, `MODEL_MODE=live` | Enable real video transcription and evidence judgment |
+| `OPENAI_API_KEY`, `MODEL_PROVIDER=openai`, `MODEL_MODE=live` | Direct OpenAI transcription and evidence judgment |
+| `OPENAI_MODEL` | Text model; defaults to `gpt-4.1-mini` |
 | `DOMAIN` | Public DNS name for Caddy HTTPS |
 
 `setup-elastic` validates the inference endpoint and creates the passage index. If your deployment does not provide the default inference ID, enable an Elastic-managed endpoint in Elastic Cloud and configure its ID. `ELASTIC_SEMANTIC=false` explicitly selects keyword-only retrieval; it is not equivalent to the intended hybrid demo. Never silently replace a failed search with a mock search.
 
-After changing environment values, run `docker compose up -d --build`. Updating frontend DSNs requires rebuilding the web image. Google Cloud credits do not automatically cover a Google AI Studio API key: verify the billing route for your account.
+After changing environment values, run `docker compose up -d --build` (use `DOMAIN=:80` for local HTTP). Updating frontend DSNs requires rebuilding the web image.
 
-The default live model is `gemini-3.5-flash` with low thinking effort for the demo latency target; it supports audio input and structured output. See [Google's model reference](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash). Preflight verifies access for the configured key, rather than assuming credits imply model availability.
+The default direct OpenAI adapter transcribes the complete clip using `whisper-1` with segment timestamps, then uses `gpt-4.1-mini` for structured claim extraction and evidence judgment. Claim time ranges are derived from validated transcript segment references, not generated timestamps. Responses requests use `store=false`, no tools, and no conversation history. Citation validation remains mandatory. See [OpenAI transcription](https://developers.openai.com/api/docs/guides/speech-to-text) and [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+
+Preflight makes a small billed text-inference request; a live audio test is still needed to verify transcription access. The 90-second end-to-end target remains unverified.
+
+Optional adapters remain available: `MODEL_PROVIDER=gemini` uses `GEMINI_API_KEY`; `MODEL_PROVIDER=backboard` uses `BACKBOARD_API_KEY`, `BACKBOARD_LLM_PROVIDER`, and `BACKBOARD_MODEL`. Backboard's tested paid text/voice calls were blocked by Memory & RAG-only credits, although some explicit OpenRouter free text models worked. Its transcription adapter uses coarse ten-second windows. Neither alternative is used by the default OpenAI path.
 
 ## Local development
 
@@ -63,8 +69,8 @@ Use http://127.0.0.1:5173. Vite proxies `/api` to FastAPI. For a local worker, s
 
 - Public Instagram Reel URLs only, English speech, up to 60 seconds, up to three claims. Clips without usable audio/medical claims receive an explicit outcome.
 - Instagram downloads time out after 15 seconds. A blocked download offers a 100 MB video upload into the same case. File validity/duration/audio are checked by FFprobe; private-network redirects are rejected in the isolated downloader.
-- Search discovers title matches, reviews/meta-analyses/trials, and broader literature through Europe PMC. Up to 15 deduplicated papers and five open-access full texts per claim are considered. Known retracted publications are excluded; this is not a complete retraction registry.
-- Exact stored-source passages go into a shared Elasticsearch index. BM25 and semantic queries are fused with RRF and filtered to the claim's discovered papers. Results are capped at six passages and two passages per paper. A failed semantic operation may fall back to keyword search, explicitly labeled in the result.
+- Search reserves candidates for title matches, reviews/meta-analyses/trials, and broader literature through Europe PMC. Up to 15 deduplicated papers and five relevance-prioritized open-access full texts per claim are considered. MedlinePlus adds up to five curated health-topic summaries with a five-second deadline, including retries and queue wait. Its failure is disclosed in the interface and verdict limitations. Europe PMC is required: an outage marks research incomplete and preserves discovered source references. Known retracted publications are excluded; this is not a complete retraction registry.
+- Exact stored-source passages go into a shared Elasticsearch index. BM25 and semantic queries are fused with RRF and filtered to the exact passages discovered for the current claim. Results are capped at six passages and two passages per source. A failed semantic operation may fall back to keyword search, explicitly labeled in the result.
 - Conclusions are `supports`, `contradicts`, or `uncertain`, with validated verbatim citations. Service errors or invalid citations produce `incomplete`, not `uncertain`. Results are bounded research assessments, not treatment advice.
 - Events are committed to PostgreSQL before a Redis notification is published. SSE replays persisted events using `Last-Event-ID`; its one-second database poll remains usable if notifications are missed.
 - Celery jobs are acknowledged after processing. A Redis lease prevents duplicate execution; persisted checkpoints reuse transcription and completed claim research after interruption. Beat recovers abandoned cases after three minutes.
