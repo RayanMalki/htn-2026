@@ -79,6 +79,30 @@ The 4-minute wait you saw was a one-time 141 MB model download, not the pipeline
 
 **Not yet verified here:** Gemini reading on-screen text from a silent video. That is the hour-4 gate in the plan and it still needs a key and three text-only test videos.
 
+## 5. The judging rules, now as code
+
+`weigh.py` turns the three rules from section 2 into one pure function. It counts both sides, weights each study by design (Cochrane above meta-analysis above randomized trial above observational above case report) and by species (human 1.0, animal 0.25, in vitro 0.1), drops retracted studies, abstains below two usable studies, calls "unclear" when the studies themselves could not decide, and calls "mixed" when both sides carry weight or when a side has only one paper, because one paper cannot win outright. The weights order and threshold, they are never shown. The page shows the label and the counts.
+
+Fed the eight blue-light studies with the stances found in the papers, it returns **mixed**, which is the honest verdict, with six full-text and two abstract-only badges. Fed one agreeing review against five disagreeing trials, this morning's exact failure, it returns contradicted.
+
+## 6. Where it can go wrong, tested
+
+`test_failure_modes.py` is 31 tests across logic, inputs, robustness and speed. No pytest on this machine, so it carries its own runner. Run offline with `NETWORK=0` in about a second, or with the network for the timing checks.
+
+Measured with the network on: one literature search 1.0 s, twelve spaced requests 11 s with zero socket errors, local transcription 4.9 s, a timeout to a dead address returns in under 2 s instead of hanging.
+
+**The one failure it found:** a paper that was full text all day came back gated, because the Europe PMC XML route failed once transiently right after a burst of searches and the code fell straight through to a mirror that is behind a permanent bot wall. The fix is in the resolver now: one retry with a 1.5 s backoff, then NCBI's BioC service as a second official source for the same open-access set. The lesson for the demo is broader than one endpoint: **cache the demo papers ahead of time**, because upstream services hiccup and a wrong access badge in front of a judge is worse than a slow one.
+
+## 7. When the papers run thin
+
+`websearch_fallback.py` fires only when fewer than two studies take a side, or every study is unclear. That guard is in the function, and a test proves a live key never reaches the network when two clear studies exist. It asks OpenAI's Responses API with the web search tool, restricted to eleven guideline and public-health domains (WHO, CDC, NIH, NHS, Health Canada, Cochrane and the like), for a stance and a short cited paragraph. Every result is badged `web_sources` with the text "From guidelines and public-health sources, not the primary literature", so the page never passes a web summary off as peer-reviewed evidence. Any numeric score the model emits is stripped. It runs on `gpt-5.6-terra`, about 0.006 dollars per call, and in mock mode without a key. Fourteen tests pass. `WIRING.md` names the exact line in `pipeline.py` where it slots in.
+
+## 8. Video polish, built in the lab, to be ported
+
+In `video-lab/ffmpeg/post.py`, two toggles on top of the finished render: `SFX=1` mixes a whoosh on every scene change, a pop when the study badges land and a thud when the finding card lands, all synthesized by ffmpeg from noise and sine waves, so nothing is downloaded or licensed. `BRAINROT=1` makes the split screen, rebuttal on top over a blurred copy of itself, a muted looping gameplay clip below, captions at the seam. The gameplay clip is whatever sits at `assets/brainrot.mp4`. Subway Surfers footage is copyrighted by its maker and is not fetched or bundled, pick a lookalike runner from a free-licence stock site. Without a file a Mandelbrot zoom stands in. The transitions in `render.py` are now fade, smoothup, circleopen and fadeblack, from the 59 this ffmpeg build supports.
+
+That folder is a pre-event prototype, so `post.py` is not on the branch. Its logic is plain ffmpeg on a finished MP4 plus the cue times, and it ports as-is once the repo has its own renderer, which it does not yet.
+
 ## What is in this folder
 
 | File | Purpose |
@@ -88,6 +112,10 @@ The 4-minute wait you saw was a one-time 141 MB model download, not the pipeline
 | `fulltext_render.mjs` | Playwright renderer for free HTML pages that a plain fetch cannot read. Detects PDFs and hands them back as links |
 | `paper_authorship.py` | GPTZero scoring of paper full text plus the SQLite database |
 | `cite_and_scan.py` | Search, resolve, scan, store, in one command |
+| `weigh.py` | The judging rules as a pure function: count both sides, weight by design and species, abstain when thin |
+| `test_failure_modes.py` | 31 tests for logic, inputs, robustness and speed, with its own runner |
+| `websearch_fallback.py` | Guideline and public-health web search when papers run thin, badged as web sources |
+| `test_websearch_fallback.py`, `WIRING.md` | Its tests and where it slots into the backend |
 
 `fulltext_render.mjs` needs `playwright` installed. The frontend already has it as a dev dependency, so run it from there or `npm i playwright` in this folder.
 

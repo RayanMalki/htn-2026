@@ -152,13 +152,36 @@ def resolve_fulltext(record: dict, email: str, gap: float = 0.35) -> dict:
     # Route 1: Europe PMC full text, for the open PubMed Central subset. Gives clean
     # sectioned XML and, via BioC elsewhere, character offsets for the exact-sentence view.
     if record.get("isOpenAccess") == "Y" and pmcid:
-        data, dt, err = _get(f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML", email)
+        # Two attempts with a short backoff. In the failure-mode suite this route
+        # failed once, transiently, right after a burst of searches. With no retry the
+        # paper fell through to a mirror that sits behind a permanent bot wall, and a
+        # paper that had been full text all day came back "free_needs_browser". An
+        # upstream hiccup costs 1.5 s to absorb. A wrong access badge costs credibility.
+        for attempt in range(2):
+            data, dt, err = _get(f"https://www.ebi.ac.uk/europepmc/webservices/rest/{pmcid}/fullTextXML", email)
+            spent += dt
+            if data and data[:5] == b"<?xml":
+                text = " ".join(re.sub(r"<[^>]+>", " ", data.decode("utf-8", "replace")).split())
+                if len(text) > 1500:
+                    return {"access_type": "full_text", "route": "europe_pmc_xml", "text": text, "chars": len(text), "seconds": round(spent, 2)}
+            if attempt == 0:
+                time.sleep(1.5)
+        time.sleep(gap)
+        # Second official source for the same open subset. No auth, JSON, about 0.2 s
+        # all day, and it returns passages with character offsets, which is what the
+        # exact-sentence highlight needs anyway. A miss comes back as "[Error]", not
+        # as a non-200, so check the body.
+        data, dt, err = _get(f"https://www.ncbi.nlm.nih.gov/research/bionlp/RESTful/pmcoa.cgi/BioC_json/{pmcid}/unicode", email)
         spent += dt
         time.sleep(gap)
-        if data and data[:5] == b"<?xml":
-            text = " ".join(re.sub(r"<[^>]+>", " ", data.decode("utf-8", "replace")).split())
+        if data and data[:2] == b"[{":
+            try:
+                doc = json.loads(data)[0]["documents"][0]
+                text = " ".join(" ".join(p.get("text", "") for p in doc.get("passages", [])).split())
+            except (ValueError, KeyError, IndexError, TypeError):
+                text = ""
             if len(text) > 1500:
-                return {"access_type": "full_text", "route": "europe_pmc_xml", "text": text, "chars": len(text), "seconds": round(spent, 2)}
+                return {"access_type": "full_text", "route": "ncbi_bioc", "text": text, "chars": len(text), "seconds": round(spent, 2)}
 
     # Route 2: Europe PMC's OWN list of free full-text links. This is the "click here
     # for free full text" list a human sees on the article page, separate from whether
