@@ -29,30 +29,34 @@ def transcript_text(analysis: AudioAnalysis) -> str:
     return " ".join(segment.text.strip() for segment in analysis.transcript if segment.text.strip())
 
 
+def clamp(value) -> float | None:
+    return min(1.0, max(0.0, float(value))) if isinstance(value, (int, float)) else None
+
+
 def read_scan(document: dict, basis: str, characters: int) -> Scan:
     probabilities = document.get("class_probabilities") or {}
-    scored = [
-        s for s in document.get("sentences") or []
+    # Document order, not ranked: these shade the transcript where the words sit.
+    sentences = [
+        DetectedSentence(text=s["sentence"][:1000], generated_prob=clamp(s["generated_prob"]))
+        for s in (document.get("sentences") or [])
         if isinstance(s.get("generated_prob"), (int, float)) and s.get("sentence")
-    ]
-    top = sorted(scored, key=lambda s: s["generated_prob"], reverse=True)[:3]
-    ai = probabilities.get("ai", document.get("completely_generated_prob"))
+    ][:200]
     paragraphs = [
         DetectedParagraph(index=i, sentences=max(0, int(p.get("num_sentences") or 0)),
-                          generated_prob=min(1.0, max(0.0, float(p["completely_generated_prob"]))))
+                          generated_prob=clamp(p["completely_generated_prob"]))
         for i, p in enumerate(document.get("paragraphs") or [])
         if isinstance(p.get("completely_generated_prob"), (int, float))
     ][:40]
     return Scan(
-        paragraphs=paragraphs,
-        basis=basis, characters=characters,
+        basis=basis, characters=characters, sentences=sentences, paragraphs=paragraphs,
         predicted_class=document.get("predicted_class"),
-        ai_probability=min(1.0, max(0.0, float(ai))) if isinstance(ai, (int, float)) else None,
+        document_classification=document.get("document_classification"),
+        ai_probability=clamp(probabilities.get("ai", document.get("completely_generated_prob"))),
+        human_probability=clamp(probabilities.get("human")),
+        mixed_probability=clamp(probabilities.get("mixed")),
         confidence_category=document.get("confidence_category"),
         summary=document.get("result_message"),
-        top_sentences=[DetectedSentence(text=s["sentence"][:1000],
-                                        generated_prob=min(1.0, max(0.0, float(s["generated_prob"]))))
-                       for s in top],
+        flagged_share=clamp(document.get("average_generated_prob")),
     )
 
 
@@ -97,10 +101,14 @@ class Detector:
         try:
             async with asyncio.timeout(DEADLINE_SECONDS):
                 first = await self.predict(verbatim)
-                # A second call is only worth making when stripping actually changed the text.
-                second = first if cleaned == verbatim else (
-                    await self.predict(cleaned) if len(cleaned) >= MINIMUM_CHARACTERS else None
-                )
+                # Off by default. Measured across eight samples, stripping fillers never
+                # changed a classification, and Deezer (arXiv 2506.18488) report the same
+                # for transcript normalisation. The filler counts below stay either way.
+                second = None
+                if self.cfg.gptzero_filler_reading:
+                    second = first if cleaned == verbatim else (
+                        await self.predict(cleaned) if len(cleaned) >= MINIMUM_CHARACTERS else None
+                    )
         except Exception as exc:
             sentry_sdk.capture_exception(exc)
             return base.model_copy(update={
@@ -109,11 +117,12 @@ class Detector:
             })
 
         note = None
-        if second is None:
-            note = (f"Only {len(cleaned)} characters remained after filler removal, "
-                    "so the script-only reading was not taken.")
-        elif cleaned == verbatim:
-            note = "No speech fillers were found, so both readings are the same text."
+        if self.cfg.gptzero_filler_reading:
+            if second is None:
+                note = (f"Only {len(cleaned)} characters remained after filler removal, "
+                        "so the script-only reading was not taken.")
+            elif cleaned == verbatim:
+                note = "No speech fillers were found, so both readings are the same text."
         return Detection(
             status="scored", scanned_at=now().isoformat(), prepared_transcript=prepared,
             detector_version=first.get("version"), note=note, **counts,

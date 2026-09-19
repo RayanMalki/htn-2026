@@ -121,11 +121,16 @@ class Scan(StrictModel):
     basis: Literal["verbatim", "filler_removed"]
     characters: int = Field(ge=0)
     predicted_class: str | None = None
+    document_classification: str | None = None
     ai_probability: float | None = Field(default=None, ge=0, le=1)
+    human_probability: float | None = Field(default=None, ge=0, le=1)
+    mixed_probability: float | None = Field(default=None, ge=0, le=1)
     confidence_category: str | None = None
     summary: str | None = None
-    top_sentences: list[DetectedSentence] = Field(default_factory=list, max_length=3)
-    # The vendor states paragraph-level accuracy exceeds sentence-level, so keep both.
+    flagged_share: float | None = Field(default=None, ge=0, le=1)
+    # Every sentence, so the transcript can be shaded in place. The vendor's own
+    # highlight flag is not used: it marked 9 of 9 sentences including one at 0.18.
+    sentences: list[DetectedSentence] = Field(default_factory=list, max_length=200)
     paragraphs: list[DetectedParagraph] = Field(default_factory=list, max_length=40)
 
 
@@ -137,6 +142,9 @@ class Detection(StrictModel):
     scanned_at: str
     detector_version: str | None = None
     prepared_transcript: bool = False
+    # Sentences at or above this are treated as read from a script. Measured: a
+    # creator's ad-lib scored 0.18 and 0.29, the script around it 0.74 to 1.00.
+    script_threshold: float = Field(default=0.5, ge=0, le=1)
     fillers_removed: int = Field(default=0, ge=0)
     filler_ratio: float = Field(default=0.0, ge=0, le=1)
     removed_examples: list[str] = Field(default_factory=list, max_length=12)

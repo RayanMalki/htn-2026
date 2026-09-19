@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     elastic_inference_id: str = ".elser-2-elastic"
     elastic_semantic: bool = True
     gptzero_api_key: str = ""
+    gptzero_filler_reading: bool = False
     sentry_dsn: str = ""
     sentry_environment: str = "development"
     release: str = "hypecheck-local"

@@ -13,13 +13,16 @@ export type ClaimResult = {
 };
 export type Scan = {
   basis: 'verbatim' | 'filler_removed'; characters: number; predicted_class: string | null;
-  ai_probability: number | null; confidence_category: string | null; summary: string | null;
-  top_sentences: { text: string; generated_prob: number }[];
+  document_classification: string | null; ai_probability: number | null;
+  human_probability: number | null; mixed_probability: number | null;
+  confidence_category: string | null; summary: string | null; flagged_share: number | null;
+  sentences: { text: string; generated_prob: number }[];
+  paragraphs: { index: number; sentences: number; generated_prob: number }[];
 };
 export type Detection = {
   provider: string; status: 'scored' | 'skipped' | 'unavailable'; scanned_at: string;
-  detector_version: string | null; prepared_transcript: boolean; fillers_removed: number;
-  filler_ratio: number; removed_examples: string[];
+  detector_version: string | null; prepared_transcript: boolean; script_threshold: number;
+  fillers_removed: number; filler_ratio: number; removed_examples: string[];
   verbatim: Scan | null; cleaned: Scan | null; note: string | null;
 };
 export type Case = {
