@@ -87,3 +87,9 @@ npm --prefix frontend run test:e2e
 - `frontend/src/`: React interface and API client.
 
 Keep `.env`, `.venv`, `node_modules`, build outputs, caches, local media/data, and artifacts out of Git. Commit source, tests, lockfiles, documentation, and `.env.example`. Preserve existing data volumes when restarting the stack; `docker compose down -v` deletes them.
+
+## Multi-source follow-up
+
+The multi-source branch adds supplemental MedlinePlus health topics, balanced Europe PMC candidate selection, study-design prioritization for full-text downloads, explicit provider metadata, and exact-passage Elasticsearch filters. The default index is now `hypecheck-passages-v2`; existing `.env` overrides are not automatically migrated. Run index provisioning before using a newly selected index.
+
+Review fixes make Europe PMC mandatory for a verdict, preserve discovered source references on its failure, disclose supplemental-provider outages, and cap MedlinePlus at five seconds including retry and semaphore wait. The React interface supports health-summary labels, MedlinePlus source links, per-provider queries, source counts, and incomplete-research messages. These changes do not establish live medical accuracy or the 90-second target.

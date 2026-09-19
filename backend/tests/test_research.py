@@ -4,7 +4,7 @@ import httpx
 import pytest
 import respx
 from app.config import settings
-from app.literature import BASE, Literature, build_query, chunks
+from app.literature import BASE, MEDLINEPLUS_BASE, Literature, build_query, chunks
 from app.schemas import Claim
 from app.search import ElasticSearch, diversify
 
@@ -31,17 +31,62 @@ def test_query_does_not_accept_model_operators():
 
 
 @respx.mock
+async def test_discovery_reserves_candidates_for_each_search_tier():
+    settings().medlineplus_enabled = False
+
+    def records(prefix):
+        return [{"id": f"{prefix}{i}", "source": "MED", "pmid": f"{prefix}{i}",
+                 "title": f"{prefix} result {i}",
+                 "abstractText": "A sufficiently long abstract passage for retrieval and testing."}
+                for i in range(15)]
+
+    respx.get(f"{BASE}/search").mock(side_effect=[
+        httpx.Response(200, json={"resultList": {"result": records("title")}}),
+        httpx.Response(200, json={"resultList": {"result": records("review")}}),
+        httpx.Response(200, json={"resultList": {"result": records("broad")}}),
+    ])
+    async with httpx.AsyncClient() as client:
+        _, provenance = await Literature(client).discover(Claim(
+            id="c1", text="claim", start=0, end=1, search_terms=["medical topic"]))
+    ids = provenance["candidate_paper_ids"]
+    assert sum(value.startswith("MED:title") for value in ids) == 5
+    assert sum(value.startswith("MED:review") for value in ids) == 5
+    assert sum(value.startswith("MED:broad") for value in ids) == 5
+
+
+@respx.mock
+async def test_medlineplus_health_topic_is_normalized():
+    respx.get(f"{BASE}/search").mock(return_value=httpx.Response(
+        200, json={"resultList": {"result": []}}))
+    respx.get(MEDLINEPLUS_BASE).mock(return_value=httpx.Response(200, text="""
+        <nlmSearchResult><list><document url="https://medlineplus.gov/commoncold.html">
+          <content name="title">Common Cold</content>
+          <content name="FullSummary">The common cold is a viral infection with symptoms that usually improve over time.</content>
+        </document></list></nlmSearchResult>"""))
+    async with httpx.AsyncClient() as client:
+        evidence, provenance = await Literature(client).discover(Claim(
+            id="c1", text="claim", start=0, end=1, search_terms=["common cold"]))
+    assert len(evidence) == 1
+    assert evidence[0].provider == "medlineplus"
+    assert evidence[0].source_kind == "health_topic"
+    assert evidence[0].access_type == "summary"
+    assert provenance["sources_found"] == 1
+
+
+@respx.mock
 async def test_discovery_retraction_and_abstract_fallback(passage):
     record = {"id": "123", "source": "MED", "pmid": "123", "pmcid": "PMC123", "title": "Vitamin C review",
               "abstractText": passage.text, "isOpenAccess": "Y", "pubTypeList": {"pubType": ["Review"]}}
     respx.get(f"{BASE}/search").mock(return_value=httpx.Response(200, json={"resultList": {"result": [record, record,
         {**record, "id": "456", "pmid": "456", "pubTypeList": {"pubType": ["Retracted Publication"]}}]}}))
+    respx.get(MEDLINEPLUS_BASE).mock(return_value=httpx.Response(503))
     full = respx.get(f"{BASE}/PMC123/fullTextXML").mock(return_value=httpx.Response(404))
     async with httpx.AsyncClient() as client:
         evidence, provenance = await Literature(client).discover(Claim(id="c1", text="Vitamin C prevents colds", start=0, end=1, search_terms=["vitamin C cold"]))
     assert provenance["papers_found"] == 1
     assert provenance["full_text_fallbacks"] == 1
     assert evidence[0].access_type == "abstract_only"
+    assert provenance["provider_failures"][0]["provider"] == "MedlinePlus"
     assert full.call_count == 1
 
 
@@ -66,11 +111,12 @@ async def test_hybrid_filter_and_keyword_fallback(passage):
         httpx.Response(200, json={"hits": {"hits": [{"_source": passage.model_dump()}]}}),
     ])
     async with httpx.AsyncClient() as client:
-        results, mode = await ElasticSearch(client).retrieve("vitamin C", ["MED:123"])
+        results, mode = await ElasticSearch(client).retrieve("vitamin C", ["p1"])
     assert results[0].id == passage.id and mode == "keyword_only"
     first = json.loads(route.calls[0].request.content)
     retrievers = first["retriever"]["rrf"]["retrievers"]
-    assert all(r["standard"]["query"]["bool"]["filter"][0] == {"terms": {"paper_id": ["MED:123"]}} for r in retrievers)
+    assert all(r["standard"]["query"]["bool"]["filter"][0] == {"ids": {"values": ["p1"]}}
+               for r in retrievers)
     assert "query" in json.loads(route.calls[1].request.content)
 
 
@@ -95,3 +141,48 @@ async def test_elastic_unavailable_fails_instead_of_empty_evidence():
     async with httpx.AsyncClient() as client:
         with pytest.raises(httpx.HTTPStatusError):
             await ElasticSearch(client).retrieve("query", ["MED:123"])
+
+
+@pytest.mark.parametrize('supplement_has_results', [False, True])
+async def test_required_provider_failure_is_not_empty_success(monkeypatch, passage, supplement_has_results):
+    from unittest.mock import AsyncMock
+
+    from app.literature import DiscoveryIncomplete
+
+    monkeypatch.setattr(Literature, '_europe_pmc', AsyncMock(side_effect=httpx.ReadTimeout('outage')))
+    found = [passage] if supplement_has_results else []
+    monkeypatch.setattr(Literature, '_medlineplus', AsyncMock(return_value=(found, {
+        'provider': 'MedlinePlus', 'sources_found': len(found),
+    })))
+    async with httpx.AsyncClient() as client:
+        with pytest.raises(DiscoveryIncomplete) as caught:
+            await Literature(client).discover(Claim(id='c1', text='claim', start=0, end=1, search_terms=['topic']))
+    assert caught.value.passages == found
+    assert caught.value.provenance['provider_failures'] == [{'provider': 'Europe PMC', 'error': 'ReadTimeout'}]
+
+
+async def test_supplement_timeout_preserves_primary_results(monkeypatch, passage):
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    import app.literature as literature
+
+    cancelled = asyncio.Event()
+
+    async def stalled(self, claim):
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.set()
+
+    monkeypatch.setattr(literature, 'MEDLINEPLUS_TIMEOUT_SECONDS', 0.01)
+    monkeypatch.setattr(Literature, '_medlineplus', stalled)
+    monkeypatch.setattr(Literature, '_europe_pmc', AsyncMock(return_value=([passage], {
+        'provider': 'Europe PMC', 'sources_found': 1,
+    })))
+    async with httpx.AsyncClient() as client, asyncio.timeout(1):
+        found, provenance = await Literature(client).discover(
+            Claim(id='c1', text='claim', start=0, end=1, search_terms=['topic']))
+    assert found == [passage]
+    assert cancelled.is_set()
+    assert provenance['provider_failures'] == [{'provider': 'MedlinePlus', 'error': 'TimeoutError'}]

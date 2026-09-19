@@ -8,7 +8,7 @@ import sentry_sdk
 
 from app.config import settings
 from app.db import now, read_case, update_case
-from app.literature import Literature
+from app.literature import DiscoveryIncomplete, Literature
 from app.media import MediaError, download, extract_audio
 from app.models import models
 from app.observability import stage
@@ -110,7 +110,8 @@ async def run_case(case_id: str):
                                 for key in ["papers_found", "passages_found", "cache_hits", "full_text_fallbacks"]:
                                     span.set_data(key, provenance.get(key, 0))
                             sources = {p.paper_id: {"title": p.title, "source_url": p.source_url,
-                                "access_type": p.access_type} for p in passages}
+                                "access_type": p.access_type, "provider": p.provider,
+                                "source_kind": p.source_kind} for p in passages}
                             completed[claim.id] = {"claim": claim.model_dump(), "status": "indexing",
                                 "discovered_sources": list(sources.values()), "timings": local_timings}
                             save(claims=dict(completed))
@@ -128,6 +129,15 @@ async def run_case(case_id: str):
                     except Exception as exc:
                         sentry_sdk.capture_exception(exc)
                         failures.append(claim.id)
+                        if isinstance(exc, DiscoveryIncomplete):
+                            completed[claim.id] = {
+                                "provenance": exc.provenance,
+                                "discovered_sources": list({p.paper_id: {
+                                    "title": p.title, "source_url": p.source_url,
+                                    "access_type": p.access_type, "provider": p.provider,
+                                    "source_kind": p.source_kind,
+                                } for p in exc.passages}.values()),
+                            }
                         completed[claim.id] = {**completed.get(claim.id, {}), "claim": claim.model_dump(), "status": "incomplete",
                             "error": "Medical research could not complete. No verdict was assigned.",
                             "timings": local_timings}
@@ -149,6 +159,9 @@ async def run_case(case_id: str):
                     with stage("judgment", item["timings"]):
                         async with asyncio.timeout(20):
                             verdict = validate_verdict(await adapter.judge(claim, evidence), evidence)
+                    for failure in item.get("provenance", {}).get("provider_failures", []):
+                        verdict.limitations.append(
+                            f"{failure['provider']} was unavailable; this assessment uses the remaining sources.")
                     item.update(verdict=verdict.model_dump(), status="complete")
                 except Exception as exc:
                     sentry_sdk.capture_exception(exc)

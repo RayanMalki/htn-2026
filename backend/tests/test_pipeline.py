@@ -127,3 +127,34 @@ async def test_hard_timeout_marks_all_unfinished_claims_incomplete(case_id, pipe
     assert case["status"] == "incomplete"
     assert case["result"]["claims"]["c1"]["status"] == "incomplete"
     assert "verdict" not in case["result"]["claims"]["c1"]
+
+
+async def test_primary_outage_preserves_sources_without_judgment(case_id, pipeline_mocks, monkeypatch, passage):
+    import app.pipeline
+    from app.literature import DiscoveryIncomplete
+
+    provenance = {'provider_failures': [{'provider': 'Europe PMC', 'error': 'ReadTimeout'}]}
+    pipeline_mocks.side_effect = DiscoveryIncomplete([passage], provenance)
+    adapter = MockModels()
+    adapter.judge = AsyncMock()
+    monkeypatch.setattr(app.pipeline, 'models', lambda: adapter)
+    await run_case(case_id)
+    case = read_case(case_id)
+    item = case['result']['claims']['c1']
+    assert case['status'] == 'incomplete'
+    assert item['provenance'] == provenance
+    assert item['discovered_sources'][0]['source_url'] == passage.source_url
+    assert 'verdict' not in item
+    adapter.judge.assert_not_awaited()
+
+
+async def test_supplement_failure_is_disclosed_in_verdict(case_id, pipeline_mocks, passage):
+    pipeline_mocks.return_value = ([passage], {
+        'candidate_ids': [passage.id],
+        'provider_failures': [{'provider': 'MedlinePlus', 'error': 'TimeoutError'}],
+    })
+    await run_case(case_id)
+    case = read_case(case_id)
+    assert case['status'] == 'complete'
+    assert any('MedlinePlus was unavailable' in item
+               for item in case['result']['claims']['c1']['verdict']['limitations'])

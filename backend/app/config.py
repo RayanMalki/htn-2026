@@ -15,9 +15,10 @@ class Settings(BaseSettings):
     gemini_model: str = "gemini-3.5-flash"
     elasticsearch_url: str = ""
     elasticsearch_api_key: str = ""
-    elastic_index: str = "hypecheck-passages-v1"
+    elastic_index: str = "hypecheck-passages-v2"
     elastic_inference_id: str = ".elser-2-elastic"
     elastic_semantic: bool = True
+    medlineplus_enabled: bool = True
     sentry_dsn: str = ""
     sentry_environment: str = "development"
     release: str = "hypecheck-local"
