@@ -3,11 +3,27 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import './styles.css';
 
+function sampleRate(value: string | undefined, fallback: number) {
+  const parsed = Number(value ?? fallback);
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : fallback;
+}
+
 if (import.meta.env.VITE_SENTRY_DSN) {
   void import('@sentry/react').then(Sentry => Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
     environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || 'development',
-    integrations: [Sentry.browserTracingIntegration()], tracesSampleRate: 1,
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.browserProfilingIntegration(),
+      Sentry.replayIntegration({
+        maskAllText: true, maskAllInputs: true, blockAllMedia: true, unmask: [], unblock: [],
+      }),
+    ],
+    tracesSampleRate: sampleRate(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE, 1),
+    profileSessionSampleRate: sampleRate(import.meta.env.VITE_SENTRY_PROFILE_SESSION_SAMPLE_RATE, 0.1),
+    profileLifecycle: 'trace',
+    replaysSessionSampleRate: 0,
+    replaysOnErrorSampleRate: sampleRate(import.meta.env.VITE_SENTRY_REPLAY_ON_ERROR_SAMPLE_RATE, 1),
     tracePropagationTargets: [/^\/api\//], sendDefaultPii: false,
     beforeSend(event) {
       delete event.request; delete event.user; delete event.breadcrumbs; delete event.extra;

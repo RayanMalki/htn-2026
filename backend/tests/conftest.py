@@ -21,9 +21,10 @@ def isolated(tmp_path, monkeypatch):
     settings.cache_clear()
     engine.cache_clear()
     init_db()
+    import fakeredis
+
     import app.main
     import app.queue
-    import fakeredis
     fake = fakeredis.FakeRedis(decode_responses=True)
     monkeypatch.setattr(app.queue, "redis_client", lambda: fake)
     monkeypatch.setattr(app.main, "redis_client", lambda: fake)

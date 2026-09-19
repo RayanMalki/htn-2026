@@ -11,7 +11,7 @@ from app.db import now, read_case, update_case
 from app.literature import DiscoveryIncomplete, Literature
 from app.media import MediaError, download, extract_audio
 from app.models import models
-from app.observability import stage
+from app.observability import log_event, record_case_duration, stage
 from app.schemas import AudioAnalysis, Claim, validate_verdict
 from app.search import ElasticSearch
 
@@ -51,6 +51,7 @@ async def run_case(case_id: str):
     })
     sentry_sdk.set_tag("case_id", case_id)
     sentry_sdk.set_tag("model_mode", cfg.model_mode)
+    log_event("HypeCheck case started", case_id=case_id, model_mode=cfg.model_mode)
 
     def save(**patch):
         update_case(case_id, result_patch={**patch, "timings": dict(timings)})
@@ -177,7 +178,6 @@ async def run_case(case_id: str):
             timings["total"] = round(monotonic() - started + previous_attempt, 3)
             status = "incomplete" if failures or any(c["status"] == "incomplete" for c in completed.values()) else "complete"
             sentry_sdk.set_tag("case_status", status)
-            sentry_sdk.set_measurement("case.duration", timings["total"], "second")
             update_case(case_id, status=status, finished_at=now(), result_patch={
                 "claims": completed, "timings": timings, "target_met": timings["total"] <= 90,
             })
@@ -198,7 +198,9 @@ async def run_case(case_id: str):
         final_status = read_case(case_id)["status"]
         sentry_sdk.set_tag("case_status", final_status)
         if "total" in timings:
-            sentry_sdk.set_measurement("case.duration", timings["total"], "second")
+            record_case_duration(timings["total"])
+        log_event("HypeCheck case finished", case_id=case_id, case_status=final_status,
+                  duration_seconds=timings.get("total"), model_mode=cfg.model_mode)
         if final_status in {"complete", "no_claims", "incomplete"}:
             from app.replay import export_case
             export_case(case_id)

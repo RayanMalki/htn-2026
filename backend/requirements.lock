@@ -49,7 +49,7 @@ tzdata==2026.4
 tzlocal==5.4.4
 urllib3==2.8.0
 uvicorn==0.53.0
-uvloop==0.22.1
+uvloop==0.22.1; sys_platform != "win32"
 vine==5.1.0
 watchfiles==1.2.0
 wcwidth==0.8.4
