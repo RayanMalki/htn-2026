@@ -16,7 +16,7 @@
 
 ## Latest local test results
 
-- 64 backend tests passed, including an in-memory Sentry trace capture proving stage timings and metadata are serialized without sensitive payloads, and a hard-deadline test that ensures unfinished claims never masquerade as completed judgments.
+- 86 backend tests passed, including an in-memory Sentry trace capture proving stage timings and metadata are serialized without sensitive payloads, and a hard-deadline test that ensures unfinished claims never masquerade as completed judgments.
 - Twelve browser tests passed across desktop and mobile viewports; production TypeScript/Vite build succeeded.
 - Frontend production dependency audit reported zero known vulnerabilities.
 - Deployment Compose configuration validated and all container images built.
@@ -38,3 +38,13 @@ Required secrets and VM/domain details were not available at implementation star
 - A stalled MedlinePlus request is cancelled at its separate deadline while primary evidence remains usable; supplemental failure is included in verdict limitations.
 - Desktop and mobile browser tests verify health-summary labels, MedlinePlus citation links, source counts, provider-outage messages, and incomplete retrieval display.
 - Production frontend build and CI-configured Ruff checks passed. These checks use controlled fixtures and do not replace live service acceptance or retrieval-quality evaluation.
+
+## Backboard integration and live access check
+
+The Backboard API key authenticated, the billing endpoint reported a positive balance, and the configured text model appeared in the catalog. Actual text inference returned `FAILED`, and speech transcription returned HTTP 400: the account's current credits are reserved for Memory & RAG and cannot fund either operation. No live transcript or verdict was produced. The local application remains in mock mode. Redeem applicable sponsor credits or resolve the entitlement with Backboard before enabling live mode; do not assume the displayed balance covers model calls.
+
+The adapter uses Backboard HTTP requests with memory/web search disabled, validates JSON and citation references, and derives coarse timestamps from fixed audio windows rather than generated timestamps. Preflight now probes actual text inference to detect restricted credits.
+
+## Direct OpenAI switch
+
+The user selected direct OpenAI. The key authenticated for real Responses inference and Whisper audio transcription. A short synthetic spoken clip produced timestamped transcript segments and an extracted claim; text and audio/claim checks took about 4.35 and 5.42 seconds. This is a provider smoke test, not a medical accuracy evaluation or Reel benchmark. Local mode is now live and the Docker stack has been rebuilt. `/healthz` passes; `/readyz` reports database, Redis, and model configuration ready, with Elasticsearch and semantic inference still unavailable. All 86 backend tests and CI-configured Ruff checks passed.

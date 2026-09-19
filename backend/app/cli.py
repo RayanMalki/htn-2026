@@ -37,7 +37,7 @@ async def preflight():
                 result["checks"][name] = "ok"
             except Exception as exc:
                 result["checks"][name] = type(exc).__name__
-        if cfg.model_mode == "live":
+        if cfg.model_mode == "live" and cfg.model_provider == "gemini":
             try:
                 response = await client.get(
                     f"https://generativelanguage.googleapis.com/v1beta/models/{cfg.gemini_model}",
@@ -47,6 +47,36 @@ async def preflight():
                 result["checks"]["gemini_model_access"] = "ok"
             except Exception as exc:
                 result["checks"]["gemini_model_access"] = type(exc).__name__
+        if cfg.model_mode == "live" and cfg.model_provider == "openai":
+            from app.openai_models import ClaimExtraction, OpenAIModels
+            try:
+                await OpenAIModels().generate("Return claims=[], omitted_claims=0. Access check.", ClaimExtraction)
+                result["checks"]["openai_text_inference"] = "ok"
+                result["notes"] = ["Text inference verified; transcription requires a live audio test."]
+            except Exception as exc:
+                result["checks"]["openai_text_inference"] = type(exc).__name__
+        if cfg.model_mode == "live" and cfg.model_provider == "backboard":
+            from app.backboard import BASE, BackboardModels, ExtractedClaims
+            try:
+                if not cfg.backboard_api_key:
+                    raise RuntimeError("Backboard key is missing")
+                headers = {"X-API-Key": cfg.backboard_api_key}
+                balance = await client.get(BASE + "/billing/balance", headers=headers)
+                balance.raise_for_status()
+                result["checks"]["backboard_balance"] = "ok" if float(balance.json()["balance_usd"]) > 0 else "empty"
+                catalog = await client.get(BASE + "/models", headers=headers, params={
+                    "provider": cfg.backboard_llm_provider, "supports_json_output": "true", "limit": 500,
+                })
+                catalog.raise_for_status()
+                found = any(model["name"] == cfg.backboard_model for model in catalog.json()["models"])
+                result["checks"]["backboard_text_model"] = "ok" if found else "not_in_first_500_json_models"
+                # A nonzero balance can be restricted to Memory & RAG. Probe actual inference.
+                await BackboardModels().generate(
+                    "Return claims=[], omitted_claims=0, language=en. This is an access check.", ExtractedClaims)
+                result["checks"]["backboard_text_inference"] = "ok"
+                result["notes"] = ["Text inference verified; speech access still requires a live audio test."]
+            except Exception as exc:
+                result["checks"]["backboard_access"] = type(exc).__name__
     print(json.dumps(result, indent=2))
     return all(value == "ok" for value in result["checks"].values())
 

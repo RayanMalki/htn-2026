@@ -51,6 +51,9 @@ function CaseView({ value, onUpdate }: { value: Case; onUpdate: (c: Case) => voi
       <span>{activeIndex > i + 1 || value.status === 'complete' ? '✓' : i + 1}</span>{['Read video', 'Extract claims', 'Find research', 'Check evidence', 'Results'][i]}</li>)}</ol>
     {value.result.model_mode === 'mock' ? <div className="notice"><b>Mock model mode</b> The claim and judgment are prepared inputs. Literature retrieval is real when configured. This is not an analysis of the submitted video.</div> : null}
     {!finished(value.status) && elapsed > 90 && value.status !== 'awaiting_upload' ? <div className="notice">This run is taking longer than the demo target. Progress and any completed evidence remain available.</div> : null}
+    {value.result.limitations?.length ? <div className="notice" aria-label="Analysis limitations">
+      {value.result.limitations.map((limitation, i) => <p key={i}>{limitation}</p>)}
+    </div> : null}
     {value.error ? <p className="error" role="alert">{value.error.message}</p> : null}
     {value.status === 'awaiting_upload' ? <div className="upload-panel"><span className="upload-symbol">↥</span><div><h3>Have the video file?</h3>
       <p>Upload it to continue this same analysis. Spoken English · up to 60 seconds · 100 MB.</p>

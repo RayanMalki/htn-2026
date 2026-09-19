@@ -2,14 +2,14 @@
 
 Instagram Reel → spoken claims → medical literature → Elasticsearch passages → cited verdicts.
 
-Iteration one is implemented as a FastAPI/Celery backend, PostgreSQL/Redis persistence, a React/Vite interface, and a Docker Compose deployment with Caddy HTTPS. Gemini adapters support structured audio analysis and judgment. Model mode defaults to **mock**; a mock verdict is never presented as a real medical assessment. Europe PMC, MedlinePlus, and Elasticsearch are real services even in mock model mode.
+Iteration one is implemented as a FastAPI/Celery backend, PostgreSQL/Redis persistence, a React/Vite interface, and a Docker Compose deployment with Caddy HTTPS. OpenAI is the default live provider for transcription, claim extraction, and judgment; the direct Gemini adapter remains optional. Model mode defaults to **mock**; a mock verdict is never presented as a real medical assessment. Europe PMC, MedlinePlus, and Elasticsearch are real services even in mock model mode.
 
 ## Start here
 
 ```bash
 python3 scripts/init_env.py
 # Edit .env: add Elasticsearch credentials and Sentry DSNs.
-# Keep MODEL_MODE=mock until Gemini credentials are available.
+# Keep MODEL_MODE=mock until OpenAI credentials are available.
 docker compose up -d --build
 docker compose exec api python -m app.cli setup-elastic
 docker compose exec api python -m app.cli preflight
@@ -26,14 +26,19 @@ The repository includes `.env.example`; `scripts/init_env.py` creates an ignored
 | `ELASTICSEARCH_URL`, `ELASTICSEARCH_API_KEY` | Hosted Elasticsearch endpoint and server-side API key |
 | `ELASTIC_INFERENCE_ID` | Existing Elastic inference endpoint; defaults to `.elser-2-elastic` |
 | `SENTRY_DSN`, `VITE_SENTRY_DSN` | Backend and frontend Sentry project DSNs; frontend DSN is public by design |
-| `GEMINI_API_KEY`, `GEMINI_MODEL`, `MODEL_MODE=live` | Enable real video transcription and evidence judgment |
+| `OPENAI_API_KEY`, `MODEL_PROVIDER=openai`, `MODEL_MODE=live` | Direct OpenAI transcription and evidence judgment |
+| `OPENAI_MODEL` | Text model; defaults to `gpt-4.1-mini` |
 | `DOMAIN` | Public DNS name for Caddy HTTPS |
 
 `setup-elastic` validates the inference endpoint and creates the passage index. If your deployment does not provide the default inference ID, enable an Elastic-managed endpoint in Elastic Cloud and configure its ID. `ELASTIC_SEMANTIC=false` explicitly selects keyword-only retrieval; it is not equivalent to the intended hybrid demo. Never silently replace a failed search with a mock search.
 
-After changing environment values, run `docker compose up -d --build`. Updating frontend DSNs requires rebuilding the web image. Google Cloud credits do not automatically cover a Google AI Studio API key: verify the billing route for your account.
+After changing environment values, run `docker compose up -d --build` (use `DOMAIN=:80` for local HTTP). Updating frontend DSNs requires rebuilding the web image.
 
-The default live model is `gemini-3.5-flash` with low thinking effort for the demo latency target; it supports audio input and structured output. See [Google's model reference](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash). Preflight verifies access for the configured key, rather than assuming credits imply model availability.
+The default direct OpenAI adapter transcribes the complete clip using `whisper-1` with segment timestamps, then uses `gpt-4.1-mini` for structured claim extraction and evidence judgment. Claim time ranges are derived from validated transcript segment references, not generated timestamps. Responses requests use `store=false`, no tools, and no conversation history. Citation validation remains mandatory. See [OpenAI transcription](https://developers.openai.com/api/docs/guides/speech-to-text) and [structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
+
+Preflight makes a small billed text-inference request; a live audio test is still needed to verify transcription access. The 90-second end-to-end target remains unverified.
+
+Optional adapters remain available: `MODEL_PROVIDER=gemini` uses `GEMINI_API_KEY`; `MODEL_PROVIDER=backboard` uses `BACKBOARD_API_KEY`, `BACKBOARD_LLM_PROVIDER`, and `BACKBOARD_MODEL`. Backboard's tested paid text/voice calls were blocked by Memory & RAG-only credits, although some explicit OpenRouter free text models worked. Its transcription adapter uses coarse ten-second windows. Neither alternative is used by the default OpenAI path.
 
 ## Local development
 

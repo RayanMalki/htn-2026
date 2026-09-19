@@ -158,3 +158,18 @@ async def test_supplement_failure_is_disclosed_in_verdict(case_id, pipeline_mock
     assert case['status'] == 'complete'
     assert any('MedlinePlus was unavailable' in item
                for item in case['result']['claims']['c1']['verdict']['limitations'])
+
+
+async def test_provider_change_cannot_relabel_saved_analysis(case_id, pipeline_mocks):
+    from app.config import settings
+    from app.db import read_case, update_case
+    from app.pipeline import run_case
+    settings().model_mode = "live"
+    settings().model_provider = "backboard"
+    analysis = await MockModels().analyze(Path('unused'))
+    update_case(case_id, status='researching', result_patch={
+        'model_mode': 'live', 'model_id': settings().gemini_model, 'analysis': analysis.model_dump(),
+    })
+    await run_case(case_id)
+    assert read_case(case_id)['error']['code'] == 'model_configuration_changed'
+    pipeline_mocks.assert_not_called()

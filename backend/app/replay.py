@@ -35,6 +35,7 @@ const results=document.getElementById('results');const status=document.getElemen
 function add(parent,tag,text){const el=document.createElement(tag);el.textContent=text;parent.append(el);return el;}
 function render(c){status.textContent=c.status+' · '+c.result.model_mode+' model mode';results.replaceChildren();
 if(c.error)add(results,'p',c.error.message);
+for(const limitation of c.result.limitations||[])add(results,'p',limitation);
 for(const item of Object.values(c.result.claims||{})){const card=add(results,'article','');add(card,'h2',item.claim.text);
 add(card,'p',item.verdict?.label||item.status);add(card,'p',item.verdict?.explanation||item.error||'');
 for(const p of item.evidence||[]){add(card,'h3',p.title);add(card,'small',(p.provider||'source')+' · '+p.access_type+' · '+p.section);
