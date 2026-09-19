@@ -2,6 +2,7 @@ import json
 
 import pytest
 import respx
+
 from app.config import settings
 from app.models import models
 from app.openai_models import BASE, ClaimExtraction, OpenAIModels
