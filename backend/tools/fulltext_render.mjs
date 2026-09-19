@@ -77,8 +77,15 @@ async function main() {
     return
   }
 
+  // --headed opens a real window instead of headless. Measured on the blue-light
+  // studies: two free pages (Thapan 2001, West 2011) sit behind Cloudflare's
+  // automatic check, which blocks headless and waves a normal headed browser
+  // through on its own. No stealth flags, no challenge solving, just a browser
+  // being a browser. If a page escalates to an interactive CAPTCHA, stop and let
+  // a person click, do not add anything that fights it.
+  const headed = args.includes('--headed')
   const t0 = Date.now()
-  const browser = await chromium.launch({ headless: true })
+  const browser = await chromium.launch({ headless: !headed, args: headed ? ['--mute-audio'] : [] })
   const page = await browser.newPage({
     userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
   })
