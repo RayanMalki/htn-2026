@@ -73,6 +73,12 @@ def test_like_is_removed_when_it_is_a_filler():
     assert "like" not in strip_fillers("Seed oils are, like, really bad for you.")[0].lower()
 
 
+def test_removing_a_one_word_sentence_leaves_clean_punctuation():
+    # Real dictated speech, where "Basically." is a whole sentence.
+    cleaned, _ = strip_fillers("This is the end of my talk. Basically. That's it.")
+    assert cleaned == "This is the end of my talk. That's it."
+
+
 def test_noun_phrases_survive():
     assert "kind of" in strip_fillers("What kind of doctor said that?")[0]
     assert "kind of" not in strip_fillers("That result is kind of surprising.")[0]
