@@ -1,8 +1,9 @@
 import json
 
 import sentry_sdk
-from app.observability import scrub, stage
 from sentry_sdk.transport import Transport
+
+from app.observability import scrub, scrub_log, stage
 
 
 def test_stage_trace_captures_timing_without_sensitive_payloads():
@@ -29,3 +30,15 @@ def test_stage_trace_captures_timing_without_sensitive_payloads():
     spans = transactions[0]["spans"]
     assert any(span["op"] == "pipeline.literature" and span["data"]["papers_found"] == 15 for span in spans)
     assert "transcript" not in json.dumps(transactions)
+
+
+def test_sentry_log_scrubber_keeps_only_safe_attributes():
+    log = {"body": "HypeCheck case finished", "attributes": {
+        "case_id": "case-1", "duration_seconds": 4.2, "claim": "sensitive medical text",
+        "sentry.trace.parent_span_id": "abc",
+    }}
+    scrubbed = scrub_log(log, {})
+    assert scrubbed["attributes"] == {
+        "case_id": "case-1", "duration_seconds": 4.2, "sentry.trace.parent_span_id": "abc",
+    }
+    assert "sensitive" not in json.dumps(scrubbed)

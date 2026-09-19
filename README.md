@@ -26,6 +26,7 @@ The repository includes `.env.example`; `scripts/init_env.py` creates an ignored
 | `ELASTICSEARCH_URL`, `ELASTICSEARCH_API_KEY` | Hosted Elasticsearch endpoint and server-side API key |
 | `ELASTIC_INFERENCE_ID` | Existing Elastic inference endpoint; defaults to `.elser-2-elastic` |
 | `SENTRY_DSN`, `VITE_SENTRY_DSN` | Backend and frontend Sentry project DSNs; frontend DSN is public by design |
+| `SENTRY_*_SAMPLE_RATE`, `VITE_SENTRY_*_SAMPLE_RATE` | Trace, profile, and masked error-Replay sampling; see `docs/OBSERVABILITY.md` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL`, `MODEL_MODE=live` | Enable real video transcription and evidence judgment |
 | `DOMAIN` | Public DNS name for Caddy HTTPS |
 

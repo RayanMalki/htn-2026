@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +21,9 @@ class Settings(BaseSettings):
     elastic_semantic: bool = True
     sentry_dsn: str = ""
     sentry_environment: str = "development"
+    sentry_enable_logs: bool = True
+    sentry_traces_sample_rate: float = Field(default=1.0, ge=0, le=1)
+    sentry_profile_session_sample_rate: float = Field(default=0.2, ge=0, le=1)
     release: str = "hypecheck-local"
     admin_token: str = ""
     enable_failure_injection: bool = False

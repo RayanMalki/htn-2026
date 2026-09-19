@@ -11,7 +11,7 @@ from app.db import now, read_case, update_case
 from app.literature import Literature
 from app.media import MediaError, download, extract_audio
 from app.models import models
-from app.observability import stage
+from app.observability import log_event, stage
 from app.schemas import AudioAnalysis, Claim, validate_verdict
 from app.search import ElasticSearch
 
@@ -48,6 +48,7 @@ async def run_case(case_id: str):
     })
     sentry_sdk.set_tag("case_id", case_id)
     sentry_sdk.set_tag("model_mode", cfg.model_mode)
+    log_event("HypeCheck case started", case_id=case_id, model_mode=cfg.model_mode)
 
     def save(**patch):
         update_case(case_id, result_patch={**patch, "timings": dict(timings)})
@@ -183,6 +184,8 @@ async def run_case(case_id: str):
         sentry_sdk.set_tag("case_status", final_status)
         if "total" in timings:
             sentry_sdk.set_measurement("case.duration", timings["total"], "second")
+        log_event("HypeCheck case finished", case_id=case_id, case_status=final_status,
+                  duration_seconds=timings.get("total"), model_mode=cfg.model_mode)
         if final_status in {"complete", "no_claims", "incomplete"}:
             from app.replay import export_case
             export_case(case_id)
