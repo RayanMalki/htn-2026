@@ -30,7 +30,6 @@ import json
 import os
 import sqlite3
 import sys
-import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
