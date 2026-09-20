@@ -1546,3 +1546,21 @@ queue: 503 videos already discovered
 [122/185] HUMAN_ONLY  ai=0.000  Jeff Evenson       Everything in threes
 [123/185] HUMAN_ONLY  ai=0.000  Dr. Brett Berner   -
 [124/185] skip ax4MxmRZlwM (transcript too short)
+[125/185] HUMAN_ONLY  ai=0.000  WCVB Channel 5 Bos -
+[126/185] HUMAN_ONLY  ai=0.000  QldBrainInstitute  -
+[127/185] AI_ONLY     ai=1.000  The Green Doctor   Everything in threes, Overblown importance
+[128/185] HUMAN_ONLY  ai=0.000  KSAT 12            -
+[129/185] HUMAN_ONLY  ai=0.000  News4JAX The Local -
+[130/185] skip oyd9hDZfigU (transcript too short)
+[131/185] HUMAN_ONLY  ai=0.000  ABC News           -
+[132/185] HUMAN_ONLY  ai=0.000  News4JAX The Local -
+[133/185] HUMAN_ONLY  ai=0.000  Good Morning Ameri -
+[134/185] HUMAN_ONLY  ai=0.000  Arthritis Foundati -
+[135/185] HUMAN_ONLY  ai=0.000  AllHealthGo        -
+[136/185] HUMAN_ONLY  ai=0.000  INTEGRIS Health    -
+[137/185] HUMAN_ONLY  ai=0.000  TMJ & Sleep Therap -
+[138/185] HUMAN_ONLY  ai=0.000  GOOD IDEA          -
+[139/185] AI_ONLY     ai=1.000  Health&Fitness     Sales-pitch tone, Unnecessary caveats
+[140/185] HUMAN_ONLY  ai=0.000  9NEWS              -
+[141/185] HUMAN_ONLY  ai=0.000  TODAY              -
+[142/185] HUMAN_ONLY  ai=0.000  Global News        -

@@ -2,7 +2,7 @@
 
 Neither fully human nor fully machine. Every sentence is shown with its score, bold at or above 0.5. Check whether the split the detector drew matches where the creator actually went off-script.
 
-**6 to review.**
+**7 to review.**
 
 ### What REALLY Works for Belly Fat Loss in 2025
 
@@ -151,3 +151,27 @@ Neither fully human nor fully machine. Every sentence is shown with its score, b
 | 0.30 | Others are modern blends labeled as herbal slimming juice or natural belly fat burner. |
 | **0.91** | Arovedic weight management products like herbal slimming juices or blends labeled as slimer rass can be useful allies when chosen carefully and used as part of a balanced plan. |
 | **1.00** | Their benefits are maximized when combined with conscious eating, consistent movement, stress management and adequate sleep. |
+
+---
+
+### Microplastics: The Invisible Danger Inside You | Future Technology & Science News 316
+
+- **Channel** Finite Future
+- **Views** 75
+- **Verdict** `MIXED` · subclass `concatenated` · ai=0.34126030525316686 mixed=0.6587396947468331
+- **Confidence** medium
+- <https://www.youtube.com/watch?v=tUBYVK8ztPk>
+
+- **Tells** Everything in threes, Overblown importance
+
+| score | sentence |
+|---|---|
+| **0.51** | A new study has found that microplastics have become a widespread problem in our intestines and other tissues. |
+| **0.93** | Microplastics are found everywhere in the environment and can accumulate in our bodies over time. |
+| **0.90** | We consume them through food, water, and even the air we breathe. |
+| **0.85** | The study used human intestinal organoids to understand the effects of microplastics on our health. |
+| **0.87** | The research found that microplastics can cause inflammation in the intestines, similar to inflammatory bowel disease. |
+| 0.50 | Smaller plastic particles were absorbed by cells lining the intestines while larger particles were absorbed by immune cells in the gut. |
+| 0.16 | When there were high concentrations of small plastic particles and the presence of immune cells, the organoids showed damage and released proteins associated with inflammation. |
+| **0.53** | This provides a promising approach to studying the toxicity of microplastics and other environmental particles using human cell organoids. |
+| **0.94** | Understanding microplastic risks is crucial for protecting our health and finding solutions to reduce plastic pollution. |
