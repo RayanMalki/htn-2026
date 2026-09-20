@@ -1,10 +1,10 @@
 # Citation check
 
-3171 citations checked across 90 papers. GPTZero called 38 of them fake. We resolved 37 of those ourselves on Crossref or ClinicalTrials.gov, leaving **1 unresolved**.
+4894 citations checked across 136 papers. GPTZero called 62 of them fake. We resolved 58 of those ourselves on Crossref or ClinicalTrials.gov, leaving **4 unresolved**.
 
 Only the unresolved ones are fabrication candidates, and even those need checking by hand before the word is used in public. The resolved ones are listed after them because the detector's error rate is part of the finding.
 
-**27 to review.**
+**40 to review.**
 
 ### Controlling for life-history traits in vertebrates reveals that effective population size does not affect mutation rate or genome size.
 
@@ -25,6 +25,72 @@ Only the unresolved ones are fabrication candidates, and even those need checkin
 > 31 A. Gonzalez-Voyer , A. von Hardenberg , “ An introduction to phylogenetic path analysis ” in Modern Phylogenetic Comparative Methods and Their Application in Evolutionary Biology: Concepts and Prac
 
 - resolved on Crossref: 10.1007/978-3-662-43550-2_8
+
+---
+
+### Longitudinal changes in cardiorespiratory fitness and risk of depressive and anxiety disorders in a nationwide cohort of 7 million participants.
+
+- **Journal** Scientific reports · 2026 · PRESTIGE
+- **The paper itself** `AI_ONLY` ai=0.9278860076248601
+- **Citations checked** 40 · statuses {'exist': 21, 'exist_with_issues': 17, 'unsure': 1, 'fake': 1}
+- <https://europepmc.org/article/PMC/PMC13096219>
+
+**Flagged, and we could not resolve it either:**
+
+> 15. Big Data Market. Big data market portal. https://www.bigdata-culture.kr/bigdata/user/data_market/detail.do?id=b3924850-aa65-11ec-8ee4-95f65f846b27 (accessed 15 December 2024).
+
+- verification: Crossref returned only weak matches
+- detector said: fake
+
+---
+
+### Evaluating routing stability and coordination in swarm-based multi-agent task-oriented dialogue systems.
+
+- **Journal** Scientific reports · 2026 · PRESTIGE
+- **The paper itself** `AI_ONLY` ai=1
+- **Citations checked** 40 · statuses {'exist_with_issues': 14, 'exist': 23, 'fake': 2, 'unsure': 1}
+- <https://europepmc.org/article/PMC/PMC13066405>
+
+**Flagged, and we could not resolve it either:**
+
+> 35. Song A Azman A Enhancing LLM-driven multi-agent code generation through cross verification and joint optimization Symmetry (Basel) 2025 17 1660 10.3390/sym17101660 Song, A. & Azman, A. Enhancing L
+
+- verification: Crossref returned only weak matches
+- detector said: fake
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 19. Liao L Long LH Ma Y Chua T-S Dialogue state tracking with incremental reasoning Trans. Assoc. Comput. Linguist. 2021 9 557 569 10.1162/tac0l_a_00384 Liao, L., Long, L. H., Ma, Y. & Chua, T.-S. Dia
+
+- resolved on Crossref: 10.1162/tacl_a_00384 (Dialogue State Tracking with Incremental Reasoning)
+
+---
+
+### Compost application enhances soil quality, growth, and yield of durum wheat under saline conditions.
+
+- **Journal** Scientific reports · 2026 · PRESTIGE
+- **The paper itself** `AI_ONLY` ai=1
+- **Citations checked** 40 · statuses {'fake': 3, 'exist': 24, 'exist_with_issues': 13}
+- <https://europepmc.org/article/PMC/PMC12936065>
+
+**Flagged, and we could not resolve it either:**
+
+> 1. FAO Global assessment of soil salinization and sodification; Food and agriculture organization of the United Nations and the intergovernmental technical panel on soils.; Food and agriculture organi
+
+- verification: Crossref returned only weak matches
+- detector said: fake
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 28. De Vita, P., Taranto, F. Durum wheat (Triticum Turgidum Ssp. Durum) breeding to meet the challenge of climate change. In Advances in Plant Breeding Strategies: Cereals , (eds. Al-Khayri, J.M., Jai
+
+- book chapter or thesis: outside Crossref coverage, not checkable
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 29. Hammami, R., Sissons, M. Durum Wheat Products, Couscous. In Wheat Quality For Improving Processing And Human Health , (eds. Igrejas, G., Ikeda, T.M., Guzmán, C.) 347–367 ISBN 978-3-030-34162-6 (Sp
+
+- book chapter or thesis: outside Crossref coverage, not checkable
 
 ---
 
@@ -413,6 +479,21 @@ Only the unresolved ones are fabrication candidates, and even those need checkin
 
 ---
 
+### Beta-Glucan as a Soluble Dietary Fiber Source: Origins, Biosynthesis, Extraction, Purification, Structural Characteristics, Bioavailability, Biofunctional Attri
+
+- **Journal** Nutrients · 2024 · PRESTIGE
+- **The paper itself** `AI_ONLY` ai=0.7014602211423132
+- **Citations checked** 40 · statuses {'exist_with_issues': 17, 'exist': 21, 'unsure': 1, 'fake': 1}
+- <https://europepmc.org/article/PMC/PMC10975496>
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 32. Cabib E., Kang M.S. Methods in Enzymology. Volume 138. Academic Press; Cambridge, MA, USA: 1987. Fungal 1, 3-β-glucan synthase; pp. 637–642.
+
+- resolved on Crossref: 10.1016/0076-6879(87)38057-7
+
+---
+
 ### Physician-Reported Safety Outcomes of AI-Generated Hospital Course Summaries.
 
 - **Journal** JAMA network open · 2026 · PRESTIGE
@@ -476,3 +557,186 @@ Only the unresolved ones are fabrication candidates, and even those need checkin
 > 15. Peng T-R, Wu T-W, Li C-H. Association between proton-pump inhibitors and the risk of gastric cancer: a systematic review and meta-analysis. Int J Clin Oncol. 2023;28(1):99–109. doi: 10.1007/s10147
 
 - resolved on Crossref: 10.1007/s10147-022-02253-2
+
+---
+
+### First-trimester nonsteroidal anti-inflammatory drugs exposure and risk of major congenital malformations: A retrospective register-based cohort study.
+
+- **Journal** PLoS medicine · 2026 · PRESTIGE
+- **The paper itself** `MIXED` ai=0.014604177464380162
+- **Citations checked** 40 · statuses {'fake': 2, 'exist_with_issues': 21, 'unsure': 3, 'exist': 14}
+- <https://europepmc.org/article/PMC/PMC13175353>
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 25. Sun CW, Chen ZW, He ZG, Zhou PJ, Liu SJ. Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties. J Econom. 1985;29:305–25. doi: 10.1007/s00792-002-0
+
+- resolved on Crossref: 10.1016/0304-4076(85)90158-7
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 21. Angel D. Patterns of fertility in 2006. Central Bureau of Statistics. Jerusalem (Israel): Central Bureau of Statistics. 2007. [cited 6 Oct 2025]. Available from: https://www.cbs.gov.il/hodaot2007n
+
+- resolved on Crossref: 10.70190/jq.i88.p97
+
+---
+
+### Exercise training for adults with chronic kidney disease not requiring dialysis.
+
+- **Journal** The Cochrane database of systematic reviews · 2026 · PRESTIGE
+- **The paper itself** `MIXED` ai=0.0006021349450734575
+- **Citations checked** 22 · statuses {'exist': 13, 'exist_with_issues': 7, 'fake': 2}
+- <https://europepmc.org/article/PMC/PMC12809872>
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 14. Lefebvre C, Manheimer E, Glanville J. Chapter 6: Searching for studies. In: Higgins JP, Green S (editors). Cochrane Handbook for Systematic Reviews of Interventions Version 5.1.0 (updated March 20
+
+- resolved on Crossref: 10.1002/9780470712184.ch6
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 15. Higgins JP, Altman DG, Sterne JAC (editors). Chapter 8: Assessing risk of bias in included studies. In: Higgins JP, Churchill R, Chandler J, Cumpston MS (editors), Cochrane Handbook for Systematic
+
+- resolved on Crossref: 10.1002/9780470712184.ch8
+
+---
+
+### Interventions for replacing missing teeth: antibiotic prophylaxis for dental implant placement with bone augmentation procedures.
+
+- **Journal** The Cochrane database of systematic reviews · 2026 · PRESTIGE
+- **The paper itself** `MIXED` ai=0.006592956387771623
+- **Citations checked** 40 · statuses {'exist': 19, 'fake': 4, 'exist_with_issues': 15, 'unsure': 2}
+- <https://europepmc.org/article/PMC/PMC13543260>
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 10. Esposito MAB, Visconti RF, Grusovin MG, Greco K. Interventions for replacing missing teeth: antibiotic prophylaxis for dental implant placement without bone augmentation procedures. Cochrane Datab
+
+- resolved on Crossref: 10.1002/14651858.cd004152.pub5
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 11. Adell R, Lekholm U, Branemark PI. Surgical procedures. In: Branemark PI, Zarb GA, Albrektsson T, editor(s). Tissue-Integrated Prostheses. Chicago: Quintessence Publishing Co, Inc, 1985:211-32.
+
+- resolved on Crossref: 10.1002/hed.2880120621
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 12. Flemmig TF, Newman MG. Antimicrobials in implant dentistry. In: Newman MG, Kornman K, editor(s). Antibiotics/Antimicrobial Use in Dental Practice. Chicago: Quintessence Publishing Co, Inc, 1990:18
+
+- resolved on Crossref: 10.1002/j.0022-0337.1988.52.12.tb02270.x
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 27. Higgins JP, Altman DG, Sterne JA, editor(s). Chapter 8: Assessing risk of bias in included studies. In: Higgins JP, Green S, editor(s). Cochrane Handbook for Systematic Reviews of Interventions Ve
+
+- resolved on Crossref: 10.1002/9780470712184.ch8
+
+---
+
+### Whole-body magnetic resonance imaging (MRI) or computed tomography (CT) screening for reducing morbidity and mortality from multiple diseases in asymptomatic ad
+
+- **Journal** The Cochrane database of systematic reviews · 2026 · PRESTIGE
+- **The paper itself** `MIXED` ai=0.3055903397257334
+- **Citations checked** 36 · statuses {'fake': 2, 'exist_with_issues': 12, 'exist': 20, 'unsure': 2}
+- <https://europepmc.org/article/PMC/PMC13504611>
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 33 Review Manager (RevMan) . Version 11.6.0. The Cochrane Collaboration , 2026 . Available at revman.cochrane.org.
+
+- resolved on Crossref: 10.7717/peerj.2429/supp-1
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 8 Prenuvo. Our MRI scan cost & pricing explained . https://prenuvo.com/pricing (accessed 28 September 2025).
+
+- resolved on Crossref: 10.1057/9781137335722.0007
+
+---
+
+### Secant Optimization Algorithm for efficient global optimization.
+
+- **Journal** Scientific reports · 2026 · PRESTIGE
+- **The paper itself** `MIXED` ai=0.1786496447383357
+- **Citations checked** 40 · statuses {'exist': 24, 'exist_with_issues': 11, 'fake': 2, 'unsure': 3}
+- <https://europepmc.org/article/PMC/PMC12914007>
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 25. Martí, R., Martínez-Gavara, A. & Glover, F. Tabu search. Discrete Diversity and Dispersion Maximization: A Tutorial on Metaheuristic Optimization 137–149 (Springer, 2023).
+
+- resolved on Crossref: 10.1007/978-3-031-38310-6 (Discrete Diversity and Dispersion Maximization)
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 32. Su, H. et al. A physics-based optimization. Neurocomputing 532 , 183–214 (2023).
+
+- resolved on Crossref: 10.1016/j.neucom.2023.02.010 (RIME: A physics-based optimization)
+
+---
+
+### Experimental study on the structural failure characteristics and load-bearing mechanism of anchored fractured rock mass.
+
+- **Journal** Scientific reports · 2026 · PRESTIGE
+- **The paper itself** `MIXED` ai=0.00030734888208294975
+- **Citations checked** 33 · statuses {'exist_with_issues': 9, 'exist': 20, 'fake': 2, 'unsure': 2}
+- <https://europepmc.org/article/PMC/PMC12868903>
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 31. Han, G. S. et al. Experimental study on shear characteristics of energy-absorbing bolt anchored jointed rock mass under constant normal stifness condition. Chin. J. Rock Mechan. Eng. 43 (04), 999–
+
+- resolved on Crossref: 10.21203/rs.3.rs-4942640/v1
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 19. Y. Z. Xu, Numerical simulation study on tensile-compressive mechanicalcharacteristics of deep pre-cracked anchored soft rock. J. Mini. Safety Eng. . 41(06). 1134–1147. (2024).
+
+- resolved on Crossref: 10.1007/s00603-023-03628-1
+
+---
+
+### Perivascular pathology, not macrovascular complexity, governs glymphatic-related dysfunction in preclinical cerebral small vessel disease.
+
+- **Journal** Scientific reports · 2026 · PRESTIGE
+- **The paper itself** `MIXED` ai=0.21202759579089192
+- **Citations checked** 40 · statuses {'exist': 18, 'exist_with_issues': 21, 'fake': 1}
+- <https://europepmc.org/article/PMC/PMC12867987>
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 25. Chen H Glymphatic dysfunction is associated with perivascular space enlargement and cognitive decline in cerebral small vessel disease J. Cereb. Blood Flow. Metab. 2022 42 240 251 10.1177/0271678X
+
+- resolved on Crossref: 10.1177/0271678x221105668
+
+---
+
+### Integrating machine learning and physics-based modeling for predictive design of gemcitabine-loaded nanocomposites.
+
+- **Journal** Scientific reports · 2026 · PRESTIGE
+- **The paper itself** `AI_ONLY` ai=1
+- **Citations checked** 39 · statuses {'exist': 29, 'exist_with_issues': 9, 'fake': 1}
+- <https://europepmc.org/article/PMC/PMC12905131>
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 24. Narmadha, D. Prediction of Metal Oxide Nanoparticles for Anticancer Drug Delivery Using Machine Learning . in Second International Conference on Advances in Information Technology (ICAIT) . IEEE. 
+
+- resolved on Crossref: 10.1109/icait61638.2024.10690572 (Prediction of Metal Oxide Nanoparticles for Anticancer Drug )
+
+---
+
+### Analysis of the antimicrobial activity of zinc oxide nanoparticles against drug-resistant bacteria and their applications in the disinfection process.
+
+- **Journal** PloS one · 2026 · PRESTIGE
+- **The paper itself** `MIXED` ai=0.11157694005088532
+- **Citations checked** 40 · statuses {'exist': 26, 'exist_with_issues': 10, 'unsure': 3, 'fake': 1}
+- <https://europepmc.org/article/PMC/PMC12904420>
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 4 Jin S-E , Jin H-E . Antimicrobial Activity of Zinc Oxide Nano/Microparticles and Their Combinations against Pathogenic Microorganisms for Biomedical Applications: From Physicochemical Characteristic
+
+- resolved on Crossref: 10.3390/nano11020263 (Antimicrobial Activity of Zinc Oxide Nano/Microparticles and)

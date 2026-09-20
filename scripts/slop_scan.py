@@ -14,10 +14,8 @@ from pathlib import Path
 
 import httpx
 
-KEY = os.environ.get("GPTZERO_API_KEY") or os.environ.get("KEY") or ""
-if not KEY:
-    sys.exit("Set GPTZERO_API_KEY to the same key the app uses, then re-run.")
-ROOT = Path(os.environ.get("SLOP_SCAN_DIR", "data/slop-scan"))
+KEY = os.environ["KEY"]
+ROOT = Path(__file__).parent / "scan"
 AUDIO, TEXT = ROOT / "audio", ROOT / "text"
 RESULTS = ROOT / "results.jsonl"
 # Roughly 70% of YouTube Shorts refuse the audio download, and the same ones refuse
@@ -26,6 +24,7 @@ FAILED = ROOT / "failed.txt"
 # Discovery is the memory-hungry step and its answers do not change between runs,
 # so it happens once into a queue and every later run just drains that queue.
 QUEUE = ROOT / "queue.jsonl"
+COOKIE_BROWSER = os.environ.get("SCAN_COOKIE_BROWSER", "safari")
 WHISPER_THREADS = "2"  # 8 GB machine; the default of one per core drove it into swap.
 MODEL = Path.home() / ".cache/whisper/ggml-base.en.bin"
 DETECT = "https://api.gptzero.me/v2/predict/text"
@@ -47,6 +46,13 @@ QUERIES = [
     "gut brain axis anxiety", "inflammation foods avoid", "glp1 natural alternative",
     "metabolism damage dieting", "sleep hygiene cortisol", "liver king supplements",
     "bioavailable nutrients absorption",
+    # Higher-harm territory: claims where acting on them can injure someone.
+    "vaccines cause autism", "vaccines are dangerous", "raw meat diet benefits",
+    "raw milk raw dairy healing", "fascia release myofascial", "sucralose dangerous",
+    "aspartame dangerous", "cigarettes healthy smoking benefits", "nicotine benefits",
+    "seed oils worse than cigarettes", "sunscreen causes cancer", "fluoride lowers iq",
+    "oscar patel health", "colloidal silver benefits", "urine therapy benefits",
+    "black salve cancer", "apricot seeds cancer b17", "grounding sheets inflammation",
 ]
 
 
@@ -81,8 +87,13 @@ def transcribe(video: dict) -> str | None:
         return out.read_text().strip() or None
     wav = AUDIO / f"{video['id']}.wav"
     if not wav.exists():
-        r = run(["yt-dlp", video["url"], "-f", "bestaudio", "-x", "--audio-format", "wav",
+        # A signed-in session lifts the 403 that refuses roughly three quarters of
+        # shorts, and on that path YouTube offers no audio-only stream, so fall back
+        # through the smallest combined formats. Paced, because this is a real account.
+        r = run(["yt-dlp", video["url"], "--cookies-from-browser", COOKIE_BROWSER,
+                 "-f", "bestaudio/91/18/worst", "-x", "--audio-format", "wav",
                  "--postprocessor-args", "-ar 16000 -ac 1", "--no-warnings", "-q",
+                 "--sleep-requests", "1", "--min-sleep-interval", "1", "--max-sleep-interval", "3",
                  "-o", str(AUDIO / f"{video['id']}.%(ext)s")])
         if not wav.exists():
             print(f"    ! download failed {video['id']}: {r.stderr.strip()[:90]}", flush=True)

@@ -6,12 +6,11 @@ channel follow-up does not, because those videos were chosen by pulling a thread
 """
 import html
 import json
-import os
 from collections import Counter
 from pathlib import Path
 
-ROOT = Path(os.environ.get("SLOP_SCAN_DIR", "data/slop-scan"))
-ROWS = ROOT / "results.jsonl"
+ROOT = Path(__file__).parent
+ROWS = ROOT / "scan/results.jsonl"
 OUT = ROOT / "leaderboard.html"
 SCRIPT_THRESHOLD = 0.5
 FOLLOWUP = "channel-followup"
@@ -91,12 +90,29 @@ def row_html(r: dict) -> str:
 </div></details>"""
 
 
-def cohort(rows, heading, standfirst) -> str:
+def farm_table(rows) -> str:
+    """Per-channel hit rate: the shape of the follow-up finding in one glance."""
+    tally = {}
+    for r in rows:
+        name = r.get("uploader") or "unknown"
+        total, flagged = tally.get(name, (0, 0))
+        tally[name] = (total + 1, flagged + (1 if is_machine(r) else 0))
+    ordered = sorted(tally.items(), key=lambda kv: (-kv[1][1] / kv[1][0], -kv[1][0]))
+    bars = "".join(
+        f'<li><span class="farm-name">{e(name)}</span>'
+        f'<span class="bar"><span style="width:{flagged / total * 100:.0f}%"></span></span>'
+        f'<span class="p">{flagged}/{total}</span></li>'
+        for name, (total, flagged) in ordered)
+    return f'<ol class="farms">{bars}</ol>'
+
+
+def cohort(rows, heading, standfirst, farms=False) -> str:
     if not rows:
         return ""
     ranked = sorted(rows, key=lambda r: (-(r.get("ai_prob") or 0), -num(r.get("views"))))
     return f"""<section class="cohort">
 <h2>{heading}</h2><p class="standfirst">{standfirst}</p>
+{farm_table(rows) if farms else ''}
 <div class="rows">{''.join(row_html(r) for r in ranked)}</div></section>"""
 
 
@@ -190,6 +206,13 @@ h4{{font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform
 .sentences li.scripted{{background:var(--flag-bg)}}
 .p{{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}}
 .sentences li.scripted .p{{color:var(--flag)}}
+.farms{{list-style:none;padding:0;margin:0 0 18px;border:1px solid var(--rule);border-radius:3px;background:var(--surface)}}
+.farms li{{display:grid;grid-template-columns:1fr 130px 46px;gap:14px;align-items:center;padding:10px 16px;font-size:13.5px}}
+.farms li+li{{border-top:1px solid var(--rule)}}
+.farm-name{{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.bar{{height:7px;background:var(--sunk);border-radius:2px;overflow:hidden;display:block}}
+.bar span{{display:block;height:100%;background:var(--flag)}}
+@media (max-width:720px){{.farms li{{grid-template-columns:1fr 46px;row-gap:7px}}.bar{{grid-column:1/-1}}}}
 .tells-list{{border:1px solid var(--rule);border-radius:3px;background:var(--surface);
   list-style:none;padding:0;margin:0}}
 .tells-list li{{display:flex;justify-content:space-between;gap:12px;padding:10px 16px;font-size:13.5px}}
@@ -223,7 +246,7 @@ audience. Every video in this sample with meaningful reach was written by a pers
         f"Ten health search terms, shorts under 200 seconds. This cohort gives the population "
         f"rate above: {len(flagged)} of {len(sample)} machine-written.")}
 
-{cohort(chased, "Followed to the source",
+{cohort(chased, "Followed to the source", farms=True, standfirst=
         f"The machine-written videos above were traced back to their channels and every short "
         f"those channels published was scanned. {len(chased_flagged)} of {len(chased)} came back "
         f"machine-written. These were selected by pulling a thread, so they are not a population "
