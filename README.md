@@ -8,16 +8,14 @@ Iteration one is implemented as a FastAPI/Celery backend, PostgreSQL/Redis persi
 
 ```bash
 python3 scripts/init_env.py
-# Edit .env: add Elasticsearch credentials and Sentry DSNs.
-# Keep MODEL_MODE=mock until OpenAI credentials are available.
-docker compose up -d --build
-docker compose exec api python -m app.cli setup-elastic
-docker compose exec api python -m app.cli preflight
+# Put the teammate's provider, Elastic and optional observability values in .env
+# (or export them in the shell), then run the complete startup command.
+bash scripts/start.sh
 ```
 
 Open **https://localhost**. Local Caddy certificates may need trust or a browser exception. For a public deployment, set `DOMAIN` to a real DNS name pointed to the VM; Caddy obtains the public certificate automatically. `DOMAIN=:80` enables plain HTTP for local development only.
 
-The repository includes `.env.example`; `scripts/init_env.py` creates an ignored `.env` with random local secrets. It never overwrites an existing file. Compose overrides database/Redis/media addresses for containers. Do not paste API keys into the frontend or commit `.env`.
+The repository includes `.env.example`; `scripts/init_env.py` creates an ignored `.env` with random local secrets. It never overwrites an existing file. `scripts/start.sh` accepts either that `.env` or exported variables, builds all images, starts every service, provisions Elastic when credentials are present, and runs preflight. Compose overrides database/Redis/media addresses for containers. Do not paste API keys into the frontend or commit `.env`.
 
 **Required external configuration**
 
