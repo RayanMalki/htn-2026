@@ -7,6 +7,10 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path}/test.db")
     monkeypatch.setenv("MEDIA_ROOT", str(tmp_path / "media"))
     monkeypatch.setenv("MODEL_MODE", "mock")
+    monkeypatch.setenv("VIDEO_ENABLED", "false")
+    monkeypatch.setenv("MODEL_PROVIDER", "openai")
+    for key in ("OPENAI_API_KEY", "BACKBOARD_API_KEY", "GEMINI_API_KEY"):
+        monkeypatch.setenv(key, "")
     monkeypatch.setenv("SENTRY_DSN", "")
     monkeypatch.setenv("ELASTICSEARCH_URL", "https://elastic.test")
     monkeypatch.setenv("ELASTICSEARCH_API_KEY", "test-key")
@@ -18,9 +22,10 @@ def isolated(tmp_path, monkeypatch):
     settings.cache_clear()
     engine.cache_clear()
     init_db()
+    import fakeredis
+
     import app.main
     import app.queue
-    import fakeredis
     fake = fakeredis.FakeRedis(decode_responses=True)
     monkeypatch.setattr(app.queue, "redis_client", lambda: fake)
     monkeypatch.setattr(app.main, "redis_client", lambda: fake)

@@ -14,18 +14,21 @@ class CaseCreate(StrictModel):
 
     @field_validator("source_url")
     @classmethod
-    def instagram_only(cls, value: str) -> str:
+    def supported_video(cls, value: str) -> str:
         url = urlsplit(value.strip())
-        if (url.scheme != "https" or url.hostname not in {"instagram.com", "www.instagram.com"}
-                or url.username or url.password or url.port not in (None, 443)
-                or not re.fullmatch(r"/reels?/[A-Za-z0-9_-]+/?", url.path)):
-            raise ValueError("Use a public https://www.instagram.com/reel/… link.")
-        return f"https://www.instagram.com{url.path.rstrip('/')}/"
+        if url.scheme == "https" and not url.username and not url.password and url.port in (None, 443):
+            if (url.hostname in {"instagram.com", "www.instagram.com"}
+                    and re.fullmatch(r"/reels?/[A-Za-z0-9_-]+/?", url.path)):
+                return f"https://www.instagram.com{url.path.rstrip('/')}/"
+            if (url.hostname in {"youtube.com", "www.youtube.com", "m.youtube.com"}
+                    and re.fullmatch(r"/shorts/[A-Za-z0-9_-]{11}/?", url.path)):
+                return f"https://www.youtube.com{url.path.rstrip('/')}"
+        raise ValueError("Use a public HTTPS Instagram Reel or YouTube Shorts link.")
 
 
 class TranscriptSegment(StrictModel):
-    start: float = Field(ge=0, le=60)
-    end: float = Field(ge=0, le=60)
+    start: float = Field(ge=0, le=100)
+    end: float = Field(ge=0, le=100)
     text: str = Field(min_length=1, max_length=4000)
 
     @model_validator(mode="after")
@@ -38,8 +41,8 @@ class TranscriptSegment(StrictModel):
 class Claim(StrictModel):
     id: str = Field(pattern=r"^c[1-3]$")
     text: str = Field(min_length=1, max_length=1000)
-    start: float = Field(ge=0, le=60)
-    end: float = Field(ge=0, le=60)
+    start: float = Field(ge=0, le=100)
+    end: float = Field(ge=0, le=100)
     search_terms: list[str] = Field(min_length=1, max_length=3)
 
     @field_validator("search_terms")
@@ -77,9 +80,15 @@ class Passage(StrictModel):
     paper_id: str
     title: str
     source_url: str
+    provider: Literal["europe_pmc", "medlineplus"] = "europe_pmc"
+    external_id: str | None = None
+    source_kind: Literal["research_paper", "health_topic", "fact_sheet", "guideline"] = "research_paper"
     published: str | None
     study_types: list[str]
-    access_type: Literal["full_text", "abstract_only"]
+    access_type: Literal["full_text", "abstract_only", "summary"]
+    license: str | None = None
+    retrieved_at: str | None = None
+    updated_at: str | None = None
     section: str
     text: str
     context: str

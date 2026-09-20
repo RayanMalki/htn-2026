@@ -98,7 +98,7 @@ async def ready():
     except Exception:
         checks.setdefault("elasticsearch", False)
         checks["semantic_endpoint"] = False
-    checks["model_configured"] = settings().model_mode == "mock" or bool(settings().gemini_api_key)
+    checks["model_configured"] = settings().model_configured
     return JSONResponse({"status": "ready" if all(checks.values()) else "not_ready", "checks": checks,
                          "model_mode": settings().model_mode}, status_code=200 if all(checks.values()) else 503)
 
@@ -106,7 +106,7 @@ async def ready():
 @app.get("/api/config")
 def public_config():
     return {"model_mode": settings().model_mode, "semantic_enabled": settings().elastic_semantic,
-            "target_seconds": 90, "max_duration_seconds": 60}
+            "target_seconds": 90, "max_duration_seconds": 100}
 
 
 @app.post("/api/cases", status_code=202)
@@ -118,7 +118,7 @@ def create_case(body: CaseCreate, request: Request):
     try:
         with session() as db, db.begin():
             count = db.scalar(select(func.count()).select_from(Case).where(or_(
-                Case.status.in_(["queued", "downloading", "transcribing", "researching", "judging"]),
+                Case.status.in_(["queued", "downloading", "transcribing", "researching", "judging", "rendering"]),
                 and_(Case.status == "awaiting_upload", Case.updated_at > now() - timedelta(hours=1)),
             )))
             if count >= settings().max_active_cases:
@@ -142,6 +142,40 @@ def create_case(body: CaseCreate, request: Request):
 @app.get("/api/cases/{case_id}")
 def case_detail(case_id: str):
     return get_case(case_id)
+
+
+@app.post("/api/cases/{case_id}/render", status_code=202)
+async def render_video(case_id: str, brainrot: bool = False, sfx: bool = True):
+    """Start rendering the rebuttal video for a finished case, in the background.
+
+    Rendering is a minute or two of ffmpeg and a browser, so the request returns at
+    once and the case's result carries a "render" block that moves from rendering to
+    done or failed. The page polls the case as it already does. Nothing here blocks
+    the evidence pipeline, and a render failure never touches the verdict.
+    """
+    from app.video.render import RENDER_ROOT, render_case
+
+    case = get_case(case_id)
+    started = now().isoformat()
+    update_case(case_id, result_patch={"render": {"status": "rendering", "started_at": started}})
+
+    async def job():
+        try:
+            plan = await asyncio.to_thread(
+                render_case, case, RENDER_ROOT / case_id, sfx=sfx, brainrot=brainrot, log=lambda *_: None,
+            )
+            update_case(case_id, result_patch={"render": {
+                "status": "done", "path": plan.output_path, "started_at": started, "finished_at": now().isoformat(),
+                "duration": round(plan.duration, 2), "brainrot": brainrot, "sfx": sfx,
+            }})
+        except Exception as exc:  # noqa: BLE001 - a failed render is reported on the case, never raised
+            sentry_sdk.capture_exception(exc)
+            update_case(case_id, result_patch={"render": {
+                "status": "failed", "started_at": started, "error": str(exc)[:300],
+            }})
+
+    asyncio.create_task(job())
+    return {"case_id": case_id, "render": "started"}
 
 
 @app.post("/api/cases/{case_id}/media", status_code=202)
@@ -265,3 +299,79 @@ def controlled_failure(authorization: str | None = Header(default=None)):
     except RuntimeError as exc:
         event_id = sentry_sdk.capture_exception(exc)
     return JSONResponse({"injected": True, "sentry_event_id": event_id}, status_code=503)
+
+
+@app.post("/api/cases/{case_id}/retry", status_code=202)
+def retry_case(case_id: str, request: Request):
+    case_id = valid_id(case_id)
+    rate_limit(request)
+    gate = redis_client().lock("admission", timeout=5, blocking_timeout=1)
+    if not gate.acquire():
+        raise HTTPException(503, "Submission busy. Please retry.")
+    lock = redis_client().lock(f"processing:{case_id}", timeout=10, blocking=False)
+    if not lock.acquire(blocking=False):
+        gate.release()
+        raise HTTPException(409, "This case is already processing.")
+    try:
+        case = get_case(case_id)
+        if case["status"] not in {"incomplete", "complete"}:
+            raise HTTPException(409, "Only finished analyses can be retried.")
+        if case['result'].get('video', {}).get('status') == 'ready':
+            return case
+        with session() as db:
+            active = db.scalar(select(func.count()).select_from(Case).where(
+                Case.status.in_(["queued", "downloading", "transcribing", "researching", "judging", "rendering"])))
+        if active >= settings().max_active_cases:
+            raise HTTPException(429, "The demo queue is full. Please try again shortly.")
+        claims = case['result'].get('claims', {})
+        for item in claims.values():
+            if item.get('status') == 'incomplete' and item.get('evidence') is not None:
+                item['status'] = 'researched'
+                item.pop('error', None)
+        result = update_case(case_id, status='queued', error=None, finished_at=None,
+                             result_patch={'claims': claims, 'video': {'status': 'pending'}})
+    finally:
+        lock.release()
+        gate.release()
+    try:
+        enqueue(case_id)
+    except Exception as exc:
+        sentry_sdk.capture_exception(exc)
+    return result
+
+
+def video_artifact(case_id: str, filename: str):
+    case = get_case(case_id)
+    video = case['result'].get('video', {})
+    if video.get('status') != 'ready':
+        raise HTTPException(409, 'Video is not ready.')
+    import re
+    artifact = video.get('artifact', '')
+    if not re.fullmatch(r'[a-f0-9]{20}', artifact):
+        raise HTTPException(404, 'Video artifact not found.')
+    path = settings().media_root / case['id'] / 'video' / artifact / filename
+    if not path.is_file():
+        raise HTTPException(410, 'This temporary video has expired.')
+    return path
+
+
+@app.get('/api/cases/{case_id}/video')
+def generated_video(case_id: str, download: bool = False):
+    case = get_case(case_id)
+    info = case['result'].get('render') or {}
+    if info.get('status') == 'done' and info.get('path'):
+        return FileResponse(info['path'], media_type='video/mp4',
+                            filename=f'hypecheck-{case["id"]}.mp4' if download else None)
+    return FileResponse(video_artifact(case_id, 'response.mp4'), media_type='video/mp4',
+                        filename=f'hypecheck-{valid_id(case_id)}.mp4' if download else None)
+
+
+@app.get('/api/cases/{case_id}/video/captions')
+def video_captions(case_id: str):
+    return FileResponse(video_artifact(case_id, 'captions.vtt'), media_type='text/vtt')
+
+
+@app.get('/api/cases/{case_id}/video/sources')
+def video_sources(case_id: str):
+    return FileResponse(video_artifact(case_id, 'manifest.json'), media_type='application/json',
+                        filename=f'hypecheck-{valid_id(case_id)}-sources.json')

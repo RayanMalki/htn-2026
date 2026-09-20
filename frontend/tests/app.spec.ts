@@ -50,7 +50,7 @@ test('landing page, responsive layout, and backend error', async ({ page }, test
   await expect(page.getByText('Infrastructure preview · mock AI adapters')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.screenshot({ path: `../artifacts/landing-${testInfo.project.name}.png`, fullPage: true });
-  await page.getByLabel('Start with an Instagram Reel').fill('https://www.instagram.com/reel/test123/');
+  await page.getByLabel('Start with an Instagram Reel or YouTube Short').fill('https://www.instagram.com/reel/test123/');
   await page.getByRole('button', { name: 'Check the evidence' }).click();
   await expect(page.getByRole('alert')).toHaveText('The demo queue is full.');
   expect(errors).toEqual([]);
@@ -60,7 +60,7 @@ test('submit a Reel, inspect evidence, and follow the original source', async ({
   await page.route('**/api/cases', route => route.fulfill({ status: 202, json: complete }));
   await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: complete }));
   await page.goto('/');
-  await page.getByLabel('Start with an Instagram Reel').fill(complete.source_url);
+  await page.getByLabel('Start with an Instagram Reel or YouTube Short').fill(complete.source_url);
   await page.getByRole('button', { name: 'Check the evidence' }).click();
   await expect(page.getByRole('heading', { name: 'Analysis complete' })).toBeVisible();
   await expect(page.getByText('Contradicted by retrieved evidence')).toBeVisible();
@@ -112,4 +112,63 @@ test('observatory renders recorded measurements', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Know where the seconds go.' })).toBeVisible();
   await expect(page.getByText('42s', { exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Average time by stage' })).toBeVisible();
+});
+
+test('health summaries have working citations and disclose supplemental outages', async ({ page }) => {
+  const result = structuredClone(complete);
+  const item = result.result.claims.c1;
+  Object.assign(item.evidence[0], { title: 'Common Cold', source_url: 'https://medlineplus.gov/commoncold.html',
+    access_type: 'summary', provider: 'medlineplus', study_types: ['Curated health topic'] });
+  Object.assign(item.provenance, { sources_found: 16,
+    provider_failures: [{ provider: 'MedlinePlus', error: 'TimeoutError' }] });
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByText('Health summary', { exact: true })).toBeVisible();
+  await expect(page.getByText('16 sources discovered')).toBeVisible();
+  await expect(page.getByText(/MedlinePlus unavailable/)).toBeVisible();
+  await page.locator('summary').filter({ hasText: 'Common Cold' }).click();
+  await expect(page.getByRole('link', { name: 'Read the health topic' })).toHaveAttribute('href', 'https://medlineplus.gov/commoncold.html');
+});
+
+test('required provider outage shows incomplete research and preserves source links', async ({ page }) => {
+  const result = { ...complete, status: 'incomplete', result: { ...complete.result, claims: { c1: {
+    claim, status: 'incomplete', error: 'Medical research could not complete. No verdict was assigned.',
+    provenance: { provider: 'MedlinePlus', sources_found: 1,
+      provider_failures: [{ provider: 'Europe PMC', error: 'ReadTimeout' }] },
+    discovered_sources: [{ title: 'Common Cold health topic', source_url: 'https://medlineplus.gov/commoncold.html', access_type: 'summary' }],
+  } } } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByText(/Europe PMC unavailable/)).toBeVisible();
+  await expect(page.getByText('Retrieval not completed')).toBeVisible();
+  await expect(page.getByText('Keyword only · degraded retrieval')).toHaveCount(0);
+  await page.getByText('Sources discovered before the interruption').click();
+  await expect(page.getByRole('link', { name: 'Common Cold health topic' })).toHaveAttribute('href', 'https://medlineplus.gov/commoncold.html');
+});
+
+test('submit a YouTube Short and preserve its original link', async ({ page }) => {
+  const source_url = 'https://www.youtube.com/shorts/BGQWPY4IigY';
+  const result = { ...complete, source_url };
+  await page.route('**/api/cases', async route => {
+    expect(route.request().postDataJSON()).toEqual({ source_url });
+    await route.fulfill({ status: 202, json: result });
+  });
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.goto('/');
+  await page.getByLabel('Start with an Instagram Reel or YouTube Short').fill(source_url);
+  await page.getByRole('button', { name: 'Check the evidence' }).click();
+  await expect(page.getByRole('link', { name: 'Original video' })).toHaveAttribute('href', source_url);
+});
+
+test('completed generated video has playback, captions and download', async ({ page }) => {
+  const result = { ...complete, result: { ...complete.result, video: { status: 'ready', duration_seconds: 45 } } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.route(`**/api/cases/${id}/video*`, route => route.fulfill({ status: 200, body: '' }));
+  await page.goto(`/?case=${id}`);
+  const section = page.getByRole('region', { name: 'Generated fact-check video' });
+  await expect(section).toBeVisible();
+  await expect(section.locator('video')).toHaveAttribute('controls', '');
+  await expect(section.locator('track')).toHaveAttribute('src', `/api/cases/${id}/video/captions`);
+  await expect(section.getByRole('link', { name: 'Download MP4' })).toHaveAttribute('href', `/api/cases/${id}/video?download=true`);
+  await expect(section).toContainText('AI-generated narration');
 });

@@ -9,12 +9,13 @@ import sentry_sdk
 from app.config import settings
 from app.db import now, read_case, update_case
 from app.detection import Detector
-from app.literature import Literature
+from app.literature import DiscoveryIncomplete, Literature
 from app.media import MediaError, download, extract_audio
 from app.models import models
-from app.observability import stage
+from app.observability import log_event, record_case_duration, stage
 from app.schemas import AudioAnalysis, Claim, validate_verdict
 from app.search import ElasticSearch
+from app.video.artifact import render_video
 
 TERMINAL = {"complete", "no_claims", "incomplete", "awaiting_upload"}
 
@@ -28,8 +29,10 @@ async def run_case(case_id: str):
         saved = db.get(Case, case_id)
         media_path = saved.media_path
     cfg = settings()
+    video_requested = cfg.video_enabled and cfg.model_mode == "live"
     result = dict(existing["result"])
-    if "analysis" in result and result.get("model_mode") != cfg.model_mode:
+    if "analysis" in result and (result.get("model_mode") != cfg.model_mode
+            or (result.get("model_id") is not None and result["model_id"] != cfg.model_id)):
         update_case(case_id, status="incomplete", finished_at=now(), error={
             "code": "model_configuration_changed", "message": "Model mode changed during this case. Submit a new case to use the new model configuration.",
         })
@@ -42,13 +45,16 @@ async def run_case(case_id: str):
     stage_name = "intake"
     update_case(case_id, started_at=now(), error=None, result_patch={
         "schema_version": 1, "model_mode": cfg.model_mode,
-        "model_id": cfg.gemini_model if cfg.model_mode == "live" else "prepared-fixture-v1",
+        "model_id": cfg.model_id,
         "limitations": ["Spoken English only; at most three claims; literature search is not exhaustive."]
         + (["MOCK MODE: the transcript and claim are prepared inputs, not extracted from this video."]
-           if cfg.model_mode == "mock" else []),
+           if cfg.model_mode == "mock" else [])
+        + (["Claim timestamps are approximate 10-second audio-window ranges, not word-level timing."]
+           if cfg.model_mode == "live" and cfg.model_provider == "backboard" else []),
     })
     sentry_sdk.set_tag("case_id", case_id)
     sentry_sdk.set_tag("model_mode", cfg.model_mode)
+    log_event("HypeCheck case started", case_id=case_id, model_mode=cfg.model_mode)
 
     def save(**patch):
         update_case(case_id, result_patch={**patch, "timings": dict(timings)})
@@ -78,7 +84,7 @@ async def run_case(case_id: str):
                     audio, duration = await extract_audio(Path(media_path))
                 with stage("transcription", timings):
                     async with asyncio.timeout(25):
-                        analysis = await adapter.analyze(audio)
+                        analysis = await adapter.analyze(audio, duration=duration)
                 if any(c.end > duration + 0.5 for c in analysis.claims):
                     raise ValueError("Claim timestamp exceeds media duration")
                 save(analysis=analysis.model_dump(), duration_seconds=duration)
@@ -111,7 +117,8 @@ async def run_case(case_id: str):
                                 for key in ["papers_found", "passages_found", "cache_hits", "full_text_fallbacks"]:
                                     span.set_data(key, provenance.get(key, 0))
                             sources = {p.paper_id: {"title": p.title, "source_url": p.source_url,
-                                "access_type": p.access_type} for p in passages}
+                                "access_type": p.access_type, "provider": p.provider,
+                                "source_kind": p.source_kind} for p in passages}
                             completed[claim.id] = {"claim": claim.model_dump(), "status": "indexing",
                                 "discovered_sources": list(sources.values()), "timings": local_timings}
                             save(claims=dict(completed))
@@ -129,6 +136,15 @@ async def run_case(case_id: str):
                     except Exception as exc:
                         sentry_sdk.capture_exception(exc)
                         failures.append(claim.id)
+                        if isinstance(exc, DiscoveryIncomplete):
+                            completed[claim.id] = {
+                                "provenance": exc.provenance,
+                                "discovered_sources": list({p.paper_id: {
+                                    "title": p.title, "source_url": p.source_url,
+                                    "access_type": p.access_type, "provider": p.provider,
+                                    "source_kind": p.source_kind,
+                                } for p in exc.passages}.values()),
+                            }
                         completed[claim.id] = {**completed.get(claim.id, {}), "claim": claim.model_dump(), "status": "incomplete",
                             "error": "Medical research could not complete. No verdict was assigned.",
                             "timings": local_timings}
@@ -161,6 +177,9 @@ async def run_case(case_id: str):
                     with stage("judgment", item["timings"]):
                         async with asyncio.timeout(20):
                             verdict = validate_verdict(await adapter.judge(claim, evidence), evidence)
+                    for failure in item.get("provenance", {}).get("provider_failures", []):
+                        verdict.limitations.append(
+                            f"{failure['provider']} was unavailable; this assessment uses the remaining sources.")
                     item.update(verdict=verdict.model_dump(), status="complete")
                 except Exception as exc:
                     sentry_sdk.capture_exception(exc)
@@ -173,12 +192,24 @@ async def run_case(case_id: str):
             timings["total"] = round(monotonic() - started + previous_attempt, 3)
             status = "incomplete" if failures or any(c["status"] == "incomplete" for c in completed.values()) else "complete"
             sentry_sdk.set_tag("case_status", status)
-            sentry_sdk.set_measurement("case.duration", timings["total"], "second")
-            update_case(case_id, status=status, finished_at=now(), result_patch={
+            update_case(case_id, status="rendering" if status == "complete" and video_requested else status,
+                        finished_at=None if status == "complete" and video_requested else now(), result_patch={
                 "claims": completed, "timings": timings, "target_met": timings["total"] <= 90,
+            })
+        if read_case(case_id)["status"] == "rendering":
+            stage_name = "rendering"
+            save(video={"status": "rendering"}, analysis_seconds=timings["total"])
+            with stage("rendering", timings):
+                async with asyncio.timeout(cfg.video_timeout_seconds):
+                    video = await render_video(read_case(case_id))
+            timings["total"] = round(monotonic() - started + previous_attempt, 3)
+            update_case(case_id, status="complete", finished_at=now(), result_patch={
+                "video": video, "timings": timings, "target_met": timings["total"] <= 90,
             })
     except Exception as exc:
         sentry_sdk.capture_exception(exc)
+        if stage_name == "rendering":
+            save(video={"status": "failed", "error": "Video generation failed. Saved evidence is intact; retry to resume."})
         timings["total"] = round(monotonic() - started + previous_attempt, 3)
         message = str(exc) if isinstance(exc, MediaError) else f"The {stage_name} stage did not complete. No unsupported verdict was assigned."
         latest = read_case(case_id)["result"]
@@ -194,7 +225,9 @@ async def run_case(case_id: str):
         final_status = read_case(case_id)["status"]
         sentry_sdk.set_tag("case_status", final_status)
         if "total" in timings:
-            sentry_sdk.set_measurement("case.duration", timings["total"], "second")
+            record_case_duration(timings["total"])
+        log_event("HypeCheck case finished", case_id=case_id, case_status=final_status,
+                  duration_seconds=timings.get("total"), model_mode=cfg.model_mode)
         if final_status in {"complete", "no_claims", "incomplete"}:
             from app.replay import export_case
             export_case(case_id)

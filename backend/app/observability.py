@@ -2,8 +2,13 @@ from contextlib import contextmanager
 from time import monotonic
 
 import sentry_sdk
+from sentry_sdk import logger as sentry_logger
 
 from app.config import settings
+
+SAFE_LOG_ATTRIBUTES = {
+    "case_id", "case_status", "duration_seconds", "model_mode", "provider", "stage",
+}
 
 
 def scrub(event, hint):
@@ -23,6 +28,29 @@ def scrub(event, hint):
     return event
 
 
+def scrub_log(log, hint):
+    """Allow only technical correlation fields on deliberately static log messages."""
+    attributes = log.get("attributes", {})
+    log["attributes"] = {
+        key: value for key, value in attributes.items()
+        if key in SAFE_LOG_ATTRIBUTES or key.startswith("sentry.")
+    }
+    return log
+
+
+def log_event(message: str, **attributes):
+    """Emit a structured Sentry log without accepting medical or model payload fields."""
+    safe = {key: value for key, value in attributes.items() if key in SAFE_LOG_ATTRIBUTES}
+    sentry_logger.info(message, attributes=safe)
+
+
+def record_case_duration(seconds: float):
+    """Attach total case time to the transaction, even inside a child span."""
+    transaction = sentry_sdk.get_current_scope().transaction
+    if transaction is not None:
+        transaction.set_data("case.duration_seconds", seconds)
+
+
 def configure_sentry():
     cfg = settings()
     if not cfg.sentry_dsn:
@@ -32,8 +60,13 @@ def configure_sentry():
     sentry_sdk.init(
         dsn=cfg.sentry_dsn, environment=cfg.sentry_environment, release=cfg.release,
         integrations=[FastApiIntegration(), CeleryIntegration()],
-        traces_sample_rate=1.0, send_default_pii=False, include_local_variables=False,
+        traces_sample_rate=cfg.sentry_traces_sample_rate,
+        profile_session_sample_rate=cfg.sentry_profile_session_sample_rate,
+        profile_lifecycle="trace",
+        enable_logs=cfg.sentry_enable_logs,
+        send_default_pii=False, include_local_variables=False,
         max_request_body_size="never", before_send=scrub, before_send_transaction=scrub,
+        before_send_log=scrub_log,
     )
 
 

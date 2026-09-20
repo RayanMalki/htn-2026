@@ -7,6 +7,7 @@ import socket
 import sys
 from ipaddress import ip_address
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from app.config import settings
 
@@ -40,9 +41,9 @@ async def download(case_id: str, source_url: str) -> Path:
     # The URL itself is canonicalized by CaseCreate; do not accept arbitrary downloader URLs.
     from app.schemas import CaseCreate
     source_url = CaseCreate(source_url=source_url).source_url
-    addresses = await asyncio.to_thread(socket.getaddrinfo, "www.instagram.com", 443)
+    addresses = await asyncio.to_thread(socket.getaddrinfo, urlsplit(source_url).hostname, 443)
     if not addresses or any(not ip_address(entry[4][0]).is_global for entry in addresses):
-        raise MediaError("Instagram resolved to a non-public address")
+        raise MediaError("Video host resolved to a non-public address")
     folder = settings().media_root / case_id
     folder.mkdir(parents=True, exist_ok=True)
     for old in folder.glob("source.*"):
@@ -51,14 +52,15 @@ async def download(case_id: str, source_url: str) -> Path:
         await run_process(
             sys.executable, "-m", "app.downloader", "--ignore-config", "--no-playlist", "--no-warnings", "--no-progress",
             "--socket-timeout", "5", "--retries", "0", "--fragment-retries", "0",
-            "--max-filesize", str(MAX_BYTES), "--match-filters", "duration <= 60",
-            "-f", "best[ext=mp4]/best", "-o", str(folder / "source.%(ext)s"), source_url,
+            "--max-filesize", str(MAX_BYTES), "--match-filters", "duration <= 100",
+            "--hls-prefer-native", "--merge-output-format", "mp4",
+            "-f", "best[height<=720]/bestvideo[height<=720]+bestaudio/best", "-o", str(folder / "source.%(ext)s"), source_url,
             timeout=15,
         )
     except (TimeoutError, OSError, MediaError) as exc:
         for partial in folder.glob("source.*"):
             partial.unlink(missing_ok=True)
-        raise MediaError("Instagram download unavailable. Upload the clip to continue.") from exc
+        raise MediaError("Video download unavailable. Upload the clip to continue.") from exc
     files = [p for p in folder.glob("source.*") if p.suffix not in {".part", ".ytdl"}]
     if len(files) != 1 or files[0].stat().st_size > MAX_BYTES:
         raise MediaError("No supported video was downloaded. Upload the clip to continue.")
@@ -77,8 +79,8 @@ async def extract_audio(path: Path) -> tuple[Path, float]:
         duration = float(probe["format"]["duration"])
     except (ValueError, KeyError, TypeError) as exc:
         raise MediaError("Cannot determine video duration") from exc
-    if not math.isfinite(duration) or not 0 < duration <= 60:
-        raise MediaError("Use a video no longer than 60 seconds")
+    if not math.isfinite(duration) or not 0 < duration <= 100:
+        raise MediaError("Use a video no longer than 100 seconds")
     if not any(s.get("codec_type") == "video" for s in probe.get("streams", [])):
         raise MediaError("Upload a video file")
     if not any(s.get("codec_type") == "audio" for s in probe.get("streams", [])):
@@ -87,6 +89,6 @@ async def extract_audio(path: Path) -> tuple[Path, float]:
     await run_process(
         "ffmpeg", "-nostdin", "-y", "-v", "error", "-protocol_whitelist", "file,pipe",
         "-i", str(path), "-map", "0:a:0", "-vn", "-ac", "1", "-ar", "16000",
-        "-b:a", "48k", "-t", "60", str(output), timeout=10,
+        "-b:a", "48k", "-t", "100", str(output), timeout=10,
     )
     return output, duration

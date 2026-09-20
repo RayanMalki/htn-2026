@@ -3,6 +3,7 @@ import json
 import httpx
 import pytest
 import respx
+
 from app.config import settings
 from app.detection import ENDPOINT, Detector
 from app.schemas import AudioAnalysis

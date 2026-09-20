@@ -1,6 +1,8 @@
+FROM node:22-bookworm-slim AS node
 FROM python:3.13-slim
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg ca-certificates fonts-dejavu-core && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY backend/requirements.lock /app/requirements.lock
 RUN pip install --no-cache-dir -r requirements.lock

@@ -27,6 +27,12 @@ docker compose exec worker celery -A app.queue.celery inspect ping
 
 Keep all services on the same Compose network. Only Caddy publishes ports. FastAPI trusts forwarded headers because it is reachable only through that network; do not publish port 8000 without tightening trusted proxy configuration.
 
+After editing backend credentials in `.env`, run `docker compose up -d api worker beat` to recreate
+services with the new environment, then rerun preflight. `docker compose restart` does not reload
+environment values. Elasticsearch checks report `not_configured` with missing variable names,
+or an HTTP status with a remediation hint; credential values and server response bodies are omitted.
+An `ok` inference check verifies endpoint lookup access, not a successful inference or hybrid search.
+
 The backend runs as UID 10001. Docker initializes the media volume from a directory owned by that user. PostgreSQL and Redis use persistent named volumes. Logs rotate at 10 MB. `docker compose down` preserves volumes; do not use `down -v` for a normal restart.
 
 The first iteration uses SQLAlchemy schema creation for its initial schema. Later schema changes must use an explicit migration; `create_all` does not upgrade existing tables. Before upgrading, back up PostgreSQL:

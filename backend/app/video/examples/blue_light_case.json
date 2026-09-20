@@ -1,0 +1,154 @@
+{
+  "id": "case-blue-light",
+  "source_url": "https://www.instagram.com/reel/abc/",
+  "status": "complete",
+  "result": {
+    "analysis": {
+      "transcript": [
+        {
+          "start": 0.0,
+          "end": 4.0,
+          "text": "You mean to tell me the blue light from my phone wasn't ruining my sleep?"
+        },
+        {
+          "start": 4.0,
+          "end": 9.0,
+          "text": "The difference was a bright screen versus a dim book."
+        },
+        {
+          "start": 9.0,
+          "end": 14.0,
+          "text": "You just need to turn down your brightness."
+        }
+      ]
+    },
+    "claims": {
+      "c1": {
+        "claim": {
+          "id": "c1",
+          "text": "Blue light isn't ruining your sleep",
+          "start": 0.0,
+          "end": 4.0,
+          "search_terms": [
+            "blue light",
+            "melatonin"
+          ]
+        },
+        "evidence": [
+          {
+            "id": "p1",
+            "paper_id": "PMC1",
+            "title": "Blue light from light-emitting diodes elicits a dose-dependent suppression of melatonin in humans",
+            "source_url": "https://europepmc.org/article/PMC1",
+            "provider": "europe_pmc",
+            "external_id": "PMC1",
+            "source_kind": "research_paper",
+            "published": "2011-03-01",
+            "study_types": [
+              "Randomized Controlled Trial",
+              "Journal Article"
+            ],
+            "access_type": "full_text",
+            "license": null,
+            "retrieved_at": null,
+            "updated_at": null,
+            "section": "Abstract",
+            "text": "Light suppresses melatonin in humans, with the strongest response occurring in the short-wavelength portion of the spectrum between 446 and 477 nm that appears blue.",
+            "context": "Light suppresses melatonin in humans, with the strongest response occurring in the short-wavelength portion of the spectrum between 446 and 477 nm that appears blue. Blue monochromatic light has also been shown to be more effective than longer-wavelength light for enhancing alertness. We measured melatonin in 8 adults exposed to blue LEDs.",
+            "start": 0,
+            "end": 165,
+            "known_retracted": false
+          },
+          {
+            "id": "p2",
+            "paper_id": "PMC3047226",
+            "title": "Exposure to room light before bedtime suppresses melatonin onset and shortens melatonin duration in humans",
+            "source_url": "https://europepmc.org/article/PMC3047226",
+            "provider": "europe_pmc",
+            "external_id": "PMC3047226",
+            "source_kind": "research_paper",
+            "published": "2010-12-30",
+            "study_types": [
+              "Randomized Controlled Trial"
+            ],
+            "access_type": "full_text",
+            "license": null,
+            "retrieved_at": null,
+            "updated_at": null,
+            "section": "Abstract",
+            "text": "Exposure to room light before bedtime suppresses melatonin onset and shortens melatonin duration in humans.",
+            "context": "Exposure to room light before bedtime suppresses melatonin onset and shortens melatonin duration in humans. In 116 healthy volunteers, exposure to room light before bedtime suppressed melatonin, resulting in a later melatonin onset in 99% of individuals.",
+            "start": 0,
+            "end": 107,
+            "known_retracted": false
+          }
+        ],
+        "status": "complete",
+        "verdict": {
+          "label": "contradicts",
+          "explanation": "Blue wavelengths suppress melatonin in humans, dose dependently.",
+          "citations": [
+            {
+              "passage_id": "p1",
+              "quote": "Light suppresses melatonin in humans, with the strongest response occurring in the short-wavelength portion of the spectrum between 446 and 477 nm that appears blue."
+            },
+            {
+              "passage_id": "p2",
+              "quote": "Exposure to room light before bedtime suppresses melatonin onset and shortens melatonin duration in humans."
+            }
+          ],
+          "limitations": []
+        }
+      },
+      "c2": {
+        "claim": {
+          "id": "c2",
+          "text": "You just need to turn down your brightness",
+          "start": 9.0,
+          "end": 14.0,
+          "search_terms": [
+            "screen brightness",
+            "melatonin"
+          ]
+        },
+        "evidence": [
+          {
+            "id": "p3",
+            "paper_id": "MED:22850476",
+            "title": "Light level and duration of exposure determine the impact of self-luminous tablets on melatonin suppression",
+            "source_url": "https://europepmc.org/article/MED:22850476",
+            "provider": "europe_pmc",
+            "external_id": "MED:22850476",
+            "source_kind": "research_paper",
+            "published": "2013",
+            "study_types": [
+              "Clinical Trial"
+            ],
+            "access_type": "abstract_only",
+            "license": null,
+            "retrieved_at": null,
+            "updated_at": null,
+            "section": "Abstract",
+            "text": "Light level and duration of exposure determine the impact of self-luminous tablets on melatonin suppression.",
+            "context": "Light level and duration of exposure determine the impact of self-luminous tablets on melatonin suppression. A 2 hour exposure to a tablet at full brightness suppressed melatonin by about 22 percent in 13 participants.",
+            "start": 0,
+            "end": 108,
+            "known_retracted": false
+          }
+        ],
+        "status": "complete",
+        "verdict": {
+          "label": "supports",
+          "explanation": "Light level and duration drive the melatonin effect.",
+          "citations": [
+            {
+              "passage_id": "p3",
+              "quote": "Light level and duration of exposure determine the impact of self-luminous tablets on melatonin suppression."
+            }
+          ],
+          "limitations": []
+        }
+      }
+    }
+  }
+}
