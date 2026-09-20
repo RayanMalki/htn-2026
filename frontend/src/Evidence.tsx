@@ -30,11 +30,13 @@ function Paper({ passage, quote }: { passage: Passage; quote?: string }) {
 export default function Evidence({ item, index, mock }: { item: ClaimResult; index: number; mock: boolean }) {
   const verdict = item.verdict;
   const label = mock && verdict ? 'Prepared judgment' : verdict ? ({ supports: 'Supported by retrieved evidence', contradicts: 'Contradicted by retrieved evidence', uncertain: 'Evidence is uncertain' })[verdict.label] : item.status === 'incomplete' ? 'Analysis incomplete' : 'Research in progress';
-  return <article className="claim-card">
+  return <article className="claim-card" id={`claim-${item.claim.id}`}>
     <div className="claim-top"><span className="eyebrow">CLAIM {String(index + 1).padStart(2, '0')}</span>
       <span className="timestamp">{Math.floor(item.claim.start)}–{Math.ceil(item.claim.end)} sec</span></div>
-    <h3>{item.claim.text}</h3>
-    <div className={`verdict ${mock ? 'uncertain' : verdict?.label || 'pending'}`}><span className="verdict-dot" />{label}</div>
+    <details className="verdict-detail"><summary className={`verdict ${mock ? 'uncertain' : verdict?.label || 'pending'}`}><span className="verdict-dot" />{label}</summary>
+      <p>{mock ? 'A prepared example, not a medical finding about your video.' : verdict ? 'This finding applies to this exact claim and the passages retrieved. It is not a verdict on every statement in the video. Read the evidence and limitations below.' : 'No medical conclusion has been assigned. A processing failure is not evidence that a claim is false.'}</p>
+    </details>
+    <h3 className="claim-quote">“{item.claim.text}”</h3>
     {verdict ? <p className="finding">{verdict.explanation}</p> : <p className="finding">{item.error || 'Discovering papers and checking their relevance to this claim.'}</p>}
     {item.provenance ? <div className="retrieval-line">
       <span>{item.provenance.sources_found ?? item.provenance.papers_found ?? 0} sources discovered</span><span>·</span>
@@ -46,8 +48,8 @@ export default function Evidence({ item, index, mock }: { item: ClaimResult; ind
         ? 'Required literature research failed; no verdict was assigned.'
         : 'Supplemental health summaries could not be checked.'}
     </p>)}
-    {item.evidence?.length ? <div className="papers">{item.evidence.map(p => <Paper key={p.id} passage={p}
-      quote={verdict?.citations.find(c => c.passage_id === p.id)?.quote} />)}</div> : null}
+    {item.evidence?.length ? <details className="evidence-drawer"><summary>See the evidence <span aria-hidden="true">↗</span></summary><div className="papers">{item.evidence.map(p => <Paper key={p.id} passage={p}
+      quote={verdict?.citations.find(c => c.passage_id === p.id)?.quote} />)}</div></details> : null}
     {item.status === 'incomplete' && item.discovered_sources?.length ? <details className="limitations"><summary>Sources discovered before the interruption</summary>
       <p>These sources were discovered but not successfully ranked or assessed. No verdict is based on them.</p>
       <ul>{item.discovered_sources.map(p => <li key={p.source_url}><a href={safeSource(p.source_url)} target="_blank" rel="noreferrer">{p.title} ↗</a></li>)}</ul></details> : null}

@@ -1,5 +1,31 @@
 import { test, expect } from '@playwright/test';
 
+test('native sharing receives the saved case URL', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', { value: async (data: ShareData) => {
+      document.body.dataset.sharedUrl = data.url;
+    } });
+  });
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: complete }));
+  await page.goto(`/?case=${id}`);
+  await page.getByRole('button', { name: 'Share results' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-shared-url', `http://127.0.0.1:5173/?case=${id}`);
+});
+
+test('clipboard sharing copies the saved case URL', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', { value: undefined });
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText: async (text: string) => {
+      document.body.dataset.copiedUrl = text;
+    } } });
+  });
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: complete }));
+  await page.goto(`/?case=${id}`);
+  await page.getByRole('button', { name: 'Share results' }).click();
+  await expect(page.locator('body')).toHaveAttribute('data-copied-url', `http://127.0.0.1:5173/?case=${id}`);
+  await expect(page.getByText('Result link copied.')).toBeVisible();
+});
+
 const id = '11111111-1111-4111-8111-111111111111';
 const passageText = 'Routine vitamin C supplementation did not reduce the incidence of the common cold.';
 const claim = { id: 'c1', text: 'Vitamin C prevents the common cold.', start: 0, end: 12, search_terms: ['vitamin C cold'] };
@@ -46,7 +72,7 @@ test('landing page, responsive layout, and backend error', async ({ page }, test
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.route('**/api/cases', route => route.fulfill({ status: 429, json: { detail: 'The demo queue is full.' } }));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Your feed moves fast/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Big claims/ })).toBeVisible();
   await expect(page.getByText('Infrastructure preview · mock AI adapters')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.screenshot({ path: `../artifacts/landing-${testInfo.project.name}.png`, fullPage: true });
@@ -64,6 +90,7 @@ test('submit a Reel, inspect evidence, and follow the original source', async ({
   await page.getByRole('button', { name: 'Check the evidence' }).click();
   await expect(page.getByRole('heading', { name: 'Analysis complete' })).toBeVisible();
   await expect(page.getByText('Contradicted by retrieved evidence')).toBeVisible();
+  await page.getByText('See the evidence', { exact: false }).click();
   await page.getByText('Vitamin C prevention review', { exact: false }).click();
   await expect(page.locator('mark')).toHaveText(passageText);
   await expect(page.getByRole('link', { name: 'Read the original paper' })).toHaveAttribute('href', 'https://europepmc.org/article/MED/123');
@@ -87,20 +114,21 @@ test('download failure offers upload and resumes the same case', async ({ page }
   expect(uploaded).toBeTruthy();
 });
 
-test('authorship panel separates scripted sentences from the creator own words', async ({ page }, testInfo) => {
+test('authorship is a separate uncertain signal, never a truth verdict', async ({ page }, testInfo) => {
   const scanned = { ...complete, result: { ...complete.result, detection } };
   await page.route('**/api/cases', route => route.fulfill({ status: 202, json: scanned }));
   await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: scanned }));
   await page.goto('/');
   await page.getByLabel('Start with an Instagram Reel').fill(complete.source_url);
   await page.getByRole('button', { name: 'Check the evidence' }).click();
-  await expect(page.getByRole('heading', { name: 'Partly read from a script' })).toBeVisible();
-  await expect(page.getByText('of 3 sentences read as written')).toBeVisible();
-  // The one ad-libbed sentence must not be shaded as machine-written.
+  await expect(page.getByRole('heading', { name: 'Possible mix of human and AI text' })).toBeVisible();
+  await expect(page.getByText('of 3 sentences flagged by the AI-text detector', { exact: false })).toBeVisible();
+  await page.getByText('See the sentence-level signals').click();
+  // Threshold categories describe detector output, not verified authorship.
   const spoken = page.locator('.sentence-map li', { hasText: adlib });
   await expect(spoken).toHaveClass(/spontaneous/);
   await expect(page.locator('.sentence-map li.scripted')).toHaveCount(2);
-  await expect(page.getByText('This measures how the words were produced', { exact: false })).toBeVisible();
+  await expect(page.getByText('It does not change the medical finding.', { exact: false })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.screenshot({ path: `../artifacts/authorship-${testInfo.project.name}.png`, fullPage: true });
 });
@@ -123,6 +151,7 @@ test('health summaries have working citations and disclose supplemental outages'
     provider_failures: [{ provider: 'MedlinePlus', error: 'TimeoutError' }] });
   await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
   await page.goto(`/?case=${id}`);
+  await page.getByText('See the evidence', { exact: false }).click();
   await expect(page.getByText('Health summary', { exact: true })).toBeVisible();
   await expect(page.getByText('16 sources discovered')).toBeVisible();
   await expect(page.getByText(/MedlinePlus unavailable/)).toBeVisible();
@@ -157,6 +186,7 @@ test('submit a YouTube Short and preserve its original link', async ({ page }) =
   await page.goto('/');
   await page.getByLabel('Start with an Instagram Reel or YouTube Short').fill(source_url);
   await page.getByRole('button', { name: 'Check the evidence' }).click();
+  await page.getByRole('button', { name: 'About this clip' }).click();
   await expect(page.getByRole('link', { name: 'Original video' })).toHaveAttribute('href', source_url);
 });
 
@@ -194,7 +224,9 @@ test('a shared link in the address starts the check without a tap', async ({ pag
   // The iPhone share-sheet shortcut opens the site as /?url=<short>. Nothing to fill, nothing to click.
   const shared = 'https://www.youtube.com/shorts/BaW_jenozKc';
   let posted = '';
+  let submissions = 0;
   await page.route('**/api/cases', async route => {
+    submissions += 1;
     posted = (route.request().postDataJSON() as { source_url: string }).source_url;
     await route.fulfill({ status: 202, json: complete });
   });
@@ -203,4 +235,154 @@ test('a shared link in the address starts the check without a tap', async ({ pag
   await expect.poll(() => posted).toBe(shared);
   await expect(page).toHaveURL(new RegExp(`\\?case=${id}$`));
   await expect(page.getByLabel('Start with an Instagram Reel or YouTube Short')).toHaveValue(shared);
+  expect(submissions).toBe(1);
+});
+
+test('MedBot dialogs close with Escape and restore focus', async ({ page }) => {
+  await page.goto('/');
+  const trigger = page.getByRole('button', { name: 'How it works' });
+  await trigger.click();
+  await expect(page.getByRole('dialog')).toContainText('up to 100 seconds');
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
+test('three claim cards navigate and preserve distinct findings', async ({ page }) => {
+  const second = { ...claim, id: 'c2', text: 'Another claim with insufficient evidence.' };
+  const third = { ...claim, id: 'c3', text: 'A third claim with a research outage.' };
+  const result = { ...complete, result: { ...complete.result,
+    analysis: { ...complete.result.analysis, claims: [claim, second, third] },
+    claims: { ...complete.result.claims,
+      c2: { claim: second, status: 'complete', verdict: { label: 'uncertain', explanation: 'Not enough relevant evidence in this fixture.', citations: [], limitations: [] } },
+      c3: { claim: third, status: 'incomplete', error: 'Research was interrupted.' },
+    } } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByRole('button', { name: 'Previous claim' })).toBeDisabled();
+  await page.getByRole('button', { name: 'Next claim' }).click();
+  await expect(page.getByText('Claim 2 of 3', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Next claim' }).click();
+  await expect(page.getByText('Claim 3 of 3', { exact: false })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Next claim' })).toBeDisabled();
+  await expect(page.getByText('Research was interrupted.')).toBeVisible();
+  await page.getByRole('button', { name: 'Previous claim' }).click();
+  await page.locator('.claim-card').nth(1).locator('.verdict').click();
+  await expect(page.locator('.claim-card').nth(1)).toContainText('not a verdict on every statement');
+  await expect(page.locator('.overview-counts .contradicts b')).toHaveText('1');
+  await expect(page.locator('.overview-counts .uncertain b')).toHaveText('1');
+  await expect(page.locator('.overview-counts .pending b')).toHaveText('1');
+});
+
+test('live video completion nudges without stealing focus or hiding evidence', async ({ page }) => {
+  const pending = { ...complete, status: 'rendering', sequence: 9, result: { ...complete.result, video: { status: 'rendering', stage: 'cards' } } };
+  const ready = { ...complete, sequence: 10, result: { ...complete.result, video: { status: 'ready', duration_seconds: 45 } } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: pending }));
+  await page.route(`**/api/cases/${id}/events**`, async route => {
+    await route.fulfill({ contentType: 'text/event-stream', body: `event: case\ndata: ${JSON.stringify(ready)}\n\nevent: end\ndata: {}\n\n` });
+  });
+  await page.route(`**/api/cases/${id}/video**`, route => route.fulfill({ status: 410, body: '' }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByText('Your explanation is ready. Watch')).toBeVisible();
+  await expect(page.locator('.claim-card')).toBeVisible();
+  await page.getByRole('button', { name: 'Dismiss video notification' }).click();
+  await expect(page.locator('.ready-nudge')).toHaveCount(0);
+  await expect(page.getByText('It may have expired after 24 hours.', { exact: false })).toBeVisible();
+});
+
+test('sharing has a selectable URL fallback and no fabricated link', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'share', { value: undefined });
+    Object.defineProperty(navigator, 'clipboard', { value: undefined });
+  });
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: complete }));
+  await page.goto(`/?case=${id}`);
+  await page.getByRole('button', { name: 'Share results' }).click();
+  await expect(page.getByLabel('Result link')).toHaveValue(`http://127.0.0.1:5173/?case=${id}`);
+});
+
+test('mock findings never offer a medical video generation button', async ({ page }) => {
+  const result = { ...complete, result: { ...complete.result, model_mode: 'mock' } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByText('Prepared judgment')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Retry analysis and create video' })).toHaveCount(0);
+  await expect(page.getByText('This is not an analysis of the submitted video.', { exact: false })).toBeVisible();
+});
+
+test('320px layout and reduced motion remain usable', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  expect(await page.locator('.hero-asterisk').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
+  expect(await page.getByLabel('Start with an Instagram Reel').evaluate(el => getComputedStyle(el).fontSize)).toBe('16px');
+});
+
+test('older and unrelated SSE snapshots cannot replace newer findings', async ({ page }) => {
+  const active = { ...complete, status: 'researching', sequence: 5 };
+  const newer = { ...complete, status: 'judging', sequence: 10, result: { ...complete.result, outcome: 'Newest saved snapshot.' } };
+  const unrelated = { ...complete, id: '22222222-2222-4222-8222-222222222222', sequence: 100 };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: active }));
+  await page.route(`**/api/cases/${id}/events**`, route => route.fulfill({ contentType: 'text/event-stream',
+    body: [newer, complete, unrelated].map(c => `event: case\ndata: ${JSON.stringify(c)}\n\n`).join('') + 'event: end\ndata: {}\n\n' }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByText('Newest saved snapshot.')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Checking the evidence' })).toBeVisible();
+});
+
+test('no claims and unavailable GPTZero are explicit non-verdict states', async ({ page }) => {
+  const result = { ...complete, status: 'no_claims', result: { schema_version: 1, model_mode: 'live',
+    outcome: 'No usable spoken medical claims were found.', detection: { ...detection, status: 'unavailable', verbatim: null, note: 'Detector unavailable for this clip.' } } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByRole('heading', { name: 'No spoken medical claims' })).toBeVisible();
+  await expect(page.locator('.claim-card')).toHaveCount(0);
+  await page.getByText('Authorship check unavailable').click();
+  await expect(page.getByText('Detector unavailable for this clip.')).toBeVisible();
+});
+
+test('topic previews do not submit invented links and restore focus', async ({ page }) => {
+  let requests = 0;
+  await page.route('**/api/cases', route => { requests++; return route.fulfill({ json: complete }); });
+  await page.goto('/');
+  const topic = page.getByRole('button', { name: /Peptides & recovery/ });
+  await topic.click();
+  await expect(page.getByRole('dialog')).toContainText('No assessment has been generated');
+  await page.keyboard.press('Escape');
+  await expect(topic).toBeFocused();
+  expect(requests).toBe(0);
+});
+
+test('GPTZero remains visible without a key and never changes the finding', async ({ page }) => {
+  const result = { ...complete, result: { ...complete.result, detection: { ...detection, status: 'skipped', verbatim: null, note: 'GPTZERO_API_KEY is not configured.' } } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByRole('region', { name: 'Script authorship' })).toContainText('GPTZero');
+  await page.getByText('Authorship check unavailable').click();
+  await expect(page.getByText('This check has not been enabled yet.', { exact: false })).toBeVisible();
+  await expect(page.locator('.verdict.contradicts')).toContainText('Contradicted');
+  await page.getByRole('link', { name: 'Share ↗', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Share results' })).toBeInViewport();
+});
+
+test('detailed phone layout keeps rendering independent from evidence and GPTZero', async ({ page }, testInfo) => {
+  const result = { ...complete, status: 'rendering', result: { ...complete.result, video: { status: 'rendering', stage: 'voice' } } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.route(`**/api/cases/${id}/events**`, route => route.fulfill({ contentType: 'text/event-stream', body: ': heartbeat\n\n' }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByText('Waiting for the authorship result')).toBeVisible();
+  const pause = page.getByRole('button', { name: 'Pause scanner animation' });
+  await pause.click();
+  await expect(page.locator('.video-pending .scanner')).not.toHaveClass(/active/);
+  await expect(page.getByRole('status').filter({hasText:'Creating video:'})).toContainText('voice');
+  await expect(page.locator('.verdict.contradicts')).toBeVisible();
+  await page.getByRole('link', { name: 'Claim 1: contradicted', exact: true }).click();
+  await expect(page.locator('#claim-c1')).toBeInViewport();
+  await page.getByText('See the evidence', { exact: false }).click();
+  await expect(page.getByText('Vitamin C prevention review', { exact: false })).toBeVisible();
+  await page.getByText('See the evidence', { exact: false }).click();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  await page.evaluate(() => scrollTo(0, 0));
+  await page.screenshot({path:`../artifacts/medbot-detailed-${testInfo.project.name}.png`, fullPage:true});
 });
