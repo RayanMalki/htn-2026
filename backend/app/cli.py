@@ -104,6 +104,26 @@ async def preflight():
                 result["notes"] = ["Text inference verified; speech access still requires a live audio test."]
             except Exception as exc:
                 result["checks"]["backboard_access"] = type(exc).__name__
+        # Authorship detection is optional, so a missing key disables the panel
+        # silently. That is exactly the failure a preflight should say out loud,
+        # but it must not fail the run, so it is reported outside "checks".
+        if cfg.gptzero_api_key.strip():
+            from app.detection import ENDPOINT
+            try:
+                probe = await client.post(ENDPOINT, headers={"x-api-key": cfg.gptzero_api_key},
+                                          json={"document": "Access check.", "multilingual": False})
+                probe.raise_for_status()
+                result.setdefault("optional", {})["gptzero"] = "ok"
+            except httpx.HTTPStatusError as exc:
+                result.setdefault("optional", {})["gptzero"] = f"HTTP {exc.response.status_code}"
+                result.setdefault("notes", []).append(
+                    "GPTZero rejected the key. The authorship panel will report it as unavailable.")
+            except Exception as exc:
+                result.setdefault("optional", {})["gptzero"] = type(exc).__name__
+        else:
+            result.setdefault("optional", {})["gptzero"] = "not_configured"
+            result.setdefault("notes", []).append(
+                "GPTZERO_API_KEY is unset: authorship detection is skipped and the panel never renders.")
     if cfg.video_enabled and cfg.model_mode == 'live':
         from app.video import dependencies
         result['checks'].update({f'video_{k}': 'ok' if v else 'missing' for k, v in dependencies().items()})

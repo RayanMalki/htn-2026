@@ -9,8 +9,11 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setenv("MODEL_MODE", "mock")
     monkeypatch.setenv("VIDEO_ENABLED", "false")
     monkeypatch.setenv("MODEL_PROVIDER", "openai")
-    for key in ("OPENAI_API_KEY", "BACKBOARD_API_KEY", "GEMINI_API_KEY"):
+    # Settings reads a real .env, so every provider key is cleared here. Miss one and
+    # the suite passes in CI and fails on any machine that is actually configured.
+    for key in ("OPENAI_API_KEY", "BACKBOARD_API_KEY", "GEMINI_API_KEY", "GPTZERO_API_KEY"):
         monkeypatch.setenv(key, "")
+    monkeypatch.setenv("GPTZERO_FILLER_READING", "false")
     monkeypatch.setenv("SENTRY_DSN", "")
     monkeypatch.setenv("ELASTICSEARCH_URL", "https://elastic.test")
     monkeypatch.setenv("ELASTICSEARCH_API_KEY", "test-key")
