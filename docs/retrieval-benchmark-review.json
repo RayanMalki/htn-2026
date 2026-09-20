@@ -1,0 +1,299 @@
+{
+  "reviewer": "Codex passage-by-passage editorial review; NOT independent human or clinician validation",
+  "rubric": "Direct requires the selected passage to address the specified intervention, outcome, population and comparator; partial if a key detail is absent or narrower. Direct relevance is not support or study quality.",
+  "labels": [
+    {
+      "query_id": "vitamin-c",
+      "passage_id": "3e7ab8ec840df91d6cdf621148e79c027431ef4c199c0b7e92f02561eb4d4ab7",
+      "paper_id": "MED:33193359",
+      "source_url": "https://europepmc.org/article/MED/33193359",
+      "applicability": "direct",
+      "reason": "Addresses regular supplementation and cold incidence in healthy adults; combines adult and child results."
+    },
+    {
+      "query_id": "vitamin-c",
+      "passage_id": "4a7e864a034afbee5931cf3930e8aae7b2e6ce7376cfb161a4289ab2a98e2cb9",
+      "paper_id": "MED:28353648",
+      "source_url": "https://europepmc.org/article/MED/28353648",
+      "applicability": "partial",
+      "reason": "Duration and severity rather than prevention."
+    },
+    {
+      "query_id": "vitamin-c",
+      "passage_id": "a4546017fbe03a3442a2db6902986b5be4eea77dcd020ca66fc0f94e1f76d6a6",
+      "paper_id": "MED:23440782",
+      "source_url": "https://europepmc.org/article/MED/23440782",
+      "applicability": "partial",
+      "reason": "Duration and treatment rather than incidence."
+    },
+    {
+      "query_id": "vitamin-c",
+      "passage_id": "3083c073631ed6f62089e70594958f67cd9e6fec55d600f71c61a6904bd1a1f6",
+      "paper_id": "MED:28353648",
+      "source_url": "https://europepmc.org/article/MED/28353648",
+      "applicability": "partial",
+      "reason": "Duration and severity rather than prevention."
+    },
+    {
+      "query_id": "vitamin-c",
+      "passage_id": "7dd27762da26435b8cc42737e1ee4b867abd4df7b728d60b1fcefc207f37f84b",
+      "paper_id": "MED:23440782",
+      "source_url": "https://europepmc.org/article/MED/23440782",
+      "applicability": "partial",
+      "reason": "Incidence methods match; adult population not specified in this passage."
+    },
+    {
+      "query_id": "vitamin-c",
+      "passage_id": "922dff57346f97cb2eb97801ec74d301b1f9905a49113f20ef28a9e801a08aad",
+      "paper_id": "MED:33193359",
+      "source_url": "https://europepmc.org/article/MED/33193359",
+      "applicability": "partial",
+      "reason": "Extreme physical stress and soldiers; cannot generalize to all adults."
+    },
+    {
+      "query_id": "screen-light",
+      "passage_id": "fb5f26f20d0ef82bbacc9783e8671edd411df9d478216c67dae634e070fd7c46",
+      "paper_id": "MED:33499010",
+      "source_url": "https://europepmc.org/article/MED/33499010",
+      "applicability": "partial",
+      "reason": "Background links both brightness and wavelength; does not isolate the comparator."
+    },
+    {
+      "query_id": "screen-light",
+      "passage_id": "c3a8bc0ba9dc93a042479c1bbbb48a30b4349c0fb52352f519e2fdd7a7dad2a7",
+      "paper_id": "MED:25287985",
+      "source_url": "https://europepmc.org/article/MED/25287985",
+      "applicability": "mismatch",
+      "reason": "Male teenagers, not adult population; lens comparison does not isolate brightness."
+    },
+    {
+      "query_id": "screen-light",
+      "passage_id": "b181094f9f4703897910fb0bafd9d41d26281d3c062058fc3ceb3665e449c301",
+      "paper_id": "MED:41341515",
+      "source_url": "https://europepmc.org/article/MED/41341515",
+      "applicability": "partial",
+      "reason": "Background mechanism, no brightness-controlled result in passage."
+    },
+    {
+      "query_id": "screen-light",
+      "passage_id": "41d3c533641254574c004b2ae36538ff1d30ce93e885fce26f200d979e5e9e6f",
+      "paper_id": "MED:27276063",
+      "source_url": "https://europepmc.org/article/MED/27276063",
+      "applicability": "mismatch",
+      "reason": "Mouse findings do not directly establish adult human effects."
+    },
+    {
+      "query_id": "screen-light",
+      "passage_id": "0ba54aaecd74a3ad21d5e7cfb4fa7bb3ac74967f0d7a486d76950ea0faf9a94f",
+      "paper_id": "MED:40656989",
+      "source_url": "https://europepmc.org/article/MED/40656989",
+      "applicability": "partial",
+      "reason": "Timing comparison; does not isolate brightness versus wavelength."
+    },
+    {
+      "query_id": "screen-light",
+      "passage_id": "db39af5a159c5ad340a4a4483a21cc6f5094b0b401aa753b5ac6debd2457dad1",
+      "paper_id": "MED:41166315",
+      "source_url": "https://europepmc.org/article/MED/41166315",
+      "applicability": "mismatch",
+      "reason": "Children and background mechanisms; not an adult brightness-controlled result."
+    },
+    {
+      "query_id": "melatonin",
+      "passage_id": "95bfdbbe8661c42d76c75c07cf093c24d334e748d7809844f5a6ae44b98454dc",
+      "paper_id": "MED:27998379",
+      "source_url": "https://europepmc.org/article/MED/27998379",
+      "applicability": "partial",
+      "reason": "Adult insomnia guideline recommendation, not an effect estimate for adults generally."
+    },
+    {
+      "query_id": "melatonin",
+      "passage_id": "1df3d609e7bb879ff6f82eaeb03f9b13527e1e67c2b52c4ae7ac5ea5fbaaa5e2",
+      "paper_id": "MED:32792642",
+      "source_url": "https://europepmc.org/article/MED/32792642",
+      "applicability": "mismatch",
+      "reason": "Endogenous hormone timing and sex differences; no supplementation intervention."
+    },
+    {
+      "query_id": "melatonin",
+      "passage_id": "0ae54c1c1bc42bf5f8de49bf0f585d2851dcb766710d90405626cc61de1d4ff1",
+      "paper_id": "MED:22616853",
+      "source_url": "https://europepmc.org/article/MED/22616853",
+      "applicability": "mismatch",
+      "reason": "Children with autism, not adults."
+    },
+    {
+      "query_id": "melatonin",
+      "passage_id": "540863286b6dfa047e48e15a4e52b6c171ca60153ac53b6a4494cfa8e8c8edfc",
+      "paper_id": "MED:37192881",
+      "source_url": "https://europepmc.org/article/MED/37192881",
+      "applicability": "mismatch",
+      "reason": "Light-blocking intervention, not melatonin supplementation."
+    },
+    {
+      "query_id": "melatonin",
+      "passage_id": "75529c74ed2de19aa66f60e4ac4dcf81510c121e43d2027315838f57daefe1fe",
+      "paper_id": "MED:41166315",
+      "source_url": "https://europepmc.org/article/MED/41166315",
+      "applicability": "mismatch",
+      "reason": "Light-blocking hypothesis and children, not adult supplementation."
+    },
+    {
+      "query_id": "melatonin",
+      "passage_id": "47e29f7bedb53ec2acc70b160f3f2ef93537ce163ca7ed640ed1df91c149990a",
+      "paper_id": "MED:35024497",
+      "source_url": "https://europepmc.org/article/MED/35024497",
+      "applicability": "mismatch",
+      "reason": "Light-blocking intervention and salivary hormone outcome, not supplementation."
+    }
+  ],
+  "measurements": [
+    {
+      "query_id": "vitamin-c",
+      "query": "Regular vitamin C supplementation prevents common colds in adults.",
+      "variant": "baseline",
+      "seconds": 0.1463,
+      "mode": "hybrid",
+      "reranking": {
+        "status": "disabled",
+        "reason": "no_eligible_passages"
+      },
+      "unique_papers": 3,
+      "valid_exact_quotes": 6,
+      "quote_check": "catalog samples, not model verdict citations",
+      "selected_passage_ids": [
+        "3e7ab8ec840df91d6cdf621148e79c027431ef4c199c0b7e92f02561eb4d4ab7",
+        "4a7e864a034afbee5931cf3930e8aae7b2e6ce7376cfb161a4289ab2a98e2cb9",
+        "a4546017fbe03a3442a2db6902986b5be4eea77dcd020ca66fc0f94e1f76d6a6",
+        "3083c073631ed6f62089e70594958f67cd9e6fec55d600f71c61a6904bd1a1f6",
+        "7dd27762da26435b8cc42737e1ee4b867abd4df7b728d60b1fcefc207f37f84b",
+        "922dff57346f97cb2eb97801ec74d301b1f9905a49113f20ef28a9e801a08aad"
+      ],
+      "direct_passages": 1,
+      "selected_passages": 6
+    },
+    {
+      "query_id": "vitamin-c",
+      "query": "Regular vitamin C supplementation prevents common colds in adults.",
+      "variant": "reranked",
+      "seconds": 3.1066,
+      "mode": "hybrid",
+      "reranking": {
+        "status": "fallback",
+        "reason": "timeout",
+        "seconds": 3.0018
+      },
+      "unique_papers": 3,
+      "valid_exact_quotes": 6,
+      "quote_check": "catalog samples, not model verdict citations",
+      "selected_passage_ids": [
+        "3e7ab8ec840df91d6cdf621148e79c027431ef4c199c0b7e92f02561eb4d4ab7",
+        "4a7e864a034afbee5931cf3930e8aae7b2e6ce7376cfb161a4289ab2a98e2cb9",
+        "a4546017fbe03a3442a2db6902986b5be4eea77dcd020ca66fc0f94e1f76d6a6",
+        "3083c073631ed6f62089e70594958f67cd9e6fec55d600f71c61a6904bd1a1f6",
+        "7dd27762da26435b8cc42737e1ee4b867abd4df7b728d60b1fcefc207f37f84b",
+        "922dff57346f97cb2eb97801ec74d301b1f9905a49113f20ef28a9e801a08aad"
+      ],
+      "direct_passages": 1,
+      "selected_passages": 6
+    },
+    {
+      "query_id": "screen-light",
+      "query": "Blue light rather than screen brightness delays sleep onset in adults.",
+      "variant": "baseline",
+      "seconds": 0.1448,
+      "mode": "hybrid",
+      "reranking": {
+        "status": "disabled",
+        "reason": "no_eligible_passages"
+      },
+      "unique_papers": 6,
+      "valid_exact_quotes": 6,
+      "quote_check": "catalog samples, not model verdict citations",
+      "selected_passage_ids": [
+        "fb5f26f20d0ef82bbacc9783e8671edd411df9d478216c67dae634e070fd7c46",
+        "c3a8bc0ba9dc93a042479c1bbbb48a30b4349c0fb52352f519e2fdd7a7dad2a7",
+        "b181094f9f4703897910fb0bafd9d41d26281d3c062058fc3ceb3665e449c301",
+        "41d3c533641254574c004b2ae36538ff1d30ce93e885fce26f200d979e5e9e6f",
+        "0ba54aaecd74a3ad21d5e7cfb4fa7bb3ac74967f0d7a486d76950ea0faf9a94f",
+        "db39af5a159c5ad340a4a4483a21cc6f5094b0b401aa753b5ac6debd2457dad1"
+      ],
+      "direct_passages": 0,
+      "selected_passages": 6
+    },
+    {
+      "query_id": "screen-light",
+      "query": "Blue light rather than screen brightness delays sleep onset in adults.",
+      "variant": "reranked",
+      "seconds": 3.1131,
+      "mode": "hybrid",
+      "reranking": {
+        "status": "fallback",
+        "reason": "timeout",
+        "seconds": 3.0028
+      },
+      "unique_papers": 6,
+      "valid_exact_quotes": 6,
+      "quote_check": "catalog samples, not model verdict citations",
+      "selected_passage_ids": [
+        "fb5f26f20d0ef82bbacc9783e8671edd411df9d478216c67dae634e070fd7c46",
+        "c3a8bc0ba9dc93a042479c1bbbb48a30b4349c0fb52352f519e2fdd7a7dad2a7",
+        "b181094f9f4703897910fb0bafd9d41d26281d3c062058fc3ceb3665e449c301",
+        "41d3c533641254574c004b2ae36538ff1d30ce93e885fce26f200d979e5e9e6f",
+        "0ba54aaecd74a3ad21d5e7cfb4fa7bb3ac74967f0d7a486d76950ea0faf9a94f",
+        "db39af5a159c5ad340a4a4483a21cc6f5094b0b401aa753b5ac6debd2457dad1"
+      ],
+      "direct_passages": 0,
+      "selected_passages": 6
+    },
+    {
+      "query_id": "melatonin",
+      "query": "Melatonin improves sleep onset in adults.",
+      "variant": "baseline",
+      "seconds": 0.1739,
+      "mode": "hybrid",
+      "reranking": {
+        "status": "disabled",
+        "reason": "no_eligible_passages"
+      },
+      "unique_papers": 6,
+      "valid_exact_quotes": 6,
+      "quote_check": "catalog samples, not model verdict citations",
+      "selected_passage_ids": [
+        "95bfdbbe8661c42d76c75c07cf093c24d334e748d7809844f5a6ae44b98454dc",
+        "1df3d609e7bb879ff6f82eaeb03f9b13527e1e67c2b52c4ae7ac5ea5fbaaa5e2",
+        "0ae54c1c1bc42bf5f8de49bf0f585d2851dcb766710d90405626cc61de1d4ff1",
+        "540863286b6dfa047e48e15a4e52b6c171ca60153ac53b6a4494cfa8e8c8edfc",
+        "75529c74ed2de19aa66f60e4ac4dcf81510c121e43d2027315838f57daefe1fe",
+        "47e29f7bedb53ec2acc70b160f3f2ef93537ce163ca7ed640ed1df91c149990a"
+      ],
+      "direct_passages": 0,
+      "selected_passages": 6
+    },
+    {
+      "query_id": "melatonin",
+      "query": "Melatonin improves sleep onset in adults.",
+      "variant": "reranked",
+      "seconds": 3.1671,
+      "mode": "hybrid",
+      "reranking": {
+        "status": "fallback",
+        "reason": "timeout",
+        "seconds": 3.0478
+      },
+      "unique_papers": 6,
+      "valid_exact_quotes": 6,
+      "quote_check": "catalog samples, not model verdict citations",
+      "selected_passage_ids": [
+        "95bfdbbe8661c42d76c75c07cf093c24d334e748d7809844f5a6ae44b98454dc",
+        "1df3d609e7bb879ff6f82eaeb03f9b13527e1e67c2b52c4ae7ac5ea5fbaaa5e2",
+        "0ae54c1c1bc42bf5f8de49bf0f585d2851dcb766710d90405626cc61de1d4ff1",
+        "540863286b6dfa047e48e15a4e52b6c171ca60153ac53b6a4494cfa8e8c8edfc",
+        "75529c74ed2de19aa66f60e4ac4dcf81510c121e43d2027315838f57daefe1fe",
+        "47e29f7bedb53ec2acc70b160f3f2ef93537ce163ca7ed640ed1df91c149990a"
+      ],
+      "direct_passages": 0,
+      "selected_passages": 6
+    }
+  ]
+}

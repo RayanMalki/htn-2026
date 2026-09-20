@@ -59,6 +59,18 @@ def _plan():
 
 
 @requires_media
+@pytest.mark.parametrize('length', [2.16, 2.32])
+def test_still_scene_preserves_fractional_transition_handles(tmp_path, length):
+    plan = _plan()
+    scene = plan.scenes[0]
+    scene.card_png = _png(tmp_path / 'card.png', 'white')
+    output = compose._render_scene(plan, scene, length, tmp_path, 0)
+    assert abs(_video_duration(output) - length) <= 1 / plan.fps
+    # Verify frames exist at the tail, rather than trusting container duration.
+    assert compose.pixel_rgba(output, 360, 640, seek=length - .1)[0] > 200
+
+
+@requires_media
 def test_compose_then_post_produces_correct_videos(tmp_path):
     plan = _plan()
     plan.voice = Voice(audio_path=_silence(tmp_path / "voice.wav", 6), duration=6.0, engine="silent")

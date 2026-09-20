@@ -146,6 +146,26 @@ async def test_elastic_unavailable_fails_instead_of_empty_evidence():
             await ElasticSearch(client).retrieve("query", ["MED:123"])
 
 
+@pytest.mark.parametrize("retracted", [False, True])
+@respx.mock
+async def test_retraction_change_refreshes_cached_passage(passage, retracted):
+    index = settings().elastic_index
+    previous = passage.model_dump()
+    previous.update(semantic="cached", known_retracted=not retracted)
+    passage.known_retracted = retracted
+    respx.post(f"https://elastic.test/{index}/_mget").respond(200, json={
+        "docs": [{"_id": passage.id, "found": True, "_source": previous}],
+    })
+    bulk = respx.post(f"https://elastic.test/{index}/_bulk").respond(200, json={
+        "items": [{"index": {"_id": passage.id, "status": 200}}],
+    })
+    async with httpx.AsyncClient() as client:
+        result = await ElasticSearch(client).index([passage])
+    assert result["indexed"] == 1
+    assert result["index_cache_hits"] == 0
+    assert json.loads(bulk.calls[0].request.content.decode().splitlines()[1])["known_retracted"] is retracted
+
+
 @pytest.mark.parametrize('supplement_has_results', [False, True])
 async def test_required_provider_failure_is_not_empty_success(monkeypatch, passage, supplement_has_results):
     from unittest.mock import AsyncMock

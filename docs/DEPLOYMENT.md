@@ -14,6 +14,11 @@ bash scripts/deploy.sh root@YOUR_VM_IP
 
 The script synchronizes project files, explicitly copies `.env` with mode 600, builds and starts the stack, creates/validates the Elastic index, and runs preflight. It does not create a VM or change DNS. Service keys are not displayed. Deployment stops on a failed preflight rather than reporting success.
 
+For a teammate running the repository directly, configure `.env` or export the
+same variables and run `bash scripts/start.sh`. No source changes are needed;
+the script builds the stack, provisions the configured Elastic index when keys
+are available, and stops if live preflight fails.
+
 ## Operational commands
 
 ```bash
