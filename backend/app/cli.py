@@ -32,11 +32,38 @@ async def preflight():
         for name, path in {"elastic_index": f"/{cfg.elastic_index}/_mapping", **(
             {"elastic_inference": f"/_inference/{cfg.elastic_inference_id}"} if cfg.elastic_semantic else {}
         )}.items():
+            missing = [key for key, value in {
+                "ELASTICSEARCH_URL": cfg.elasticsearch_url,
+                "ELASTICSEARCH_API_KEY": cfg.elasticsearch_api_key,
+            }.items() if not value.strip()]
+            if missing:
+                result["checks"][name] = "not_configured"
+                result.setdefault("details", {})[name] = {
+                    "missing": missing,
+                    "hint": "Set these values in .env. Recreate existing Compose services to load changes; "
+                            "docker compose restart does not reload their environment.",
+                }
+                continue
             try:
                 await search.call("GET", path)
                 result["checks"][name] = "ok"
+            except httpx.HTTPStatusError as exc:
+                status = exc.response.status_code
+                result["checks"][name] = f"HTTP {status}"
+                hint = {
+                    401: "Elasticsearch rejected the API key. Check ELASTICSEARCH_API_KEY.",
+                    403: "Check API key permissions and deployment access policies.",
+                    404: ("Index not found. Run setup-elastic for the configured ELASTIC_INDEX."
+                          if name == "elastic_index" else
+                          "Inference endpoint not found. Check ELASTIC_INFERENCE_ID and provision the endpoint."),
+                    429: "Elasticsearch is rate-limiting requests. Retry after checking capacity.",
+                }.get(status, "Check Elasticsearch availability and the configured endpoint.")
+                result.setdefault("details", {})[name] = {"hint": hint}
             except Exception as exc:
                 result["checks"][name] = type(exc).__name__
+                result.setdefault("details", {})[name] = {
+                    "hint": "Check the Elasticsearch URL, network access, TLS, and service availability.",
+                }
         if cfg.model_mode == "live" and cfg.model_provider == "gemini":
             try:
                 response = await client.get(
