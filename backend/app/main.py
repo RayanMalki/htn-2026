@@ -144,6 +144,50 @@ def case_detail(case_id: str):
     return get_case(case_id)
 
 
+@app.post("/api/cases/{case_id}/render", status_code=202)
+async def render_video(case_id: str, brainrot: bool = False, sfx: bool = True):
+    """Start rendering the rebuttal video for a finished case, in the background.
+
+    Rendering is a minute or two of ffmpeg and a browser, so the request returns at
+    once and the case's result carries a "render" block that moves from rendering to
+    done or failed. The page polls the case as it already does. Nothing here blocks
+    the evidence pipeline, and a render failure never touches the verdict.
+    """
+    from app.video.render import RENDER_ROOT, render_case
+
+    case = get_case(case_id)
+    started = now().isoformat()
+    update_case(case_id, result_patch={"render": {"status": "rendering", "started_at": started}})
+
+    async def job():
+        try:
+            plan = await asyncio.to_thread(
+                render_case, case, RENDER_ROOT / case_id, sfx=sfx, brainrot=brainrot, log=lambda *_: None,
+            )
+            update_case(case_id, result_patch={"render": {
+                "status": "done", "path": plan.output_path, "started_at": started, "finished_at": now().isoformat(),
+                "duration": round(plan.duration, 2), "brainrot": brainrot, "sfx": sfx,
+            }})
+        except Exception as exc:  # noqa: BLE001 - a failed render is reported on the case, never raised
+            sentry_sdk.capture_exception(exc)
+            update_case(case_id, result_patch={"render": {
+                "status": "failed", "started_at": started, "error": str(exc)[:300],
+            }})
+
+    asyncio.create_task(job())
+    return {"case_id": case_id, "render": "started"}
+
+
+@app.get("/api/cases/{case_id}/video")
+def render_download(case_id: str):
+    """The finished MP4, once the render block says done."""
+    case = get_case(case_id)
+    info = (case.get("result") or {}).get("render") or {}
+    if info.get("status") != "done" or not info.get("path"):
+        raise HTTPException(status_code=404, detail="No rendered video for this case yet.")
+    return FileResponse(info["path"], media_type="video/mp4", filename=f"{case_id}.mp4")
+
+
 @app.post("/api/cases/{case_id}/media", status_code=202)
 async def upload(case_id: str, request: Request, file: UploadFile = File(...)):
     case_id = valid_id(case_id)
