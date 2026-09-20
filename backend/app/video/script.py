@@ -7,11 +7,16 @@ from app.video.plan import Badge, Card, Evidence, Finding, RenderPlan, Scene
 
 LABELS = {'supports': 'Supported by retrieved evidence', 'contradicts': 'Contradicted by retrieved evidence',
           'uncertain': 'Evidence is uncertain'}
-WORDS_PER_SECOND = 2.6
+# Plan narration at the requested 1.25x playback rate so the script budget
+# reflects the spoken runtime rather than the slower source pacing.
+WORDS_PER_SECOND = 3.25
 
 
 class ScriptBudgetError(ValueError):
     pass
+
+
+MAX_VIDEO_SECONDS = 120
 
 
 def eligible_claims(case: dict):
@@ -77,9 +82,12 @@ def build_plan(case: dict, out_dir: Path, *, source_clip: str | None = None) -> 
 
     if plan.source_clip:
         add('clip', '', Card(kind='clip', title='Original claim excerpt'), plan.source_duration, 'none')
-    add('claim', f'This voice is AI generated. We checked one claim: {claim.text}',
-        Card(kind='claim', eyebrow='SELECTED CLAIM', title=claim.text,
-             footer='One claim assessed here. All findings are linked in the app.'))
+    # Open with a conversational hook; the AI-voice disclosure is rendered as a
+    # persistent corner label instead of being spoken aloud.
+    hook = f'Quick fact check: is this actually true? The claim is: {claim.text}'
+    add('claim', hook,
+        Card(kind='claim', eyebrow='QUICK FACT CHECK', title=claim.text,
+             footer='We checked the research so you can see what it really says.'))
     seen = set()
     for ev in refs:
         quote = excerpt(ev.quote)
@@ -88,30 +96,32 @@ def build_plan(case: dict, out_dir: Path, *, source_clip: str | None = None) -> 
         seen.add(ev.paper_id)
         access = {'full_text': 'Full text available', 'abstract_only': 'Abstract only',
                   'summary': 'Health summary'}[ev.access]
-        add('paper', '', Card(kind='paper', eyebrow='SOURCE EXCERPT • NOT A PAGE CAPTURE', title=ev.paper,
+        add('paper', '', Card(kind='paper', eyebrow='“EXACT PAPER QUOTE” • HIGHLIGHTED', title=ev.paper,
                              body=[quote], highlight=quote, evidence_id=ev.id,
                              badges=[Badge(label='Source', value=ev.source_kind.replace('_', ' ')),
                                      Badge(label='Access', value=access)],
                              footer=f'{ev.id} • {ev.paper_id} • Full quotation and link in sources'),
-            duration=4, transition='smoothup')
-    add('finding', f'{LABELS[verdict.label]}. {verdict.explanation}',
+            duration=4, transition='slideleft')
+    finding_voice = f'{LABELS[verdict.label]}. {verdict.explanation}'
+    add('finding', finding_voice,
         Card(kind='finding', eyebrow=LABELS[verdict.label], title=verdict.explanation,
              footer=f'{len(papers)} unique papers; {len(summaries)} health summaries cited.'), transition='circleopen')
+    # Keep the narrated reel concise; the full limitations remain in the case page.
     for limitation in verdict.limitations:
         add('finding', limitation, Card(kind='finding', eyebrow='LIMITATION', title=limitation))
-    close = 'A limited search, not personalized medical advice. Read the linked sources and all findings in the app.'
+    close = 'Limited search. Not medical advice. Read the linked sources.'
     omitted = case['result'].get('analysis', {}).get('omitted_claims', 0)
     if omitted:
         close += (f' {omitted} additional claim was not assessed.' if omitted == 1
                   else f' {omitted} additional claims were not assessed.')
     add('close', close, Card(kind='close', eyebrow='HYPECHECK', title='Read the evidence in context.',
                             body=[close]), transition='fadeblack')
-    if t > 60:
+    if t > MAX_VIDEO_SECONDS:
         # Evidence reading time is optional; medical wording and limitations are not.
         plan.scenes = [s for s in plan.scenes if s.kind != 'paper']
         retime(plan)
-    if plan.duration > 60:
-        raise ScriptBudgetError('Essential findings and limitations exceed the 60-second script budget.')
+    if plan.duration > MAX_VIDEO_SECONDS:
+        raise ScriptBudgetError('Essential findings and limitations exceed the two-minute script budget.')
     Path(out_dir).mkdir(parents=True, exist_ok=True)
     plan.save(Path(out_dir) / 'plan.json')
     return plan

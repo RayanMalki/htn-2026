@@ -13,7 +13,7 @@ celery.conf.update(
     worker_prefetch_multiplier=1, task_serializer="json", accept_content=["json"],
     broker_connection_retry_on_startup=True, broker_connection_timeout=2,
     broker_transport_options={"visibility_timeout": 360},
-    task_soft_time_limit=300, task_time_limit=310,
+    task_soft_time_limit=None, task_time_limit=None,
     beat_schedule={
         "recover-unfinished-cases": {"task": "app.tasks.recover", "schedule": 30.0},
         "delete-expired-media": {"task": "app.tasks.cleanup", "schedule": 3600.0},

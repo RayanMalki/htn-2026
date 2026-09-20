@@ -32,7 +32,7 @@ def valid_media(path, *, video=False, duration=None, size=None):
         return False
 
 
-def ff(args, timeout=120):
+def ff(args, timeout=None):
     """Only complete, decodable output files are promoted to their checkpoint names."""
     target = Path(args[-1])
     temporary = target.with_name(target.stem + '.part' + target.suffix)

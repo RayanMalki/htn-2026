@@ -5,6 +5,8 @@ import os
 import re
 import shutil
 import subprocess
+import time
+from concurrent.futures import ThreadPoolExecutor
 from functools import lru_cache
 from pathlib import Path
 
@@ -13,10 +15,11 @@ import httpx
 from app.config import settings
 from app.video.plan import Voice, Word, atomic_text
 from app.video.runtime import concat_line, ff, probe, valid_media
-from app.video.script import ScriptBudgetError
+from app.video.script import MAX_VIDEO_SECONDS, ScriptBudgetError
 
 TONE = 'Read the supplied text exactly, clearly and calmly as an evidence explainer. Do not add words.'
 SAMPLE_RATE = 48000
+PLAYBACK_SPEED = 1.25
 
 
 class NarrationError(RuntimeError):
@@ -118,6 +121,21 @@ def synthesize(plan, out_dir, engine_order=None):
     silent = engine_order == ['silent']
     cache = Path(os.environ.get('HYPECHECK_VOICE_CACHE', out_dir.parent / 'voice_cache'))
     cache.mkdir(parents=True, exist_ok=True)
+    # Fetch at most two independent scenes concurrently; alignment remains serial
+    # so two simultaneous cases do not oversubscribe the local Whisper CPU budget.
+    def prepare(text):
+        folder = cache / _cache_key('silent' if silent else 'openai', text)
+        folder.mkdir(parents=True, exist_ok=True)
+        audio = folder / 'audio.wav'
+        if not valid_media(audio):
+            speech(text, audio)
+    started = time.monotonic()
+    if not silent:
+        texts = list(dict.fromkeys(s.narration for s in plan.scenes if s.narration))
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            list(pool.map(prepare, texts))
+    plan.timings['speech_requests'] = round(time.monotonic() - started, 3)
+    alignment_seconds = 0.0
     pieces = []
     for i, scene in enumerate(plan.scenes):
         if scene.narration:
@@ -142,7 +160,9 @@ def synthesize(plan, out_dir, engine_order=None):
             except (OSError, ValueError, KeyError, TypeError):
                 info = {}
             if info.get('identity') != identity:
+                alignment_started = time.monotonic()
                 words, mode = aligned_words(scene.narration, audio, folder, duration)
+                alignment_seconds += time.monotonic() - alignment_started
                 info = {'identity': identity, 'words': [w.model_dump() for w in words], 'mode': mode}
                 atomic_text(timing, json.dumps(info))
             words = [Word.model_validate(w) for w in info['words']]
@@ -155,12 +175,16 @@ def synthesize(plan, out_dir, engine_order=None):
             pieces.append((scene, audio, plan.source_duration, [], 'none'))
         else:
             pieces.append((scene, None, scene.end - scene.start, [], 'none'))
+    # Scale both the actual narration duration and its word timestamps. Original
+    # source audio retains its original speed.
+    pieces = [(scene, audio, duration / PLAYBACK_SPEED,
+               [Word(text=w.text, start=w.start / PLAYBACK_SPEED, end=w.end / PLAYBACK_SPEED) for w in words], mode)
+              if scene.narration else (scene, audio, duration, words, mode)
+              for scene, audio, duration, words, mode in pieces]
+    plan.timings['word_alignment'] = round(alignment_seconds, 3)
     total = sum(p[2] for p in pieces)
-    if total > 60:
-        pieces = [p for p in pieces if p[0].kind != 'paper']
-        total = sum(p[2] for p in pieces)
-    if total > 60:
-        raise ScriptBudgetError('Spoken findings and limitations exceed 60 seconds. Essential content was preserved.')
+    if total > MAX_VIDEO_SECONDS:
+        raise ScriptBudgetError('Spoken findings and limitations exceed the two-minute script budget.')
     plan.scenes = [p[0] for p in pieces]
     pad = max(0, 45 - total)
     # Give spare time to reading evidence before holding the closing card.
@@ -175,7 +199,10 @@ def synthesize(plan, out_dir, engine_order=None):
         length = duration + (pad if i == len(pieces) - 1 else 0)
         output = out_dir / f'audio_{i}.wav'
         if audio:
-            ff(['-i', str(audio), '-af', 'apad', '-t', str(length), '-ar', '48000', '-ac', '1', str(output)])
+            # Keep the narration compact and energetic for short-form video. Padding
+            # after atempo preserves the planned scene boundary for transitions.
+            ff(['-i', str(audio), '-af', f'atempo={PLAYBACK_SPEED if scene.narration else 1.0},apad', '-t', str(length),
+                '-ar', '48000', '-ac', '1', str(output)])
         else:
             ff(['-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=mono', '-t', str(length), str(output)])
         scene.start, scene.end = cursor, cursor + length

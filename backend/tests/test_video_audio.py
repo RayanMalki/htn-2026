@@ -34,7 +34,7 @@ def test_one_claim_does_not_merge_conflicting_claim_verdicts(tmp_path):
         if s.kind == 'paper':
             ev = next(e for e in plan.evidence if e.id == s.card.evidence_id)
             assert s.card.highlight in ev.quote
-            assert 'SOURCE EXCERPT' in s.card.eyebrow
+            assert 'PAPER QUOTE' in s.card.eyebrow
 
 
 @pytest.mark.parametrize('label', ['supports', 'contradicts', 'uncertain'])
@@ -70,7 +70,7 @@ def test_uncited_uncertainty_and_retracted_citations(tmp_path):
 
 def test_over_budget_preserves_essential_words_by_failing(tmp_path):
     case = blue_light_case()
-    case['result']['claims']['c1']['verdict']['limitations'] = ['Important qualification. ' * 100]
+    case['result']['claims']['c1']['verdict']['limitations'] = ['Important qualification. ' * 250]
     with pytest.raises(ScriptBudgetError, match='budget'):
         build_plan(case, tmp_path)
 
@@ -120,11 +120,15 @@ def test_voice_audio_cached_before_alignment_failure_and_caption_pages(tmp_path,
         calls.append(text)
         ff(['-f', 'lavfi', '-i', 'sine=frequency=440:duration=2', str(output)])
     monkeypatch.setattr('app.video.voice.speech', fake)
+    monkeypatch.setattr('app.video.voice._whisper_words', lambda *args: [])
     case = blue_light_case()
     plan = synthesize(build_plan(case, tmp_path / 'a'), tmp_path / 'a')
+    assert plan.voice.words[0].end < 2 / 1.25
+    assert max(w.end for w in plan.voice.words if w.start < 1.6) <= 1.6 + .001
     count = len(calls)
     second = synthesize(build_plan(case, tmp_path / 'b'), tmp_path / 'b')
     assert len(calls) == count
-    assert plan.duration == second.duration == 45
+    assert plan.duration == pytest.approx(45)
+    assert second.duration == pytest.approx(45)
     caps = pages(plan)
-    assert caps and all(0 <= p['start'] < p['end'] <= 45 for p in caps)
+    assert caps and all(0 <= p['start'] < p['end'] <= 45.001 for p in caps)

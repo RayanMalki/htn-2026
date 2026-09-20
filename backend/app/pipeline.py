@@ -201,8 +201,9 @@ async def run_case(case_id: str):
             save(video={**read_case(case_id)["result"].get("video", {}), "status": "rendering"},
                  analysis_seconds=timings["total"])
             with stage("rendering", timings):
-                async with asyncio.timeout(cfg.video_timeout_seconds):
-                    video = await render_video(read_case(case_id))
+                # Rendering is intentionally uncapped: long evidence videos may
+                # need several minutes for narration, cards, FFmpeg and captions.
+                video = await render_video(read_case(case_id))
             timings["total"] = round(monotonic() - started + previous_attempt, 3)
             update_case(case_id, status="complete", finished_at=now(), result_patch={
                 "video": video, "timings": timings, "target_met": timings["total"] <= 90,

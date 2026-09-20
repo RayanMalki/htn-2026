@@ -11,7 +11,7 @@ from app.video.plan import Voice
 EXAMPLE = Path(__file__).resolve().parents[1] / 'app/video/examples/blue_light_case.json'
 
 
-@pytest.mark.parametrize('failed_stage', ['voice', 'cards', 'compose', 'post', 'captions'])
+@pytest.mark.parametrize('failed_stage', ['voice', 'cards', 'compose'])
 def test_checkpoint_recovery_reuses_completed_stages(tmp_path, monkeypatch, failed_stage):
     from app.video import captions, cards, compose, post, voice
     calls = {name: 0 for name in ['voice', 'cards', 'compose', 'post', 'captions']}
@@ -35,7 +35,7 @@ def test_checkpoint_recovery_reuses_completed_stages(tmp_path, monkeypatch, fail
             target.write_bytes(b'card')
             scene.card_png = str(target)
         return plan
-    def compose_fn(plan, out):
+    def compose_fn(plan, out, **kwargs):
         stage('compose')
         target = out / 'composed.mp4'
         target.write_bytes(b'composed')
@@ -66,7 +66,8 @@ def test_checkpoint_recovery_reuses_completed_stages(tmp_path, monkeypatch, fail
     plan = render.render_case(case, tmp_path)
     assert plan.finding.label == 'contradicts'
     assert calls[failed_stage] == 2
-    assert all(count == 1 for name, count in calls.items() if name != failed_stage)
+    assert calls['compose'] == (2 if failed_stage == 'compose' else 1)
+    assert calls['post'] == calls['captions'] == 0
     before = calls.copy()
     render.render_case(case, tmp_path)
     assert before == calls
@@ -74,7 +75,8 @@ def test_checkpoint_recovery_reuses_completed_stages(tmp_path, monkeypatch, fail
     Path(plan.output_path).write_bytes(b'corrupt')
     render.render_case(case, tmp_path)
     assert calls['voice'] == before['voice']
-    assert calls['captions'] == before['captions'] + 1
+    assert calls['voice'] == before['voice']
+    assert calls['compose'] == before['compose']
 
 
 def test_api_has_one_video_route_and_manual_render_is_queued(client, case_id, passage, monkeypatch):

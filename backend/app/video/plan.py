@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-VERSION = 3
+VERSION = 4
 SceneKind = Literal['clip', 'claim', 'paper', 'finding', 'close']
 Transition = Literal['fade', 'smoothup', 'circleopen', 'fadeblack', 'slideleft', 'slideup', 'none']
 

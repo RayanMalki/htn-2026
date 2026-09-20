@@ -1,5 +1,26 @@
 # Current staged renderer verification — September 19, 2026
 
+## Container E2E — supplied YouTube Short
+
+Docker Desktop was started on Apple Silicon and the full Compose image set built
+successfully after adding `git` to the Whisper builder image. The production stack
+started with healthy PostgreSQL, Redis, API, worker, beat and Caddy services. The
+frontend loaded through Caddy in Chromium.
+
+The supplied Short (`8DG6bEi6z-o`) was submitted through `POST /api/cases`. The worker
+canonicalized the URL, downloaded the 40.917-second source into the shared media
+volume, extracted audio, replayed persisted SSE events, queried Europe PMC and
+MedlinePlus, and ended explicitly `incomplete` because Elasticsearch credentials were
+not configured. This run used `MODEL_MODE=mock`; its prepared transcript and claim were
+correctly labeled and no medical verdict or video was produced. The video endpoint
+returned 409 (`Video is not ready.`), as required for incomplete evidence.
+
+Container checks passed for FFmpeg, FFprobe, Whisper, Node 22 and Chromium. Renderer
+regression tests inside the production backend image passed: 13 tests in 8.85 seconds.
+`/readyz` correctly reported database and Redis ready, Elasticsearch unavailable.
+Live OpenAI narration, Elastic judgment and generated-video acceptance remain pending
+until credentials are supplied.
+
 Tested tree: base `ce537f3` (merged main, including authorship detection, Elastic
 preflight, the renderer switch and YouTube share links), plus the uncommitted staged
 renderer reconciliation and documentation changes in this checkout. This is not a

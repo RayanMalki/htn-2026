@@ -4,12 +4,32 @@ import hashlib
 import json
 import shutil
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from app.config import settings
 from app.video.plan import VERSION, RenderPlan, atomic_text
 from app.video.runtime import probe, valid_media
-from app.video.voice import TONE, alignment_identity
+from app.video.voice import PLAYBACK_SPEED, TONE, alignment_identity
+
+
+def stage_identity(stage):
+    dependencies = {
+        'script': ['script.py', 'plan.py'],
+        'voice': ['voice.py', 'runtime.py'],
+        'cards': ['cards.py', 'cards.mjs'],
+        'compose': ['compose.py', 'captions.py', 'post.py', 'runtime.py'],
+        'post': ['render.py'], 'captions': ['render.py'],
+    }
+    from app.video.compose import ENC
+    extra = json.dumps(ENC).encode() if stage == 'compose' else b''
+    return hashlib.sha256(extra + b''.join((Path(__file__).parent / f).read_bytes()
+                                  for f in dependencies[stage])).hexdigest()
+
+
+def renderer_identity():
+    return hashlib.sha256(''.join(stage_identity(s) for s in
+        ['script', 'voice', 'cards', 'compose', 'post', 'captions']).encode()).hexdigest()
 
 
 def fingerprint(case, source_clip, sfx, brainrot, gameplay_path):
@@ -18,7 +38,7 @@ def fingerprint(case, source_clip, sfx, brainrot, gameplay_path):
     cfg = settings()
     return hashlib.sha256(json.dumps([VERSION, case['id'], case.get('source_url'),
         case['result'].get('analysis'), case['result'].get('claims'), case['result'].get('model_mode'),
-        cfg.tts_model, cfg.tts_voice, TONE, alignment_identity(), digest(source_clip), sfx, brainrot,
+        cfg.tts_model, cfg.tts_voice, PLAYBACK_SPEED, TONE, alignment_identity(), digest(source_clip), sfx, brainrot,
         digest(gameplay_path)], sort_keys=True).encode()).hexdigest()[:20]
 
 
@@ -28,7 +48,7 @@ def timestamp(seconds):
 
 
 def render_case(case, out_dir, *, sfx=True, brainrot=False, gameplay_path=None, source_clip=None, log=print):
-    from app.video import captions, cards, compose, post, script, voice
+    from app.video import captions, cards, compose, script, voice
 
     script.eligible_claims(case)
     render_started = time.monotonic()
@@ -48,7 +68,7 @@ def render_case(case, out_dir, *, sfx=True, brainrot=False, gameplay_path=None, 
     def reusable(stage):
         nonlocal plan
         record = saved.get(stage)
-        if not record:
+        if not record or record.get('identity') != stage_identity(stage):
             return False
         try:
             for name, digest in record['files'].items():
@@ -69,10 +89,11 @@ def render_case(case, out_dir, *, sfx=True, brainrot=False, gameplay_path=None, 
         plan.stage = stage
         plan.timings[stage] = round(time.monotonic() - started, 3)
         plan.save(folder / 'plan.json')
-        saved[stage] = {'plan': plan.model_dump(), 'files': {
+        saved[stage] = {'identity': stage_identity(stage), 'plan': plan.model_dump(), 'files': {
             str(Path(p).relative_to(folder)): hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in files}}
         atomic_text(checkpoint, json.dumps(saved))
 
+    prepared_cards = None
     stages_valid = True
     for name in ['script', 'voice', 'cards', 'compose', 'post', 'captions']:
         if stages_valid and reusable(name):
@@ -91,17 +112,32 @@ def render_case(case, out_dir, *, sfx=True, brainrot=False, gameplay_path=None, 
             plan.sfx, plan.brainrot, plan.gameplay_path = sfx, brainrot, gameplay_path
             files = []
         elif name == 'voice':
-            plan = voice.synthesize(plan, folder)
+            # Layout depends on text, not narration duration. Prepare it while
+            # provider requests and serial alignment run, then merge by scene order.
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                def layout(card_plan):
+                    layout_started = time.monotonic()
+                    result = cards.render_cards(card_plan, folder)
+                    return result, round(time.monotonic() - layout_started, 3)
+                future = executor.submit(layout, plan.model_copy(deep=True))
+                plan = voice.synthesize(plan, folder)
+                prepared_cards, layout_seconds = future.result()
+                plan.timings['card_layout'] = layout_seconds
             files = [plan.voice.audio_path]
         elif name == 'cards':
-            plan = cards.render_cards(plan, folder)
+            if prepared_cards is None:
+                plan = cards.render_cards(plan, folder)
+            else:
+                for scene, card in zip(plan.scenes, prepared_cards.scenes, strict=True):
+                    scene.card_png, scene.focus_box = card.card_png, card.focus_box
             files = [s.card_png for s in plan.scenes]
         elif name == 'compose':
             # Captions are applied AFTER optional split-screen layout.
-            plan = compose.compose(plan, folder)
+            plan = compose.compose(plan, folder, final=True)
             files = [plan.output_path]
         elif name == 'post':
-            plan = post.apply(plan, folder)
+            # Sound effects and optional layout are included in the final compose pass.
+            pass
             files = [plan.output_path]
         else:
             pages = captions.pages(plan)
@@ -109,9 +145,6 @@ def render_case(case, out_dir, *, sfx=True, brainrot=False, gameplay_path=None, 
                 pages.insert(0, {'start': 0, 'end': plan.source_duration, 'text': plan.source_transcript})
             # Original speech uses a separate VTT cue; do not burn a potentially long
             # segment transcript into a word-sized caption card.
-            burn = [p for p in pages if p['start'] >= plan.source_duration]
-            burn = cards.render_caption_pages(burn, plan, folder)
-            plan = compose.overlay_captions(plan, folder, burn)
             target = folder / 'response.mp4'
             if Path(plan.output_path) != target:
                 shutil.copyfile(plan.output_path, target.with_suffix('.part.mp4'))
@@ -130,12 +163,13 @@ def render_case(case, out_dir, *, sfx=True, brainrot=False, gameplay_path=None, 
     if not {'video', 'audio'} <= {s['codec_type'] for s in info['streams']}:
         raise RuntimeError('Final video is missing its audio or video stream.')
     duration = float(info['format']['duration'])
-    if not 44.9 <= duration <= 60.1 or plan.voice.engine != 'openai':
+    if not 44.9 <= duration <= 120.1 or plan.voice.engine != 'openai':
         raise RuntimeError('Final video does not meet the narration or duration contract.')
     video = {'status': 'ready', 'stage': 'complete', 'version': VERSION, 'artifact': artifact,
              'selected_claim_id': plan.selected_claim_id, 'selected_claim': plan.claim,
              'duration_seconds': round(duration, 3), 'width': plan.width, 'height': plan.height,
              'voice': settings().tts_voice, 'model': settings().tts_model, 'ai_voice': True,
+             'voice_speed': PLAYBACK_SPEED, 'renderer_identity': renderer_identity(),
              'caption_timing': plan.voice.timings_from, 'source_caption_timing': 'segment',
              'sfx': sfx, 'brainrot': brainrot, 'stage_timings': plan.timings,
              'reused_stages': reused, 'render_wall_seconds': round(time.monotonic() - render_started, 3),

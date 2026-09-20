@@ -39,7 +39,6 @@ class Settings(BaseSettings):
     case_timeout_seconds: int = 120
     research_timeout_seconds: int = 35
     video_enabled: bool = True
-    video_timeout_seconds: int = 150
     tts_model: str = "gpt-4o-mini-tts"
     tts_voice: str = "coral"
     whisper_model: str = "/opt/whisper/ggml-base.en.bin"
