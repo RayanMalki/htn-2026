@@ -11,6 +11,8 @@ python3 scripts/init_env.py
 # Put the teammate's provider, Elastic and optional observability values in .env
 # (or export them in the shell), then run the complete startup command.
 bash scripts/start.sh
+# Exercise the supplied Short after startup (requires live provider + Elastic credentials for MP4 output).
+bash scripts/e2e_short.sh 'https://youtube.com/shorts/8DG6bEi6z-o?si=_TJYyGQZWm5cmFjg'
 ```
 
 Open **https://localhost**. Local Caddy certificates may need trust or a browser exception. For a public deployment, set `DOMAIN` to a real DNS name pointed to the VM; Caddy obtains the public certificate automatically. `DOMAIN=:80` enables plain HTTP for local development only.
