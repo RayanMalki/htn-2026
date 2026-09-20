@@ -15,7 +15,19 @@ from app.models import models
 from app.observability import log_event, record_case_duration, stage
 from app.schemas import AudioAnalysis, Claim, validate_verdict
 from app.search import ElasticSearch
-from app.video.artifact import render_video
+from app.video import artifact, pipeline_adapter
+
+
+def select_renderer(cfg):
+    """Which renderer the pipeline runs once a case completes. VIDEO_RENDERER picks it,
+    "plan" for app/video/render.py, anything else for app/video/artifact.py."""
+    return pipeline_adapter.render_video if cfg.video_renderer == "plan" else artifact.render_video
+
+
+async def render_video(case: dict) -> dict:
+    """The renderer the pipeline calls. Kept as a module-level name so tests and other
+    code can patch it as before, the choice of engine happens inside."""
+    return await select_renderer(settings())(case)
 
 TERMINAL = {"complete", "no_claims", "incomplete", "awaiting_upload"}
 
