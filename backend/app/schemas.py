@@ -23,6 +23,10 @@ class CaseCreate(StrictModel):
             if (url.hostname in {"youtube.com", "www.youtube.com", "m.youtube.com"}
                     and re.fullmatch(r"/shorts/[A-Za-z0-9_-]{11}/?", url.path)):
                 return f"https://www.youtube.com{url.path.rstrip('/')}"
+            # The YouTube app's share sheet hands out youtu.be links. Normalize them to the
+            # shorts form so a judge sharing straight from the app is not turned away.
+            if url.hostname == "youtu.be" and re.fullmatch(r"/[A-Za-z0-9_-]{11}/?", url.path):
+                return f"https://www.youtube.com/shorts/{url.path.strip('/')}"
         raise ValueError("Use a public HTTPS Instagram Reel or YouTube Shorts link.")
 
 
