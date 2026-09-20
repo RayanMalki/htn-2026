@@ -1,7 +1,8 @@
 import { StrictMode, Component, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import './styles.css';
+import '@fontsource-variable/manrope';
+import './medbot.css';
 
 function sampleRate(value: string | undefined, fallback: number) {
   const parsed = Number(value ?? fallback);

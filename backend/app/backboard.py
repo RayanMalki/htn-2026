@@ -12,7 +12,7 @@ from app.config import settings
 from app.http import request
 from app.media import run_process
 from app.models import GeminiModels
-from app.schemas import AudioAnalysis, Claim, StrictModel, TranscriptSegment
+from app.schemas import AudioAnalysis, Claim, ClaimDetails, StrictModel, TranscriptSegment
 
 BASE = "https://app.backboard.io/api"
 
@@ -31,6 +31,7 @@ class ExtractedClaim(StrictModel):
     first_window: int = Field(ge=0)
     last_window: int = Field(ge=0)
     search_terms: list[str] = Field(min_length=1, max_length=3)
+    details: ClaimDetails | None = None
 
 
 class ExtractedClaims(StrictModel):
@@ -117,6 +118,8 @@ class BackboardModels(GeminiModels):
             return AudioAnalysis(transcript=[], claims=[], omitted_claims=0, language="en", usable_speech=False)
         extraction = await self.generate(
             "Extract at most THREE central medical claims actually spoken in these transcript windows. "
+            "Extract details only if explicitly spoken: intervention, formulation, population, outcome, "
+            "comparator, dose and timeframe; use null for unknowns. "
             "Assign first_window and last_window using the provided zero-based indices; include all windows "
             "containing a claim. Count omitted claims. Give 1–3 neutral biomedical search phrases per claim, "
             "including useful synonyms, without database operators or assumed verdicts. Detect the spoken "
@@ -128,7 +131,7 @@ class BackboardModels(GeminiModels):
         for i, claim in enumerate(extraction.claims):
             if not 0 <= claim.first_window <= claim.last_window < len(segments):
                 raise ValueError("Claim refers to an unknown transcript window")
-            claims.append(Claim(id=f"c{i + 1}", text=claim.text, search_terms=claim.search_terms,
+            claims.append(Claim(id=f"c{i + 1}", text=claim.text, search_terms=claim.search_terms, details=claim.details,
                                 start=segments[claim.first_window].start, end=segments[claim.last_window].end))
         return AudioAnalysis(transcript=segments, claims=claims, omitted_claims=extraction.omitted_claims,
                              language=extraction.language, usable_speech=True)

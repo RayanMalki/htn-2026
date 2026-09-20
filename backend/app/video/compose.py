@@ -47,7 +47,10 @@ def probe_duration(path: str | Path) -> float:
 
 
 def _still(png: str | Path, seconds: float, fps: int) -> list[str]:
-    return ["-loop", "1", "-framerate", "1", "-t", f"{seconds:.3f}", "-i", str(png)]
+    # Scene lengths include fractional transition handles. A 1 fps input rounds
+    # those handles away before the fps filter, so later xfade offsets can lie
+    # beyond EOF and drop the remaining scenes. Sample at the output frame rate.
+    return ["-loop", "1", "-framerate", str(fps), "-t", f"{seconds:.3f}", "-i", str(png)]
 
 
 def _timing(plan: RenderPlan) -> tuple[list[float], list[float], list[float]]:

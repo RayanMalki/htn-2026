@@ -64,6 +64,20 @@ def test_failure_injection_requires_admin_and_enable(client):
     assert client.post("/api/admin/failure", headers=auth).status_code == 503
 
 
+def test_sentry_demo_is_protected_and_disabled_by_default(client):
+    from app.config import settings
+    assert client.post("/api/admin/sentry-demo").status_code == 401
+    auth = {"Authorization": "Bearer test-admin"}
+    assert client.post("/api/admin/sentry-demo", headers=auth).status_code == 404
+    settings().sentry_demo_enabled = True
+    settings().sentry_dsn = "https://public@sentry.example/1"
+    response = client.post("/api/admin/sentry-demo", headers=auth)
+    assert response.status_code == 503
+    body = response.json()
+    assert body["demo"] is True
+    assert body["products"]["session_replay"].startswith("browser-only")
+
+
 def test_offline_export_escapes_html(client, case_id):
     update_case(case_id, status="complete", result_patch={"untrusted": "</script><script>alert('x')</script>"})
     response = client.get(f"/api/cases/{case_id}/replay")

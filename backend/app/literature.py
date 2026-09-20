@@ -67,6 +67,35 @@ def chunks(paper: dict, sections: list[tuple[str, str]]) -> list[Passage]:
     return result
 
 
+def claim_terms(claim: Claim) -> list[str]:
+    details = claim.details
+    if details and details.intervention and details.outcome:
+        core = f"{details.intervention} {details.outcome}"
+        # Keep a broad core query; qualifiers inform a separate targeted query.
+        targeted = " ".join(filter(None, [core, details.formulation, details.population,
+                                          details.comparator, details.dose, details.timeframe]))
+        return list(dict.fromkeys([core, targeted, *claim.search_terms]))[:3]
+    return claim.search_terms
+
+
+def full_text_priority(record: dict, claim: Claim):
+    """Lexical applicability proxy, not a study-quality or truth score."""
+    text = plain_text(record.get("title", "") + " " + record.get("abstractText", "")).lower()
+    details = claim.details
+    tokens = set(re.findall(r"[a-z0-9]+", text))
+    def matches(field):
+        words = set(re.findall(r"[a-z0-9]+", (field or "").lower()))
+        return bool(words) and words <= tokens
+    core = [details.intervention, details.outcome] if details else []
+    qualifiers = [details.formulation, details.population, details.comparator,
+                  details.dose, details.timeframe] if details else []
+    core_matches = [matches(field) for field in core if field]
+    kinds = " ".join(record.get("pubTypeList", {}).get("pubType", [])).lower()
+    design = 2 if "systematic review" in kinds or "meta-analysis" in kinds else 1 if "randomized" in kinds else 0
+    return (int(bool(core_matches) and all(core_matches)), sum(core_matches),
+            sum(matches(field) for field in qualifiers if field), design, -record.get("_discovery_tier", 2))
+
+
 class Literature:
     def __init__(self, client: httpx.AsyncClient):
         self.client = client
@@ -111,7 +140,7 @@ class Literature:
             return await self._medlineplus(claim)
 
     async def _europe_pmc(self, claim: Claim) -> tuple[list[Passage], dict]:
-        query = build_query(claim.search_terms)
+        query = build_query(claim_terms(claim))
         title_query = query.replace("TITLE_ABS:", "TITLE:")
         review_query = f'({query}) AND (PUB_TYPE:"Systematic Review" OR PUB_TYPE:"Meta-Analysis" OR PUB_TYPE:"Randomized Controlled Trial")'
         queries = [title_query, review_query, query]
@@ -119,7 +148,7 @@ class Literature:
         async def find(expression):
             async with self.limiter:
                 response = await request(self.client, "GET", f"{BASE}/search", params={
-                    "query": expression + " sort_cited:y", "format": "json", "resultType": "core", "pageSize": 15,
+                    "query": expression, "format": "json", "resultType": "core", "pageSize": 15,
                 })
             return response.json().get("resultList", {}).get("result", [])
 
@@ -145,17 +174,14 @@ class Literature:
                 add(record, tier_number)
         records = list(unique.values())[:15]
 
-        def full_text_priority(record):
-            kinds = " ".join(record.get("pubTypeList", {}).get("pubType", [])).lower()
-            design = 4 if "systematic review" in kinds or "meta-analysis" in kinds else 3 if "randomized" in kinds else 1
-            return (design, -record.get("_discovery_tier", 2), int(record.get("citedByCount") or 0))
-
         eligible = [r for r in records if r.get("isOpenAccess") == "Y" and r.get("pmcid")]
-        full_ids = {r["pmcid"] for r in sorted(eligible, key=full_text_priority, reverse=True)[:5]}
+        full_ids = {r["pmcid"] for r in sorted(eligible, key=lambda r: full_text_priority(r, claim), reverse=True)[:5]}
         outcomes = await asyncio.gather(*(self.paper(r, r.get("pmcid") in full_ids) for r in records))
         passages = [p for ps, _, _ in outcomes for p in ps]
         return passages, {
             "query": query, "queries": queries, "provider": "Europe PMC", "searched_at": now().isoformat(),
+            "sort": "relevance", "claim_details": claim.details.model_dump() if claim.details else None,
+            "full_text_selection": "lexical_core_then_qualifiers_then_design_then_discovery_order",
             "papers_found": len(records), "passages_found": len(passages),
             "sources_found": len(records),
             "cache_hits": sum(c for _, c, _ in outcomes),
@@ -165,7 +191,7 @@ class Literature:
         }
 
     async def _medlineplus(self, claim: Claim) -> tuple[list[Passage], dict]:
-        term = " ".join(claim.search_terms)
+        term = " ".join(claim_terms(claim))
         async with self.limiter:
             response = await request(self.client, "GET", MEDLINEPLUS_BASE, params={
                 "db": "healthTopics", "term": term, "retmax": 5,

@@ -4,12 +4,52 @@ x-backend: &backend
   build:
     context: .
     dockerfile: backend/Dockerfile
-  env_file: .env
+  env_file:
+    - path: .env
+      required: false
   environment:
-    DATABASE_URL: postgresql+psycopg://hypecheck:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/hypecheck
+    DATABASE_URL: postgresql+psycopg://hypecheck:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the environment or .env}@db:5432/hypecheck
     REDIS_URL: redis://redis:6379/0
     MEDIA_ROOT: /data
     UPTIME_URL: ${UPTIME_URL:-http://api:8000/healthz}
+    MODEL_MODE: ${MODEL_MODE:-mock}
+    MODEL_PROVIDER: ${MODEL_PROVIDER:-openai}
+    OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4.1-mini}
+    BACKBOARD_API_KEY: ${BACKBOARD_API_KEY:-}
+    BACKBOARD_MODEL: ${BACKBOARD_MODEL:-gpt-4o-mini}
+    BACKBOARD_LLM_PROVIDER: ${BACKBOARD_LLM_PROVIDER:-openai}
+    GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.5-flash}
+    ELASTICSEARCH_URL: ${ELASTICSEARCH_URL:-}
+    ELASTICSEARCH_API_KEY: ${ELASTICSEARCH_API_KEY:-}
+    ELASTIC_INDEX: ${ELASTIC_INDEX:-hypecheck-passages-v2}
+    ELASTIC_INFERENCE_ID: ${ELASTIC_INFERENCE_ID:-.elser-2-elastic}
+    ELASTIC_SEMANTIC: ${ELASTIC_SEMANTIC:-true}
+    ELASTIC_RERANK_ENABLED: ${ELASTIC_RERANK_ENABLED:-false}
+    ELASTIC_RERANK_INFERENCE_ID: ${ELASTIC_RERANK_INFERENCE_ID:-}
+    ELASTIC_RERANK_TIMEOUT_SECONDS: ${ELASTIC_RERANK_TIMEOUT_SECONDS:-3}
+    MEDLINEPLUS_ENABLED: ${MEDLINEPLUS_ENABLED:-true}
+    SENTRY_DSN: ${SENTRY_DSN:-}
+    SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
+    SENTRY_ENABLE_LOGS: ${SENTRY_ENABLE_LOGS:-true}
+    SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-1.0}
+    SENTRY_PROFILE_SESSION_SAMPLE_RATE: ${SENTRY_PROFILE_SESSION_SAMPLE_RATE:-0.2}
+    RELEASE: ${RELEASE:-hypecheck-local}
+    ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+    ENABLE_FAILURE_INJECTION: ${ENABLE_FAILURE_INJECTION:-false}
+    MAX_ACTIVE_CASES: ${MAX_ACTIVE_CASES:-10}
+    RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-6}
+    CASE_TIMEOUT_SECONDS: ${CASE_TIMEOUT_SECONDS:-120}
+    RESEARCH_TIMEOUT_SECONDS: ${RESEARCH_TIMEOUT_SECONDS:-35}
+    VIDEO_ENABLED: ${VIDEO_ENABLED:-true}
+    VIDEO_ENCODER_PRESET: ${VIDEO_ENCODER_PRESET:-veryfast}
+    VIDEO_ENCODER_THREADS: ${VIDEO_ENCODER_THREADS:-2}
+    TTS_MODEL: ${TTS_MODEL:-gpt-4o-mini-tts}
+    TTS_VOICE: ${TTS_VOICE:-coral}
+    WHISPER_MODEL: ${WHISPER_MODEL:-/opt/whisper/ggml-base.en.bin}
+    GPTZERO_API_KEY: ${GPTZERO_API_KEY:-}
+    GPTZERO_FILLER_READING: ${GPTZERO_FILLER_READING:-false}
   volumes:
     - media:/data
   restart: unless-stopped
@@ -29,7 +69,7 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: hypecheck
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the environment or .env}
       POSTGRES_DB: hypecheck
     volumes:
       - postgres:/var/lib/postgresql/data

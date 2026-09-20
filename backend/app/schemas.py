@@ -42,12 +42,23 @@ class TranscriptSegment(StrictModel):
         return self
 
 
+class ClaimDetails(StrictModel):
+    intervention: str | None = Field(default=None, max_length=200)
+    formulation: str | None = Field(default=None, max_length=200)
+    population: str | None = Field(default=None, max_length=200)
+    outcome: str | None = Field(default=None, max_length=200)
+    comparator: str | None = Field(default=None, max_length=200)
+    dose: str | None = Field(default=None, max_length=200)
+    timeframe: str | None = Field(default=None, max_length=200)
+
+
 class Claim(StrictModel):
     id: str = Field(pattern=r"^c[1-3]$")
     text: str = Field(min_length=1, max_length=1000)
     start: float = Field(ge=0, le=100)
     end: float = Field(ge=0, le=100)
     search_terms: list[str] = Field(min_length=1, max_length=3)
+    details: ClaimDetails | None = None
 
     @field_validator("search_terms")
     @classmethod
@@ -112,11 +123,24 @@ class Citation(StrictModel):
     quote: str = Field(min_length=1, max_length=3000)
 
 
+class PaperAssessment(StrictModel):
+    paper_id: str
+    applicability: Literal["direct", "partial", "mismatch", "unknown"]
+    finding: Literal["supports", "contradicts", "mixed", "does_not_address"]
+    explanation: str = Field(min_length=1, max_length=500)
+    quote_ids: list[str] = Field(max_length=6)
+    citations: list[Citation] = Field(default_factory=list, max_length=6)
+    access_types: list[Literal["full_text", "abstract_only", "summary"]]
+    limitations: list[str] = Field(max_length=5)
+    possible_overlap_with: list[str] = Field(default_factory=list, max_length=6)
+
+
 class Verdict(StrictModel):
     label: Literal["supports", "contradicts", "uncertain"]
     explanation: str = Field(min_length=1, max_length=2500)
     citations: list[Citation] = Field(max_length=6)
     limitations: list[str] = Field(max_length=10)
+    paper_assessments: list[PaperAssessment] = Field(default_factory=list, max_length=6)
 
 
 class DetectedSentence(StrictModel):
@@ -188,4 +212,26 @@ def validate_verdict(verdict: Verdict, passages: list[Passage]) -> Verdict:
     for citation in verdict.citations:
         if citation.passage_id not in evidence or citation.quote not in evidence[citation.passage_id].text:
             raise ValueError("Citation is not verbatim in retrieved evidence")
+    seen = set()
+    for item in verdict.paper_assessments:
+        papers = [p for p in evidence.values() if p.paper_id == item.paper_id]
+        if not papers or item.paper_id in seen:
+            raise ValueError("Unknown or duplicate assessed paper")
+        seen.add(item.paper_id)
+        if item.finding != "does_not_address" and not item.citations:
+            raise ValueError("Paper finding requires citations")
+        if any(pid not in {p.paper_id for p in evidence.values()} or pid == item.paper_id
+               for pid in item.possible_overlap_with):
+            raise ValueError("Unknown overlap reference")
+        if set(item.access_types) != {p.access_type for p in papers}:
+            raise ValueError("Assessment access types do not match retrieved passages")
+        for citation in item.citations:
+            passage = evidence.get(citation.passage_id)
+            if not passage or passage.paper_id != item.paper_id or citation.quote not in passage.text:
+                raise ValueError("Paper quotation does not belong to its source")
+    if verdict.paper_assessments and verdict.label != "uncertain":
+        eligible = {p.paper_id for p in verdict.paper_assessments
+                    if p.applicability in {"direct", "partial"} and p.finding == verdict.label}
+        if not any(evidence[c.passage_id].paper_id in eligible for c in verdict.citations):
+            raise ValueError("Conclusion requires an applicable cited paper with the reported finding")
     return verdict

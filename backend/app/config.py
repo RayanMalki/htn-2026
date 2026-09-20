@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     elastic_index: str = "hypecheck-passages-v2"
     elastic_inference_id: str = ".elser-2-elastic"
     elastic_semantic: bool = True
+    elastic_rerank_enabled: bool = False
+    elastic_rerank_inference_id: str = ""
+    elastic_rerank_timeout_seconds: float = Field(default=3.0, gt=0, le=3)
     medlineplus_enabled: bool = True
     sentry_dsn: str = ""
     sentry_environment: str = "development"
@@ -34,6 +37,7 @@ class Settings(BaseSettings):
     release: str = "hypecheck-local"
     admin_token: str = ""
     enable_failure_injection: bool = False
+    sentry_demo_enabled: bool = False
     max_active_cases: int = 10
     rate_limit_per_minute: int = 6
     case_timeout_seconds: int = 120

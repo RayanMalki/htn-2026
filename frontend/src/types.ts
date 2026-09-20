@@ -4,7 +4,12 @@ export type Passage = {
   provider?: 'europe_pmc' | 'medlineplus'; source_kind?: string; section: string;
   text: string; context: string; start: number; end: number;
 };
-export type Claim = { id: string; text: string; start: number; end: number; search_terms: string[] };
+export type Claim = { id: string; text: string; start: number; end: number; search_terms: string[];
+  details?: Partial<Record<'intervention' | 'formulation' | 'population' | 'outcome' | 'comparator' | 'dose' | 'timeframe', string | null>> | null };
+export type PaperAssessment = { paper_id: string; applicability: 'direct' | 'partial' | 'mismatch' | 'unknown';
+  finding: 'supports' | 'contradicts' | 'mixed' | 'does_not_address'; explanation: string;
+  quote_ids: string[]; citations: { passage_id: string; quote: string }[]; access_types: string[];
+  limitations: string[]; possible_overlap_with: string[] };
 export type ClaimResult = {
   claim: Claim; status: string; evidence?: Passage[]; error?: string; timings?: Record<string, number>;
   discovered_sources?: { title: string; source_url: string; access_type: string }[];
@@ -13,7 +18,7 @@ export type ClaimResult = {
     provider_failures?: { provider: string; error: string }[];
     providers?: { provider: string; query: string; searched_at: string }[] };
   verdict?: { label: 'supports' | 'contradicts' | 'uncertain'; explanation: string;
-    citations: { passage_id: string; quote: string }[]; limitations: string[] };
+    citations: { passage_id: string; quote: string }[]; limitations: string[]; paper_assessments?: PaperAssessment[] };
 };
 export type Scan = {
   basis: 'verbatim' | 'filler_removed'; characters: number; predicted_class: string | null;
