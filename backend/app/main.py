@@ -178,16 +178,6 @@ async def render_video(case_id: str, brainrot: bool = False, sfx: bool = True):
     return {"case_id": case_id, "render": "started"}
 
 
-@app.get("/api/cases/{case_id}/video")
-def render_download(case_id: str):
-    """The finished MP4, once the render block says done."""
-    case = get_case(case_id)
-    info = (case.get("result") or {}).get("render") or {}
-    if info.get("status") != "done" or not info.get("path"):
-        raise HTTPException(status_code=404, detail="No rendered video for this case yet.")
-    return FileResponse(info["path"], media_type="video/mp4", filename=f"{case_id}.mp4")
-
-
 @app.post("/api/cases/{case_id}/media", status_code=202)
 async def upload(case_id: str, request: Request, file: UploadFile = File(...)):
     case_id = valid_id(case_id)
@@ -367,6 +357,11 @@ def video_artifact(case_id: str, filename: str):
 
 @app.get('/api/cases/{case_id}/video')
 def generated_video(case_id: str, download: bool = False):
+    case = get_case(case_id)
+    info = case['result'].get('render') or {}
+    if info.get('status') == 'done' and info.get('path'):
+        return FileResponse(info['path'], media_type='video/mp4',
+                            filename=f'hypecheck-{case["id"]}.mp4' if download else None)
     return FileResponse(video_artifact(case_id, 'response.mp4'), media_type='video/mp4',
                         filename=f'hypecheck-{valid_id(case_id)}.mp4' if download else None)
 

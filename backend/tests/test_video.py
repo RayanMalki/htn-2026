@@ -6,7 +6,7 @@ import pytest
 from app.config import settings
 from app.db import read_case, update_case
 from app.schemas import Citation, Claim, Verdict
-from app.video import media_info, render_video, storyboard
+from app.video.artifact import media_info, render_video, storyboard
 
 
 def ready_case(case_id, passage):
@@ -46,7 +46,7 @@ async def test_real_render_playable_idempotent_and_served_with_ranges(case_id, p
         await run_process('ffmpeg', '-v', 'error', '-y', '-f', 'lavfi', '-i',
                           'sine=frequency=440:duration=0.3', str(output), timeout=10)
     speak = AsyncMock(side_effect=tone)
-    monkeypatch.setattr('app.video.speech', speak)
+    monkeypatch.setattr('app.video.artifact.speech', speak)
     result = await render_video(case)
     path = settings().media_root / case_id / 'video' / result['artifact'] / 'response.mp4'
     duration, info = await media_info(path)
@@ -66,6 +66,20 @@ async def test_real_render_playable_idempotent_and_served_with_ranges(case_id, p
     assert manifest['scenes'][-1]['end'] <= duration + 0.2
     path.unlink()
     assert client.get(f'/api/cases/{case_id}/video').status_code == 410
+
+
+def test_plan_render_download_uses_shared_video_route(case_id, client, tmp_path):
+    path = tmp_path / 'rebuttal.mp4'
+    path.write_bytes(b'video bytes')
+    update_case(case_id, result_patch={'render': {'status': 'done', 'path': str(path)}})
+
+    response = client.get(f'/api/cases/{case_id}/video', headers={'Range': 'bytes=0-4'})
+    assert response.status_code == 206
+    assert response.content == b'video'
+    assert response.headers['content-type'] == 'video/mp4'
+    download = client.get(f'/api/cases/{case_id}/video?download=true')
+    assert download.status_code == 200
+    assert 'attachment;' in download.headers['content-disposition']
 
 
 def test_retry_resumes_evidence_without_inventing_verdict(case_id, passage, client):

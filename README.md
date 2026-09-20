@@ -46,6 +46,12 @@ Optional adapters remain available: `MODEL_PROVIDER=gemini` uses `GEMINI_API_KEY
 
 Requires Python 3.12+, Node 22+, FFmpeg/FFprobe, and Redis. SQLite is supported for local API tests; the deployment uses PostgreSQL.
 
+On Windows, install the FFmpeg executables and add the directory containing both
+`ffmpeg.exe` and `ffprobe.exe` to `PATH`, then reopen your terminal. Verify with
+`ffmpeg -version` and `ffprobe -version`; installing Python dependencies does not
+install these executables. The compositor integration test skips when either is
+missing, while the cue-timing test runs without them. Video processing requires both.
+
 ```bash
 python3.13 -m venv .venv
 .venv/bin/pip install -r backend/requirements.lock

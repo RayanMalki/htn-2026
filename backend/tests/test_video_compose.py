@@ -33,7 +33,15 @@ def _clip(path, seconds, w=320, h=240):
     return str(path)
 
 
-def _plan(tmp_path):
+def _video_duration(path):
+    # Container duration can still match the narration when the picture is truncated.
+    result = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                             "stream=duration", "-of", "csv=p=0", str(path)],
+                            capture_output=True, text=True, check=True)
+    return float(result.stdout.strip())
+
+
+def _plan():
     scenes = [
         Scene(kind="clip", start=0, end=2, narration="one", transition_in="none",
               card=Card(kind="clip", title="Blue light is not ruining your sleep")),
@@ -44,17 +52,18 @@ def _plan(tmp_path):
         Scene(kind="finding", start=4, end=6, narration="three", transition_in="circleopen",
               card=Card(kind="finding", title="Partly right.")),
     ]
-    plan = RenderPlan(case_id="test", claim="Blue light is not ruining your sleep", scenes=scenes,
-                      finding=Finding(label="mixed", sentence="Partly right.", supports=2, contradicts=5),
-                      voice=Voice(audio_path=_silence(tmp_path / "voice.wav", 6), duration=6.0, engine="silent"))
+    return RenderPlan(case_id="test", claim="Blue light is not ruining your sleep", scenes=scenes,
+                      finding=Finding(label="mixed", sentence="Partly right.", supports=2, contradicts=5))
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"),
+                    reason="FFmpeg and FFprobe must be installed and available on PATH")
+def test_compose_then_post_produces_correct_videos(tmp_path):
+    plan = _plan()
+    plan.voice = Voice(audio_path=_silence(tmp_path / "voice.wav", 6), duration=6.0, engine="silent")
     colours = ["0x223344", "0xfffdf8", "0xf4efe6"]
     for i, s in enumerate(plan.scenes):
         s.card_png = _png(tmp_path / f"card{i}.png", colours[i])
-    return plan
-
-
-def test_compose_then_post_produces_correct_videos(tmp_path):
-    plan = _plan(tmp_path)
     pages = [
         {"start": 0.5, "end": 1.5, "text": "one", "png": _png(tmp_path / "cap0.png", "yellow", 400, 100)},
         {"start": 2.5, "end": 3.5, "text": "two", "png": _png(tmp_path / "cap1.png", "yellow", 400, 100)},
@@ -64,6 +73,7 @@ def test_compose_then_post_produces_correct_videos(tmp_path):
     assert plan.output_path and plan.output_path.endswith("rebuttal.mp4")
     assert compose.probe_size(plan.output_path) == (720, 1280)
     assert abs(compose.probe_duration(plan.output_path) - 6.0) < 0.3
+    assert abs(_video_duration(plan.output_path) - 6.0) < 0.3
     # The gap frame between captions must be transparent, and the picture must be
     # visible between captions. An opaque gap once blacked out the whole video.
     assert compose.pixel_rgba(tmp_path / "out" / "caption_blank.png", 360, 640)[3] == 0
@@ -80,11 +90,12 @@ def test_compose_then_post_produces_correct_videos(tmp_path):
     assert (tmp_path / "out" / "rebuttal_sfx.mp4").exists()
     assert compose.probe_size(plan.output_path) == (720, 1280)
     assert abs(compose.probe_duration(plan.output_path) - 6.0) < 0.4
+    assert abs(_video_duration(plan.output_path) - 6.0) < 0.4
     assert time.time() - t < 30, "compose plus post should stay well under half a minute for 6 seconds of video"
 
 
-def test_post_cues_land_on_scene_changes(tmp_path):
-    plan = _plan(tmp_path)
+def test_post_cues_land_on_scene_changes():
+    plan = _plan()
     got = post.cues(plan)
     names = [n for n, _ in got]
     assert names.count("whoosh") == 2 and "thud" in names and "pop" in names
@@ -101,6 +112,7 @@ def test_env_flags_override_the_plan(monkeypatch):
     assert post._flag("SFX", True) is True
 
 
+@pytest.mark.skipif(not shutil.which("ffprobe"), reason="FFprobe must be installed and available on PATH")
 def test_browser_cards_render_with_focus_box(tmp_path):
     if not shutil.which("node"):
         pytest.skip("node is not installed here, the browser card path is tested locally")

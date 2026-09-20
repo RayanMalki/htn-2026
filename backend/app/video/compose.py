@@ -129,6 +129,8 @@ def pixel_rgba(path: str | Path, x: int, y: int, seek: float | None = None) -> t
     # is stored at half resolution and the crop would be smaller than one chroma sample.
     args += ["-i", str(path), "-frames:v", "1", "-vf", f"format=rgba,crop=1:1:{x}:{y}", "-f", "rawvideo", "-pix_fmt", "rgba", "-"]
     raw = subprocess.run(args, capture_output=True, check=True).stdout[:4]
+    if len(raw) != 4:
+        raise RuntimeError(f"No video frame decoded from {path} at {seek if seek is not None else 0:g}s")
     return tuple(raw)  # type: ignore[return-value]
 
 
@@ -141,12 +143,20 @@ def _caption_concat(pages: list[dict], plan: RenderPlan, out_dir: Path, total: f
     blank = _blank_png(plan, out_dir)
     entries: list[tuple[str, float]] = []
     cursor = 0.0
-    for p in pages:
+    for i, p in enumerate(pages):
         start = max(float(p["start"]), cursor)
         end = max(float(p["end"]), start + 1 / plan.fps)
         if start > cursor:
             entries.append((str(blank), start - cursor))
-        entries.append((str(p["png"]), end - start))
+        # Concat inputs must share dimensions and pixel format. Switching between
+        # RGB caption PNGs and the RGBA gap frame reinitializes the filter graph,
+        # discarding the scene transitions and cutting the video stream short.
+        caption = out_dir / f"caption_page_{i}.png"
+        _ff(["-i", str(p["png"]), "-vf",
+             f"format=rgba,crop=w='min(iw,{plan.width})':h='min(ih,{plan.height})':x=0:y=0,"
+             f"pad={plan.width}:{plan.height}:0:0:color=black@0",
+             "-frames:v", "1", "-pix_fmt", "rgba", str(caption)])
+        entries.append((str(caption), end - start))
         cursor = end
     if cursor < total:
         entries.append((str(blank), total - cursor))

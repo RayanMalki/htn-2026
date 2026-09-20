@@ -1,1 +1,1 @@
-"""Rebuttal video renderer. See plan.py for the shared contract and render.py for the order."""
+"""Video renderers: artifact.py serves the pipeline; render.py uses the plan.py contract."""

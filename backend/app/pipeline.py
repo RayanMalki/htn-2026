@@ -14,7 +14,7 @@ from app.models import models
 from app.observability import log_event, record_case_duration, stage
 from app.schemas import AudioAnalysis, Claim, validate_verdict
 from app.search import ElasticSearch
-from app.video import render_video
+from app.video.artifact import render_video
 
 TERMINAL = {"complete", "no_claims", "incomplete", "awaiting_upload"}
 

@@ -1,4 +1,4 @@
-"""Deterministic cited portrait videos; medical wording comes only from saved verdicts."""
+"""Pipeline video artifacts; medical wording comes only from saved verdicts."""
 import asyncio
 import hashlib
 import json
