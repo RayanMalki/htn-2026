@@ -105,3 +105,47 @@ Live Backboard checks authenticated and found the text model, but actual chat an
 The user chose a direct OpenAI key after evaluating Backboard. `MODEL_PROVIDER=openai` is now the default; local `.env` uses `MODEL_MODE=live`. The key is stored only in ignored `.env`. `backend/app/openai_models.py` uses Whisper `verbose_json` segment timestamps and `gpt-4.1-mini` Responses structured output with `store=false`. Claim timestamps come from validated segment indices. Backboard and Gemini remain optional and are not used on this path. Provider-aware preflight performs a small real text request. Changing providers/models mid-case is rejected when saved analysis has a different model identity.
 
 Real OpenAI text inference and transcription/claim extraction succeeded on a short synthetic spoken clip (approximately 4.35 and 5.42 seconds respectively). These timings are not an end-to-end benchmark. All 86 backend tests and lint passed; the production Docker stack rebuilt and restarted in live mode. Health is OK; readiness correctly reports Elasticsearch and its semantic endpoint missing. The 12 browser checks passed during the preceding provider integration; no further frontend changes were needed for the direct OpenAI adapter.
+
+## Elasticsearch now connected
+
+Local Elastic credentials are in ignored `.env`; index `hypecheck-passages-v2` and `.elser-2-elastic` are provisioned/validated. All `/readyz` dependency checks now pass. A real pipeline run on a short synthetic uploaded video completed in 14.48 seconds with hybrid retrieval, six passages, and two validated citations; 10 of 15 papers were cached. See `docs/VERIFICATION.md` for limitations. Fixed a live `_mget` request-format bug and added regression assertions. Sentry configuration, real Reel acceptance benchmarks, medical review, and public deployment still remain.
+
+## YouTube Shorts support
+
+Added HTTPS `/shorts/<11-character-id>` input for youtube.com, www.youtube.com and m.youtube.com,
+canonicalized to www.youtube.com without tracking. UI accepts both platforms. Downloader permits
+Instagram and Youtube extractors, retains public-only DNS checks and the 15-second timeout,
+and supports separate video/audio tracks with local FFmpeg merging. Docker adds Node 22;
+Python locks yt-dlp-ejs 0.8.0 alongside yt-dlp 2026.8.19. A real upstream Shorts test URL
+BGQWPY4IigY downloaded and merged on the host. This is download verification, not a medical accuracy benchmark.
+Docker/API verification also passed: case 661c5f50-4d70-4347-a21f-ca1a6e021bfc downloaded
+in 3.054 seconds and finished as no_claims in 7.689 seconds using real OpenAI analysis.
+102 backend tests, 14 browser checks (12 existing + 2 Shorts), lint and production build passed.
+
+## Duration limit raised to 100 seconds
+
+User requested a 100-second maximum. Download filtering, FFprobe validation, FFmpeg audio extraction,
+transcript/claim timestamp schemas, OpenAI/Backboard adapters, API config, UI and README now use 100 seconds.
+The processing target remains 90 seconds; it is not guaranteed. Added boundary tests for 97, 100,
+and over-100-second media and timestamps. Earlier notes referring to 60 seconds are historical.
+
+## Video generation is now in scope
+
+The user explicitly expanded scope to a complete vertical narrated fact-check video and asked
+for an implementation/test loop until working. This supersedes the original rendering deferral.
+Added app/video.py: deterministic portrait cards from validated verdicts, OpenAI TTS, FFmpeg
+MP4 assembly, captions, source manifest, checkpointed scenes, bounded concurrent synthesis/encoding.
+API exposes video/captions/sources and retry; UI has rendering progress, playback/download and retry.
+Only complete live medical analyses render; no-claims and mock outputs do not become medical videos.
+Worker/recovery time bounds were extended for rendering; media still expires after 24h.
+The previous live judgment failure was exact-quotation validation. Models now select quote IDs
+from a dynamically constrained catalog; citations are copied from original stored passages and
+still pass the original strict validation. No fuzzy quote matching or fabricated fallback verdicts.
+Latest verification: 112 backend tests, 16 browser tests, production builds and lint passed.
+Real submitted Short 15HxwdW4W0U produced narrated H.264/AAC portrait video in 66.09s wall time
+(partially cached research). Mobile Chrome playback verified. Visual review prompted shorter
+wording and removal of internal quotation IDs; original failed case is being retried with this refinement.
+The refined original case d3ed6a35-e800-486e-b8e1-bf0317218d8e is now complete with video v2
+(190.617 seconds, 11 scenes, 18 exact citations). Retry took 27.42s using saved research.
+Final video frames and real mobile browser playback were verified. Artifacts are in ignored
+artifacts/video-demo; source changes remain local unless subsequently committed/pushed.

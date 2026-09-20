@@ -38,6 +38,10 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = 6
     case_timeout_seconds: int = 120
     research_timeout_seconds: int = 35
+    video_enabled: bool = True
+    video_timeout_seconds: int = 150
+    tts_model: str = "gpt-4o-mini-tts"
+    tts_voice: str = "coral"
     uptime_url: str = "http://127.0.0.1:8000/healthz"
 
     @property

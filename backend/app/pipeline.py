@@ -14,6 +14,7 @@ from app.models import models
 from app.observability import log_event, record_case_duration, stage
 from app.schemas import AudioAnalysis, Claim, validate_verdict
 from app.search import ElasticSearch
+from app.video import render_video
 
 TERMINAL = {"complete", "no_claims", "incomplete", "awaiting_upload"}
 
@@ -27,6 +28,7 @@ async def run_case(case_id: str):
         saved = db.get(Case, case_id)
         media_path = saved.media_path
     cfg = settings()
+    video_requested = cfg.video_enabled and cfg.model_mode == "live"
     result = dict(existing["result"])
     if "analysis" in result and (result.get("model_mode") != cfg.model_mode
             or (result.get("model_id") is not None and result["model_id"] != cfg.model_id)):
@@ -178,11 +180,24 @@ async def run_case(case_id: str):
             timings["total"] = round(monotonic() - started + previous_attempt, 3)
             status = "incomplete" if failures or any(c["status"] == "incomplete" for c in completed.values()) else "complete"
             sentry_sdk.set_tag("case_status", status)
-            update_case(case_id, status=status, finished_at=now(), result_patch={
+            update_case(case_id, status="rendering" if status == "complete" and video_requested else status,
+                        finished_at=None if status == "complete" and video_requested else now(), result_patch={
                 "claims": completed, "timings": timings, "target_met": timings["total"] <= 90,
+            })
+        if read_case(case_id)["status"] == "rendering":
+            stage_name = "rendering"
+            save(video={"status": "rendering"}, analysis_seconds=timings["total"])
+            with stage("rendering", timings):
+                async with asyncio.timeout(cfg.video_timeout_seconds):
+                    video = await render_video(read_case(case_id))
+            timings["total"] = round(monotonic() - started + previous_attempt, 3)
+            update_case(case_id, status="complete", finished_at=now(), result_patch={
+                "video": video, "timings": timings, "target_met": timings["total"] <= 90,
             })
     except Exception as exc:
         sentry_sdk.capture_exception(exc)
+        if stage_name == "rendering":
+            save(video={"status": "failed", "error": "Video generation failed. Saved evidence is intact; retry to resume."})
         timings["total"] = round(monotonic() - started + previous_attempt, 3)
         message = str(exc) if isinstance(exc, MediaError) else f"The {stage_name} stage did not complete. No unsupported verdict was assigned."
         latest = read_case(case_id)["result"]

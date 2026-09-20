@@ -36,7 +36,7 @@ def test_provider_selection_and_readiness():
 async def test_text_wire_contract_and_validated_judgment(passage):
     configure()
     output = {'label': 'contradicts', 'explanation': 'The supplied review did not find prevention.',
-              'citations': [{'passage_id': passage.id, 'quote': passage.text}], 'limitations': ['Limited search.']}
+              'quote_ids': ['q1'], 'limitations': ['Limited search.']}
     route = respx.post(BASE + '/threads/messages').respond(200, json={'status': 'COMPLETED', 'content': json.dumps(output)})
     claim = Claim(id='c1', text='Vitamin C prevents colds', start=0, end=10, search_terms=['vitamin C cold'])
     result = await BackboardModels().judge(claim, [passage])
@@ -56,11 +56,11 @@ async def test_invalid_citations_are_rejected(passage):
     route = respx.post(BASE + '/threads/messages').respond(200, json={
         'status': 'COMPLETED', 'content': json.dumps({
             'label': 'supports', 'explanation': 'Incorrect quote', 'limitations': [],
-            'citations': [{'passage_id': passage.id, 'quote': 'Invented quotation'}],
+            'quote_ids': ['invented'],
         }),
     })
     claim = Claim(id='c1', text='claim', start=0, end=1, search_terms=['topic'])
-    with pytest.raises(ValueError, match='Citation is not verbatim'):
+    with pytest.raises(ValueError, match='Input should be'):
         await BackboardModels().judge(claim, [passage])
     assert route.call_count == 1
 

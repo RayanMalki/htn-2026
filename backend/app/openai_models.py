@@ -56,7 +56,7 @@ class OpenAIModels(GeminiModels):
         return schema.model_validate_json(text)
 
     async def analyze(self, audio: Path, duration: float | None = None) -> AudioAnalysis:
-        if duration is None or not math.isfinite(duration) or not 0 < duration <= 60:
+        if duration is None or not math.isfinite(duration) or not 0 < duration <= 100:
             raise ValueError("Transcription requires a validated video duration")
         async with httpx.AsyncClient(timeout=20) as client:
             reply = await request(client, "POST", BASE + "/audio/transcriptions", headers=self.headers(),

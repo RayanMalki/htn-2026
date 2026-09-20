@@ -174,3 +174,27 @@ async def test_provider_change_cannot_relabel_saved_analysis(case_id, pipeline_m
     await run_case(case_id)
     assert read_case(case_id)['error']['code'] == 'model_configuration_changed'
     pipeline_mocks.assert_not_called()
+
+
+async def test_video_failure_preserves_completed_verdict_and_can_resume(case_id, pipeline_mocks, monkeypatch):
+    import app.pipeline
+    from app.config import settings
+
+    settings().video_enabled = True
+    settings().model_mode = "live"
+    monkeypatch.setattr(app.pipeline, "models", lambda: MockModels())
+    renderer = AsyncMock(side_effect=RuntimeError('Encoder failed'))
+    monkeypatch.setattr(app.pipeline, 'render_video', renderer)
+    await run_case(case_id)
+    case = read_case(case_id)
+    assert case['status'] == 'incomplete'
+    assert case['error']['code'] == 'rendering_failed'
+    assert case['result']['claims']['c1']['status'] == 'complete'
+    assert case['result']['video']['status'] == 'failed'
+    renderer.side_effect = None
+    renderer.return_value = {'status': 'ready', 'url': '/video'}
+    update_case(case_id, status='queued', finished_at=None)
+    await run_case(case_id)
+    assert read_case(case_id)['status'] == 'complete'
+    assert read_case(case_id)['result']['video']['status'] == 'ready'
+    assert pipeline_mocks.call_count == 1

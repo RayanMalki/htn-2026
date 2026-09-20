@@ -7,6 +7,7 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path}/test.db")
     monkeypatch.setenv("MEDIA_ROOT", str(tmp_path / "media"))
     monkeypatch.setenv("MODEL_MODE", "mock")
+    monkeypatch.setenv("VIDEO_ENABLED", "false")
     monkeypatch.setenv("MODEL_PROVIDER", "openai")
     for key in ("OPENAI_API_KEY", "BACKBOARD_API_KEY", "GEMINI_API_KEY"):
         monkeypatch.setenv(key, "")
