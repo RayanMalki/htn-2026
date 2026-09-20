@@ -17,13 +17,22 @@ The original checkout, ZIP, Dockerfile change and verification notes were preser
 - Source equality confirms approved layout, copy, colours, fonts, animations and components were preserved.
 - Browser fixtures cover submissions, shared links, uploads, evidence, GPTZero states, stale SSE events, render retry, video expiry, downloads, dialogs, carousels, and reduced motion.
 
-## Limitations and blocking media finding
+## Initial media finding and CI correction
 
 Container renderer tests: ten passed, one failed. The unchanged upstream
 `test_compose_then_post_produces_correct_videos` expects six seconds of video;
 FFprobe found 3.866667 seconds of video frames, despite six seconds container duration.
-Backend files are unchanged from the base. This needs renderer follow-up before
-claiming complete playable-media acceptance. Browser playback/download tests use
+This was reproduced in both GitHub Actions backend jobs. The compositor sampled
+still images at 1 fps, losing fractional transition handles before frame-rate
+conversion. Sampling at the plan's frame rate fixes scene truncation without
+padding over missing scenes or weakening duration validation. Scene and compose
+cache identities already include the changed source, so stale compositions are
+rebuilt while narration remains reusable.
+
+After correction, all 15 container tests across video, composition and performance
+passed, including the real render/cache/HTTP Range fixture. Added regression checks
+verify fractional scene durations and decoded tail frames. These use synthetic
+audio and local cards, not live model calls. Browser playback/download tests use
 mocked media responses and do not establish actual playback or downloaded file validity.
 
 The running API remains in mock mode. Readiness reports database/Redis available,
