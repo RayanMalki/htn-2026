@@ -1,4 +1,8 @@
+import asyncio
 import json
+import math
+from time import monotonic
+from urllib.parse import quote
 
 import httpx
 import sentry_sdk
@@ -86,6 +90,7 @@ class ElasticSearch:
                    or existing[p.id].get("provider") != p.provider
                    or existing[p.id].get("source_kind") != p.source_kind
                    or existing[p.id].get("access_type") != p.access_type
+                   or existing[p.id].get("known_retracted") != p.known_retracted
                    or (self.cfg.elastic_semantic and "semantic" not in existing[p.id])]
         semantic = self.cfg.elastic_semantic
 
@@ -132,8 +137,50 @@ class ElasticSearch:
             }}}
         return {**base, "query": lexical}
 
-    async def retrieve(self, query: str, candidate_ids: list[str], hybrid: bool | None = None):
+    async def rerank(self, query: str, passages: list[Passage], diagnostics: dict):
+        diagnostics.clear()
+        diagnostics.update(status="disabled")
+        if not self.cfg.elastic_rerank_enabled:
+            return passages
+        endpoint = self.cfg.elastic_rerank_inference_id
+        if not endpoint:
+            diagnostics.update(status="fallback", reason="endpoint_not_configured")
+            return passages
+        started = monotonic()
+        try:
+            async with asyncio.timeout(self.cfg.elastic_rerank_timeout_seconds):
+                # Do not create endpoints or retry inference beyond the bounded budget.
+                response = await self.client.post(
+                    self.base + "/_inference/rerank/" + quote(endpoint, safe=""),
+                    headers=self.headers, json={"query": query,
+                        "input": [p.title + "\n" + p.text for p in passages[:20]]},
+                    timeout=self.cfg.elastic_rerank_timeout_seconds)
+                response.raise_for_status()
+                ranked = response.json()["rerank"]
+                indices = [row["index"] for row in ranked]
+                if (len(indices) != min(20, len(passages)) or
+                        any(type(i) is not int for i in indices) or
+                        set(indices) != set(range(min(20, len(passages)))) or
+                        any(not math.isfinite(float(row["relevance_score"])) for row in ranked)):
+                    raise ValueError("Invalid rerank result")
+                ordered = sorted(ranked, key=lambda row: float(row["relevance_score"]), reverse=True)
+                diagnostics.update(status="applied", endpoint=endpoint, shortlist=len(indices))
+                return [passages[row["index"]] for row in ordered]
+        except (TimeoutError, httpx.TimeoutException):
+            diagnostics.update(status="fallback", reason="timeout")
+        except httpx.HTTPStatusError as exc:
+            diagnostics.update(status="fallback", reason=f"http_{exc.response.status_code}")
+        except (httpx.RequestError, ValueError, KeyError, TypeError):
+            diagnostics.update(status="fallback", reason="unavailable_or_invalid_response")
+        finally:
+            diagnostics["seconds"] = round(monotonic() - started, 4)
+        return passages
+
+    async def retrieve(self, query: str, candidate_ids: list[str], hybrid: bool | None = None,
+                       *, diagnostics: dict | None = None):
         hybrid = self.cfg.elastic_semantic if hybrid is None else hybrid
+        if diagnostics is not None:
+            diagnostics.update(status="not_needed", reason="no_eligible_passages")
         if not candidate_ids:
             return [], "hybrid" if hybrid else "keyword_only"
         try:
@@ -146,5 +193,9 @@ class ElasticSearch:
             reply = await self.call("POST", f"/{self.cfg.elastic_index}/_search",
                                     json=self.query(query, candidate_ids, False))
             hybrid = False
+        allowed = set(candidate_ids)
         passages = [Passage.model_validate(h["_source"]) for h in reply.json()["hits"]["hits"]]
+        passages = list({p.id: p for p in passages if p.id in allowed and not p.known_retracted}.values())
+        if passages:
+            passages = await self.rerank(query, passages, diagnostics if diagnostics is not None else {})
         return diversify(passages), "hybrid" if hybrid else "keyword_only"

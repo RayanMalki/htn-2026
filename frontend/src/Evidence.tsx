@@ -1,18 +1,19 @@
-import type { ClaimResult, Passage } from './types';
+import { useState } from 'react';
+import type { ClaimResult, PaperAssessment, Passage } from './types';
 
-function safeSource(url: string) {
+export function safeSource(url: string) {
   try { const parsed = new URL(url); return parsed.protocol === 'https:' && ['europepmc.org', 'medlineplus.gov', 'www.medlineplus.gov'].includes(parsed.hostname) ? url : undefined; }
   catch { return undefined; }
 }
 
-function Paper({ passage, quote }: { passage: Passage; quote?: string }) {
+function Paper({ passage, quote, rank, assessment }: { passage: Passage; quote?: string; rank: number; assessment?: PaperAssessment }) {
   const text = quote || passage.text;
   const position = passage.context.indexOf(text, passage.start);
   const before = position >= 0 ? passage.context.slice(Math.max(0, position - 180), position) : '';
   const after = position >= 0 ? passage.context.slice(position + text.length, position + text.length + 180) : '';
   return <details className="paper">
     <summary>
-      <span className="paper-icon" aria-hidden="true">▤</span>
+      <span className="paper-icon" aria-label={`Retrieval rank ${rank}`}>{rank}</span>
       <span className="paper-title">{passage.title}<span className="paper-meta">
         {passage.published?.slice(0, 4) || 'Date unknown'} <span>·</span> {passage.study_types.slice(0, 2).join(', ') || 'Study type unknown'}
       </span></span>
@@ -20,6 +21,7 @@ function Paper({ passage, quote }: { passage: Passage; quote?: string }) {
       <span className="expand" aria-hidden="true">+</span>
     </summary>
     <div className="paper-body"><span className="eyebrow">{passage.section} · exact source passage</span>
+      {assessment && <div className="paper-match"><p><b>Match to this claim:</b> {({ direct: 'Direct match', partial: 'Some details match', mismatch: 'Different situation', unknown: 'Not enough detail' })[assessment.applicability]}</p><p>{assessment.explanation}</p><p><b>What it found:</b> {({ supports: 'Supports', contradicts: 'Challenges', mixed: 'Mixed findings', does_not_address: 'Does not answer this claim' })[assessment.finding]}</p>{assessment.limitations.length > 0 && <ul>{assessment.limitations.map((limitation, i) => <li key={i}>{limitation}</li>)}</ul>}{assessment.possible_overlap_with.length > 0 && <p>May include research also reported by another source in this check. These are not necessarily independent findings.</p>}</div>}
       <blockquote>{position > 180 ? '…' : ''}{before}<mark>{text}</mark>{after}{position + text.length + 180 < passage.context.length ? '…' : ''}</blockquote>
       <a href={safeSource(passage.source_url)} target="_blank" rel="noreferrer">{passage.access_type === 'summary' ? 'Read the health topic' : 'Read the original paper'} ↗</a>
       <small>Offsets {passage.start}–{passage.end} in the stored source paragraph. {quote ? 'Highlighted quotation cited in the verdict.' : 'Retrieved passage; relevance alone does not establish support.'}</small>
@@ -28,6 +30,7 @@ function Paper({ passage, quote }: { passage: Passage; quote?: string }) {
 }
 
 export default function Evidence({ item, index, mock }: { item: ClaimResult; index: number; mock: boolean }) {
+  const [expandedClaim, setExpandedClaim] = useState(false);
   const verdict = item.verdict;
   const label = mock && verdict ? 'Prepared judgment' : verdict ? ({ supports: 'Supported by retrieved evidence', contradicts: 'Contradicted by retrieved evidence', uncertain: 'Evidence is uncertain' })[verdict.label] : item.status === 'incomplete' ? 'Analysis incomplete' : 'Research in progress';
   return <article className="claim-card" id={`claim-${item.claim.id}`}>
@@ -36,8 +39,12 @@ export default function Evidence({ item, index, mock }: { item: ClaimResult; ind
     <details className="verdict-detail"><summary className={`verdict ${mock ? 'uncertain' : verdict?.label || 'pending'}`}><span className="verdict-dot" />{label}</summary>
       <p>{mock ? 'A prepared example, not a medical finding about your video.' : verdict ? 'This finding applies to this exact claim and the passages retrieved. It is not a verdict on every statement in the video. Read the evidence and limitations below.' : 'No medical conclusion has been assigned. A processing failure is not evidence that a claim is false.'}</p>
     </details>
-    <h3 className="claim-quote">“{item.claim.text}”</h3>
-    {verdict ? <p className="finding">{verdict.explanation}</p> : <p className="finding">{item.error || 'Discovering papers and checking their relevance to this claim.'}</p>}
+    <h3 id={`claim-text-${item.claim.id}`} className={`claim-quote ${!expandedClaim && item.claim.text.length > 140 ? 'claim-preview' : ''}`}>“{item.claim.text}”</h3>
+    {item.claim.text.length > 140 && <button className="claim-expand text-button" aria-expanded={expandedClaim} aria-controls={`claim-text-${item.claim.id}`} onClick={() => setExpandedClaim(v => !v)}>{expandedClaim ? 'Show less' : 'Read full claim'}</button>}
+    {verdict ? <>
+      <p className="finding">{({ supports: 'The retrieved evidence supports this claim, within the limits below.', contradicts: 'The retrieved evidence challenges this claim. Context matters.', uncertain: 'The retrieved evidence does not settle this claim.' })[verdict.label]}</p>
+      <details className="full-assessment"><summary>Read full assessment</summary><p>{verdict.explanation}</p>{item.claim.details && <dl>{Object.entries(item.claim.details).filter(([, value]) => value).map(([key, value]) => <div key={key}><dt>{({ intervention: 'What was used', formulation: 'Type or form', population: 'Who', outcome: 'Effect checked', comparator: 'Compared with', dose: 'Amount', timeframe: 'How long' } as Record<string, string>)[key]}</dt><dd>{value}</dd></div>)}</dl>}</details>
+    </> : <p className="finding">{item.error || 'Discovering papers and checking their relevance to this claim.'}</p>}
     {item.provenance ? <div className="retrieval-line">
       <span>{item.provenance.sources_found ?? item.provenance.papers_found ?? 0} sources discovered</span><span>·</span>
       {item.provenance.retrieval_mode ? <span className={item.provenance.retrieval_mode === 'keyword_only' ? 'degraded' : ''}>
@@ -48,8 +55,8 @@ export default function Evidence({ item, index, mock }: { item: ClaimResult; ind
         ? 'Required literature research failed; no verdict was assigned.'
         : 'Supplemental health summaries could not be checked.'}
     </p>)}
-    {item.evidence?.length ? <details className="evidence-drawer"><summary>See the evidence <span aria-hidden="true">↗</span></summary><div className="papers">{item.evidence.map(p => <Paper key={p.id} passage={p}
-      quote={verdict?.citations.find(c => c.passage_id === p.id)?.quote} />)}</div></details> : null}
+    {item.evidence?.length ? <details className="evidence-drawer"><summary>See the evidence <span aria-hidden="true">↗</span></summary><p className="ranking-note">{item.provenance?.retrieval_mode === 'hybrid' ? 'Ranked by Elasticsearch keyword + semantic relevance, with source diversity.' : item.provenance?.retrieval_mode === 'keyword_only' ? 'Ranked by keyword relevance; semantic ranking was unavailable.' : 'Saved retrieval order.'} Rank is relevance, not study quality or proof.</p><div className="papers">{item.evidence.map((p, rank) => <Paper key={p.id} passage={p} rank={rank + 1}
+      assessment={verdict?.paper_assessments?.find(a => a.paper_id === p.paper_id)} quote={verdict?.citations.find(c => c.passage_id === p.id)?.quote} />)}</div></details> : null}
     {item.status === 'incomplete' && item.discovered_sources?.length ? <details className="limitations"><summary>Sources discovered before the interruption</summary>
       <p>These sources were discovered but not successfully ranked or assessed. No verdict is based on them.</p>
       <ul>{item.discovered_sources.map(p => <li key={p.source_url}><a href={safeSource(p.source_url)} target="_blank" rel="noreferrer">{p.title} ↗</a></li>)}</ul></details> : null}

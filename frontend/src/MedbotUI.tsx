@@ -11,7 +11,7 @@ export function Scanner({ active = false }: { active?: boolean }) {
         <i />
       </div>
       <div className="scan-paper front">
-        <b>m.</b>
+        <b>✚</b>
         <i />
         <i />
         <i />
@@ -105,21 +105,20 @@ export function Overview({
   return (
     <section className="evidence-overview" aria-label="Evidence overview">
       <h3>{mock ? "Prepared findings" : "What did the check find?"}</h3>
-      <div className="evidence-segments" aria-label="Finding for each claim">
-        {items.map((item, i) => <a key={item.claim.id} href={`#claim-${item.claim.id}`} className={`evidence-segment ${item.verdict?.label || 'pending'}`} aria-label={`Claim ${i + 1}: ${item.verdict?.label === 'supports' ? 'supported' : item.verdict?.label === 'contradicts' ? 'contradicted' : item.verdict ? 'uncertain' : 'unfinished'}`}><span>{String(i + 1).padStart(2, '0')}</span></a>)}
-      </div>
+      <p className="evidence-takeaway">{mock ? 'Example findings only.' : items.some(i => !i.verdict) ? 'Some claims still need an assessment.' : items.some(i => i.verdict?.label === 'contradicts') ? 'Some claims are challenged by the retrieved evidence.' : items.some(i => i.verdict?.label === 'uncertain') ? 'Some claims remain unsettled.' : 'The assessed claims have support in the retrieved evidence.'}</p>
+      <p>Out of {items.length} {items.length === 1 ? 'claim' : 'claims'} checked:</p>
       <div className="overview-counts">
         {groups.map((g) => (
-          <div key={g.label} className={g.tone}>
+          <div key={g.label} className={`${g.tone} ${g.count ? 'has-findings' : ''}`}>
             <b>{g.count}</b>
             <span>{g.label}</span>
           </div>
         ))}
       </div>
       <p>
-        Counts describe these {items.length} claims—not a truth score or the
-        strength of all research.
+        These counts describe this check. They are not a score for how true the whole video is.
       </p>
+      {items.filter(item => item.verdict?.label === 'uncertain').map((item, i) => <details className="uncertainty-reason" key={item.claim.id}><summary>Why claim {items.indexOf(item) + 1} is uncertain</summary><p>{item.verdict?.explanation}</p>{!!item.verdict?.limitations.length && <ul>{item.verdict.limitations.map((reason, n) => <li key={`${i}-${n}`}>{reason}</li>)}</ul>}</details>)}
     </section>
   );
 }
@@ -145,7 +144,7 @@ export function ClaimCarousel({
     });
   }
   return (
-    <section className="claims-section" aria-label="Individual claims">
+    <section className="claims-section" id="claims" aria-label="Individual claims">
       <div className="section-heading">
         <div>
           <span className="eyebrow">LET’S GET SPECIFIC</span>
@@ -238,9 +237,10 @@ export function ShareResult({ value }: { value: Case }) {
         Share this saved check, including its sources and limitations. Anyone
         with the link can view it.
       </p>
-      <button className="button secondary" onClick={() => void share()}>
+      <div className="share-actions"><button className="button secondary" onClick={() => void share()}>
         Share results ↗
-      </button>
+      </button><a className="button secondary" href={`/api/cases/${value.id}/replay`}>Save offline ↓</a></div>
+      <small>Save a copy of the written findings to read without internet.</small>
       {fallback && (
         <label className="share-link">
           Result link

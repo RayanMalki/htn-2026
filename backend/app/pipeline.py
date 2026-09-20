@@ -127,11 +127,14 @@ async def run_case(case_id: str):
                                 span.set_data("indexed", indexing.get("indexed", 0))
                                 span.set_data("cache_hits", indexing.get("index_cache_hits", 0))
                             with stage("retrieval", local_timings):
+                                reranking = {}
                                 evidence, mode = await search.retrieve(claim.text, provenance["candidate_ids"],
-                                    hybrid=cfg.elastic_semantic and indexing["index_mode"] == "hybrid")
+                                    hybrid=cfg.elastic_semantic and indexing["index_mode"] == "hybrid",
+                                    diagnostics=reranking)
                         completed[claim.id] = {"claim": claim.model_dump(),
                             "evidence": [p.model_dump() for p in evidence],
-                            "provenance": {**provenance, **indexing, "retrieval_mode": mode},
+                            "provenance": {**provenance, **indexing, "retrieval_mode": mode,
+                                           "reranking": reranking, "search_scope": "current_claim_candidates"},
                             "timings": local_timings, "status": "researched"}
                     except Exception as exc:
                         sentry_sdk.capture_exception(exc)

@@ -27,6 +27,31 @@ test('clipboard sharing copies the saved case URL', async ({ page }) => {
 });
 
 const id = '11111111-1111-4111-8111-111111111111';
+test('phone input focus stays on the container and sources remain accessible', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/');
+  const input = page.getByLabel('Start with an Instagram Reel or YouTube Short');
+  await input.focus();
+  expect(await input.evaluate(el => getComputedStyle(el).outlineStyle)).toBe('none');
+  expect(await page.locator('.input-row').evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid');
+  const box = await input.boundingBox();
+  const submit = await page.getByRole('button', { name: 'Check the evidence' }).boundingBox();
+  expect(box!.y + box!.height).toBeLessThanOrEqual(submit!.y);
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: complete }));
+  await page.goto(`/?case=${id}`);
+  await page.getByRole('button', { name: 'Our sources & how we chose them' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('Europe PMC');
+  await expect(dialog).toContainText('MedlinePlus');
+  await expect(dialog.getByRole('link', { name: /Vitamin C prevention review/ })).toHaveAttribute('href', 'https://europepmc.org/article/MED/123');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.evidence-segments')).toHaveCount(0);
+  await expect(page.locator('.overview-counts .contradicts')).toHaveClass(/has-findings/);
+  const share = await page.getByRole('button', { name: 'Share results' }).boundingBox();
+  const save = await page.getByRole('link', { name: 'Save offline' }).boundingBox();
+  expect(Math.abs(share!.y - save!.y)).toBeLessThan(2);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
 const passageText = 'Routine vitamin C supplementation did not reduce the incidence of the common cold.';
 const claim = { id: 'c1', text: 'Vitamin C prevents the common cold.', start: 0, end: 12, search_terms: ['vitamin C cold'] };
 const complete = {
@@ -46,6 +71,42 @@ const complete = {
 };
 
 const adlib = 'For me personally I get very strong heart palpitations when I take it.';
+test('saved applicability appears inside existing evidence cards without inventing missing details', async ({ page }) => {
+  const data = structuredClone(complete);
+  Object.assign(data.result.claims.c1.claim, { details: { intervention: 'vitamin C', dose: null } });
+  Object.assign(data.result.claims.c1.verdict, { paper_assessments: [{ paper_id: 'MED:123',
+    applicability: 'partial', finding: 'mixed', explanation: 'Only some participants match this claim.',
+    quote_ids: ['q1'], citations: [{ passage_id: 'p1', quote: passageText }],
+    access_types: ['abstract_only'], limitations: ['Dose was not reported.'], possible_overlap_with: [] }] });
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: data }));
+  await page.goto(`/?case=${id}`);
+  await page.locator('.claim-card .evidence-drawer > summary').click();
+  await page.locator('.paper > summary').click();
+  await expect(page.locator('.paper-body')).toContainText('Some details match');
+  await expect(page.locator('.paper-body')).toContainText('Mixed findings');
+  await expect(page.locator('.paper-body')).toContainText('Dose was not reported.');
+  await page.getByText('Read full assessment', { exact: true }).click();
+  await expect(page.locator('.full-assessment')).toContainText('What was used');
+  await expect(page.locator('.full-assessment dt')).toHaveCount(1);
+});
+
+test('interactive controls fit the viewport and primary actions respond', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 740 });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Check the evidence' })).toBeVisible();
+  const controls = await page.locator('button:visible, a.button:visible, summary:visible').evaluateAll(elements => elements.map(element => {
+    const box = element.getBoundingClientRect();
+    return { label: (element.textContent || '').trim().slice(0, 40), width: box.width, height: box.height,
+      right: box.right, viewport: window.innerWidth };
+  }));
+  expect(controls.every(control => control.width > 0 && control.height >= 40 && control.right <= control.viewport + 1)).toBeTruthy();
+  await page.getByRole('button', { name: 'Meet MedBot' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'How it works' }).click();
+  await expect(page.getByRole('dialog')).toContainText('Paste a short video');
+  await page.keyboard.press('Escape');
+});
 const detection = {
   provider: 'GPTZero', status: 'scored', scanned_at: new Date().toISOString(),
   detector_version: '2026-09-13-base', prepared_transcript: false, script_threshold: 0.5,
@@ -72,7 +133,7 @@ test('landing page, responsive layout, and backend error', async ({ page }, test
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.route('**/api/cases', route => route.fulfill({ status: 429, json: { detail: 'The demo queue is full.' } }));
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: /Big claims/ })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Seen online/ })).toBeVisible();
   await expect(page.getByText('Infrastructure preview · mock AI adapters')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.screenshot({ path: `../artifacts/landing-${testInfo.project.name}.png`, fullPage: true });
@@ -94,7 +155,7 @@ test('submit a Reel, inspect evidence, and follow the original source', async ({
   await page.getByText('Vitamin C prevention review', { exact: false }).click();
   await expect(page.locator('mark')).toHaveText(passageText);
   await expect(page.getByRole('link', { name: 'Read the original paper' })).toHaveAttribute('href', 'https://europepmc.org/article/MED/123');
-  await expect(page.getByRole('link', { name: 'Download offline replay' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Save offline' })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
   await page.screenshot({ path: `../artifacts/evidence-${testInfo.project.name}.png`, fullPage: true });
 });
@@ -133,13 +194,48 @@ test('authorship is a separate uncertain signal, never a truth verdict', async (
   await page.screenshot({ path: `../artifacts/authorship-${testInfo.project.name}.png`, fullPage: true });
 });
 
-test('observatory renders recorded measurements', async ({ page }) => {
-  await page.route('**/api/metrics', route => route.fulfill({ json: { total_cases: 5, finished: 4, complete: 3, failed: 1, queued: 1,
-    p50_seconds: 42, p95_seconds: 80, stages: { research: 25, transcription: 10 } } }));
-  await page.goto('/'); await page.getByRole('button', { name: 'Observatory' }).click();
-  await expect(page.getByRole('heading', { name: 'Know where the seconds go.' })).toBeVisible();
-  await expect(page.getByText('42s', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Average time by stage' })).toBeVisible();
+test('GPTZero probabilities use API values and missing values never become zero', async ({ page }) => {
+  const scored = { ...complete, result: { ...complete.result, detection } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: scored }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByLabel('GPTZero document probabilities')).toBeVisible();
+  await expect(page.getByRole('meter', { name: 'GPTZero classification confidence' })).toHaveAttribute('value', '2');
+  await expect(page.getByLabel('GPTZero document probabilities')).toContainText(`${(detection.verbatim.ai_probability * 100).toFixed(1)}%`);
+  await page.getByText('How to read this signal').click();
+  await expect(page.getByText('GPTZero hallucination detection is not enabled.', { exact: false })).toBeVisible();
+  await page.unroute(`**/api/cases/${id}`);
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: { ...scored, result: { ...scored.result, detection: { ...detection, verbatim: { ...detection.verbatim, ai_probability: null } } } } }));
+  await page.reload();
+  await expect(page.getByLabel('GPTZero document probabilities')).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Possible mix of human and AI text' })).toBeVisible();
+});
+
+test('compact claims retain the complete saved explanation on demand', async ({ page }) => {
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: complete }));
+  await page.goto(`/?case=${id}`);
+  const full = page.locator('.full-assessment');
+  await expect(full.locator('p')).not.toBeVisible();
+  await full.locator('summary').click();
+  await expect(full.locator('p')).toHaveText(complete.result.claims.c1.verdict.explanation);
+  await expect(page.getByRole('region', { name: 'Evidence overview' })).toContainText('not a score for how true');
+});
+
+test('long claim previews expand without losing the original qualifiers', async ({ page }) => {
+  const text = 'This is a deliberately long claim about an intervention that was studied in a limited population under controlled conditions, and the result may not apply to everyone outside that population.';
+  const longClaim = { ...claim, text };
+  const result = { ...complete, result: { ...complete.result, analysis: { ...complete.result.analysis, claims: [longClaim] }, claims: { c1: { ...complete.result.claims.c1, claim: longClaim } } } };
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.locator('.claim-quote')).toHaveClass(/claim-preview/);
+  await page.getByRole('button', { name: 'Read full claim', exact: true }).click();
+  await expect(page.locator('.claim-quote')).not.toHaveClass(/claim-preview/);
+  await expect(page.locator('.claim-quote')).toHaveText(`“${text}”`);
+});
+
+test('homepage focuses on checking links without an observatory', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Observatory' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Check the evidence' })).toBeVisible();
 });
 
 test('health summaries have working citations and disclose supplemental outages', async ({ page }) => {
@@ -190,17 +286,25 @@ test('submit a YouTube Short and preserve its original link', async ({ page }) =
   await expect(page.getByRole('link', { name: 'Original video' })).toHaveAttribute('href', source_url);
 });
 
-test('completed generated video has playback, captions and download', async ({ page }) => {
+test('compact video opens accessible theater playback without download buttons', async ({ page }) => {
   const result = { ...complete, result: { ...complete.result, video: { status: 'ready', duration_seconds: 45 } } };
   await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
   await page.route(`**/api/cases/${id}/video**`, route => route.fulfill({ status: 200, body: '' }));
   await page.goto(`/?case=${id}`);
   const section = page.getByRole('region', { name: 'Generated fact-check video' });
   await expect(section).toBeVisible();
-  await expect(section.locator('video')).toHaveAttribute('controls', '');
-  await expect(section.locator('track')).toHaveAttribute('src', `/api/cases/${id}/video/captions`);
-  await expect(section.getByRole('link', { name: 'Download MP4' })).toHaveAttribute('href', `/api/cases/${id}/video?download=true`);
-  await expect(section).toContainText('AI-generated narration');
+  await expect(section.locator('.mini-screen video')).toHaveCount(1);
+  await expect(section.locator('video')).not.toHaveAttribute('controls', '');
+  await expect(page.getByRole('link', { name: 'Download MP4' })).toHaveCount(0);
+  const watch = section.getByRole('button', { name: 'Watch explanation' });
+  await watch.click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog.locator('video')).toHaveAttribute('controls', '');
+  await expect(dialog.locator('track')).toHaveAttribute('src', `/api/cases/${id}/video/captions`);
+  await expect(dialog).toContainText('AI-generated narration');
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(watch).toBeFocused();
 });
 
 
@@ -216,7 +320,7 @@ test('video progress and render-only retry preserve evidence', async ({ page }) 
   await page.goto(`/?case=${id}`);
   await expect(page.getByText(/OpenAI rejected narration/)).toBeVisible();
   await page.getByRole('button', { name: 'Retry video generation' }).click();
-  await expect(page.getByRole('status').filter({ hasText: 'Creating video:' })).toContainText('Creating video: voice');
+  await expect(page.getByRole('status').filter({ hasText: 'Creating video:' })).toContainText('Recording narration');
   await expect(page.locator('.claim-card').first()).toBeVisible();
 });
 
@@ -287,6 +391,7 @@ test('live video completion nudges without stealing focus or hiding evidence', a
   await expect(page.locator('.claim-card')).toBeVisible();
   await page.getByRole('button', { name: 'Dismiss video notification' }).click();
   await expect(page.locator('.ready-nudge')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Watch explanation' }).click();
   await expect(page.getByText('It may have expired after 24 hours.', { exact: false })).toBeVisible();
 });
 
@@ -315,7 +420,7 @@ test('320px layout and reduced motion remain usable', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
-  expect(await page.locator('.hero-asterisk').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
+  expect(await page.locator('.hero').evaluate(el => getComputedStyle(el).animationName)).toBe('none');
   expect(await page.getByLabel('Start with an Instagram Reel').evaluate(el => getComputedStyle(el).fontSize)).toBe('16px');
 });
 
@@ -342,13 +447,14 @@ test('no claims and unavailable GPTZero are explicit non-verdict states', async 
   await expect(page.getByText('Detector unavailable for this clip.')).toBeVisible();
 });
 
-test('topic previews do not submit invented links and restore focus', async ({ page }) => {
+test('compact homepage omits placeholder topics and explains the real workflow', async ({ page }) => {
   let requests = 0;
   await page.route('**/api/cases', route => { requests++; return route.fulfill({ json: complete }); });
   await page.goto('/');
-  const topic = page.getByRole('button', { name: /Peptides & recovery/ });
+  await expect(page.getByRole('region', { name: 'Example topics' })).toHaveCount(0);
+  const topic = page.getByRole('button', { name: /Meet MedBot/ });
   await topic.click();
-  await expect(page.getByRole('dialog')).toContainText('No assessment has been generated');
+  await expect(page.getByRole('dialog')).toContainText('Elasticsearch');
   await page.keyboard.press('Escape');
   await expect(topic).toBeFocused();
   expect(requests).toBe(0);
@@ -375,9 +481,9 @@ test('detailed phone layout keeps rendering independent from evidence and GPTZer
   const pause = page.getByRole('button', { name: 'Pause scanner animation' });
   await pause.click();
   await expect(page.locator('.video-pending .scanner')).not.toHaveClass(/active/);
-  await expect(page.getByRole('status').filter({hasText:'Creating video:'})).toContainText('voice');
+  await expect(page.getByRole('status').filter({hasText:'Creating video:'})).toContainText('Recording narration');
   await expect(page.locator('.verdict.contradicts')).toBeVisible();
-  await page.getByRole('link', { name: 'Claim 1: contradicted', exact: true }).click();
+  await page.getByRole('link', { name: 'Explore your findings' }).click();
   await expect(page.locator('#claim-c1')).toBeInViewport();
   await page.getByText('See the evidence', { exact: false }).click();
   await expect(page.getByText('Vitamin C prevention review', { exact: false })).toBeVisible();

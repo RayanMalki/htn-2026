@@ -2,6 +2,8 @@
 
 Instagram Reel / YouTube Short → spoken claims → medical literature → Elasticsearch passages → cited verdicts.
 
+**Evidence retrieval:** [Elastic architecture, claim matching, optional reranking, measured limitations and demo](docs/ELASTIC.md).
+
 Iteration one is implemented as a FastAPI/Celery backend, PostgreSQL/Redis persistence, a React/Vite interface, and a Docker Compose deployment with Caddy HTTPS. OpenAI is the default live provider for transcription, claim extraction, and judgment; the direct Gemini adapter remains optional. Model mode defaults to **mock**; a mock verdict is never presented as a real medical assessment. Europe PMC, MedlinePlus, and Elasticsearch are real services even in mock model mode.
 
 ## Start here

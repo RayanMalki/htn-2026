@@ -1,6 +1,4 @@
 FROM node:22-bookworm-slim AS node
-FROM debian:bookworm-slim AS whisper
-FROM node:22-bookworm-slim AS node
 # git is needed at configure time: ggml's CMakeLists calls find_program(GIT_EXE) and
 # fails the build outright when it is missing, even though the source arrives by tarball.
 FROM debian:bookworm-slim AS whisper

@@ -37,6 +37,9 @@ async def test_text_wire_contract_and_validated_judgment(passage):
     configure()
     output = {'label': 'contradicts', 'explanation': 'The supplied review did not find prevention.',
               'quote_ids': ['q1'], 'limitations': ['Limited search.']}
+    output['paper_assessments'] = [{'paper_id': passage.paper_id, 'applicability': 'direct',
+        'finding': 'contradicts', 'explanation': 'Prevention was studied.',
+        'quote_ids': ['q1'], 'limitations': ['Abstract only.'], 'possible_overlap_with': []}]
     route = respx.post(BASE + '/threads/messages').respond(200, json={'status': 'COMPLETED', 'content': json.dumps(output)})
     claim = Claim(id='c1', text='Vitamin C prevents colds', start=0, end=10, search_terms=['vitamin C cold'])
     result = await BackboardModels().judge(claim, [passage])

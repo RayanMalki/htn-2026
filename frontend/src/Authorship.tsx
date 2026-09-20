@@ -12,7 +12,13 @@ const SUBCLASS: Record<string, string> = {
 };
 
 function Brand() {
-  return <div className="gptzero-brand"><b>GPTZero</b><span>AI-TEXT CHECK</span></div>;
+  return <div className="gptzero-brand"><b>▣ GPTZero</b><span>TEXT AUTHENTICITY</span></div>;
+}
+
+function probabilityLabel(value: number) {
+  if (value > 0 && value < 0.001) return '<0.1%';
+  if (value < 1 && value > 0.999) return '>99.9%';
+  return `${(value * 100).toFixed(1)}%`;
 }
 
 export default function Authorship({ value, waiting = false, hasTranscript = false }: { value?: Detection; waiting?: boolean; hasTranscript?: boolean }) {
@@ -31,12 +37,19 @@ export default function Authorship({ value, waiting = false, hasTranscript = fal
   const total = scan.sentences.length;
   const classification = scan.document_classification || '';
   const headline = HEADLINE[classification] || 'Authorship is inconclusive';
-  const tone = classification === 'HUMAN_ONLY' ? 'human' : classification === 'MIXED' ? 'mixed' : 'ai';
+  const tone = classification === 'HUMAN_ONLY' ? 'human' : classification === 'MIXED' ? 'mixed' : classification === 'AI_ONLY' ? 'ai' : 'unknown';
+  const probabilities = [
+    { label: 'Human', value: scan.human_probability, tone: 'human' },
+    { label: 'Mixed', value: scan.mixed_probability, tone: 'mixed' },
+    { label: 'AI', value: scan.ai_probability, tone: 'ai' },
+  ];
+  const hasProbabilities = probabilities.every(p => typeof p.value === 'number' && Number.isFinite(p.value) && p.value >= 0 && p.value <= 1)
+    && Math.abs(probabilities.reduce((sum, p) => sum + (p.value ?? 0), 0) - 1) < 0.02;
 
   return <section className="authorship" aria-label="Script authorship">
     <Brand />
     <div className="authorship-head">
-      <div><span className="eyebrow">A SEPARATE SIGNAL · GPTZERO</span>
+      <div><span className="eyebrow">TRANSCRIPT ANALYSIS</span>
         <h3 className={`authorship-verdict ${tone}`}>{headline}</h3>
         {scan.subclass && SUBCLASS[scan.subclass.predicted_class]
           ? <p className="authorship-subclass">Detector interpretation, not a verified fact: {SUBCLASS[scan.subclass.predicted_class]}
@@ -46,6 +59,13 @@ export default function Authorship({ value, waiting = false, hasTranscript = fal
       <span className="authorship-source">{value.provider}
         {value.detector_version ? ` · ${value.detector_version}` : ''}</span>
     </div>
+
+    {hasProbabilities && <div className="authorship-probabilities" aria-label="GPTZero document probabilities">
+      <div className="probability-bar" aria-hidden="true">{probabilities.map(p => <span key={p.tone} className={p.tone} style={{ flexGrow: p.value ?? 0 }} />)}</div>
+      <div className="probability-labels">{probabilities.map(p => <span key={p.tone}><i className={p.tone} />{p.label} <b>{probabilityLabel(p.value ?? 0)}</b></span>)}</div>
+      <p className="detector-confidence">Detector confidence: <b>{scan.confidence_category || 'Not provided'}</b></p>
+      {['low', 'medium', 'high'].includes(scan.confidence_category || '') && <meter aria-label="GPTZero classification confidence" min={0} max={3} value={['low', 'medium', 'high'].indexOf(scan.confidence_category!) + 1}>{scan.confidence_category}</meter>}
+    </div>}
 
     {value.prepared_transcript ? <p className="authorship-note"><b>Mock model mode</b>
       This reading was taken over a prepared transcript, not speech from this video.</p> : null}
@@ -67,13 +87,13 @@ export default function Authorship({ value, waiting = false, hasTranscript = fal
       </p></details>
     </> : <p className="authorship-count">{scan.summary}</p>}
 
-    <p className="authorship-why">This estimates patterns associated with AI-written text—not whether a health claim is true.
-      It cannot prove who wrote the words or whether the creator used a script. Transcript errors and writing style can affect the reading.
-      It does not change the medical finding.</p>
+    <div className="hallucination-state"><b>Hallucination check</b><span>Not run</span><p>This GPTZero result checks writing patterns. It has not verified factual claims or citations.</p></div>
+    <p className="authorship-why">AI-text signals are not a fact check. It does not change the medical finding.</p>
+    <details className="detector-method"><summary>How to read this signal</summary><p>GPTZero estimates authorship patterns in the transcribed speech. It cannot prove who wrote it. Transcription errors and short clips can affect results. The probabilities describe document classes, not the percentage of words written by AI. GPTZero hallucination detection is not enabled.</p><p>Scanned {value.scanned_at ? new Date(value.scanned_at).toLocaleString() : 'at an unknown time'} · {scan.characters} transcript characters.</p></details>
 
-    {value.fillers_removed ? <p className="authorship-removed">{value.fillers_removed} filler
+    {value.fillers_removed ? <details className="authorship-removed"><summary>Speech details</summary><p>{value.fillers_removed} filler
       words counted ({Math.round(value.filler_ratio * 100)}% of the speech):
-      {' '}{value.removed_examples.map(w => <code key={w}>{w}</code>)}</p> : null}
+      {' '}{value.removed_examples.map(w => <code key={w}>{w}</code>)}</p></details> : null}
     {value.note ? <p className="authorship-note">{value.note}</p> : null}
   </section>;
 }
