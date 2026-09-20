@@ -48,7 +48,7 @@ docker compose exec -T db pg_dump -U hypecheck hypecheck > backup.sql
 3. Test file fallback when Instagram blocks a download.
 4. Open every cited passage and its original paper. Record mismatches and insufficient-evidence cases.
 5. Submit three cases at once; confirm IDs are returned without waiting for the workers and queue state remains visible.
-6. Restart the worker during research; expect resumption from a checkpoint after the recovery window (up to three minutes).
+6. Restart the worker during research; expect resumption from a checkpoint after the recovery window (after six minutes, plus the next 30-second recovery sweep).
 7. Download a completed HTML replay and open it with Wi-Fi disabled. It is labeled as a recording.
 
 ## Demo readiness
@@ -56,3 +56,20 @@ docker compose exec -T db pg_dump -U hypecheck hypecheck > backup.sql
 Do not make the demo depend on fresh service provisioning. Configure/warm Elastic inference before timing runs. Keep a local copy of each chosen video and a completed offline replay. Keep failed and degraded runs in the benchmark report. Cached-paper timing is reported separately from fresh imports.
 
 The VM is one failure domain by design for the hackathon; this setup is not a highly available production deployment.
+
+## Renderer runtime
+
+The backend image now builds pinned whisper.cpp and downloads the pinned English
+alignment model, then installs the locked backend Playwright package and Chromium.
+Allow time/network access for the first image build. No provider key is needed to
+build the image; OpenAI credentials are required for live narration at runtime.
+`MEDIA_ROOT=/data` must stay shared between API and worker for MP4 delivery and retry.
+Do not mount a host node_modules directory into the container.
+
+The app uses one `result.video` contract. Older `result.render` jobs must be regenerated
+through `/render`; completed version-2 artifacts remain supported. There is no SQL
+schema migration. Back up the database/media volume before changing releases.
+
+Check `/readyz` and `preflight` for media, browser, alignment and narration configuration.
+Then submit a live case and verify actual playback, source text, captions and retry.
+Dependency checks alone do not verify OpenAI credits or medical accuracy.

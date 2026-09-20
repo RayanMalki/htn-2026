@@ -80,10 +80,10 @@ Use http://127.0.0.1:5173. Vite proxies `/api` to FastAPI. For a local worker, s
 - Exact stored-source passages go into a shared Elasticsearch index. BM25 and semantic queries are fused with RRF and filtered to the exact passages discovered for the current claim. Results are capped at six passages and two passages per source. A failed semantic operation may fall back to keyword search, explicitly labeled in the result.
 - Conclusions are `supports`, `contradicts`, or `uncertain`, with validated verbatim citations. Service errors or invalid citations produce `incomplete`, not `uncertain`. Results are bounded research assessments, not treatment advice.
 - Events are committed to PostgreSQL before a Redis notification is published. SSE replays persisted events using `Last-Event-ID`; its one-second database poll remains usable if notifications are missed.
-- Celery jobs are acknowledged after processing. A Redis lease prevents duplicate execution; persisted checkpoints reuse transcription and completed claim research after interruption. Beat recovers abandoned cases after three minutes.
+- Celery jobs are acknowledged after processing. A Redis lease prevents duplicate execution; persisted checkpoints reuse transcription and completed claim research after interruption. Beat recovers abandoned cases after six minutes.
 - PostgreSQL holds the versioned case result and event history. Temporary source video/audio are deleted after 24 hours; standalone HTML and JSON replay artifacts remain available separately.
-- GPTZero scores the transcript sentence by sentence, and sentences at or above 0.5 are shown as read from a script rather than spoken off the cuff. The vendor's own highlight flag is ignored: it marked 9 of 9 sentences including one scoring 0.18. This measures how the words were produced, never whether a claim is true, it never enters a verdict, and a detector failure never fails a case. `GPTZERO_FILLER_READING=true` adds a second reading with speech fillers stripped; it is off because across eight measured samples it never changed a classification, which matches the negative result reported for transcript normalisation in arXiv 2506.18488.
-- The 90-second goal includes queue wait, excludes human upload time, and is measured separately from cached-paper runs. A hard 120-second worker pipeline deadline preserves partial results. Three simultaneous requests receive case IDs immediately; the third can wait for one of two workers.
+- Optional GPTZero transcript detection is displayed separately from medical findings. Its sentence probability threshold of 0.5 is a UI heuristic, not proof of authorship or script use. Failures do not fail the case and scores never enter medical verdicts. `GPTZERO_FILLER_READING=true` enables an experimental second reading with fillers removed; it defaults off.
+- The 90-second goal includes queue wait, excludes human upload time, and is measured separately from cached-paper runs. A 120-second analysis deadline preserves partial results; rendering has a separate deadline. Three simultaneous requests receive case IDs immediately; the third can wait for one of two workers.
 
 ## API
 
@@ -132,11 +132,11 @@ This records wall time, cache use, model mode, and failures. A blocked Instagram
 
 See [deployment](docs/DEPLOYMENT.md), [observability](docs/OBSERVABILITY.md), and [verification record](docs/VERIFICATION.md).
 
-Live completion requires a provisioned VM/domain, hosted Elastic inference access, Gemini credentials, Sentry project access, and the team's three chosen demo Reel URLs. Until those gates are exercised, do not claim a hosted 90-second automated medical fact-checker is verified.
+Live completion requires a provisioned VM/domain, hosted Elastic inference access, OpenAI credentials, Sentry project access, and representative live video inputs. Until those gates are exercised, do not claim a hosted 90-second automated medical fact-checker is verified.
 
 ### YouTube Shorts
 
-Submit `https://www.youtube.com/shorts/VIDEO_ID` (mobile YouTube URLs also work).
+Submit `https://www.youtube.com/shorts/VIDEO_ID` or `https://youtu.be/VIDEO_ID` (mobile YouTube URLs also work). Share links normalize to the Shorts form.
 The same English-speech, 100-second and 100 MB limits apply. Tracking parameters are removed;
 watch pages, playlists and arbitrary hosts are rejected. Docker includes Node 22 and the pinned
 `yt-dlp-ejs` solver package. Downloads can merge separate video/audio tracks using FFmpeg.
@@ -145,24 +145,29 @@ YouTube access restrictions can still trigger upload fallback; no cookies or pai
 
 ### Generated fact-check videos
 
-Successful live analyses automatically produce a 720×1280 narrated MP4. The script uses the
-validated claim, verdict, explanation and limitations directly; it does not invent a second
-medical summary. Evidence is cited on cards and linked in the downloadable source manifest,
-including exact quotations. Narration is disclosed as AI-generated. Captions use approximate
-sentence timing. Videos are independent fact-check cards, not edits of the original speaker.
+Complete live analyses automatically produce a 45–60 second, 720×1280 staged video
+about one selected claim: original claim excerpt when available, labeled source
+excerpts, saved verdict and limitations, and a closing source reminder. Other claims
+remain in the app. Mock/no-claim/incomplete analyses do not produce medical videos.
 
-`OPENAI_API_KEY` also funds narration (`TTS_MODEL=gpt-4o-mini-tts`, `TTS_VOICE=coral`).
-`VIDEO_ENABLED=false` disables automatic rendering. Mock/no-claim/incomplete analyses do not
-produce medical videos. The 90-second target now includes rendering for enabled live cases;
-rendering has its own bounded 150-second deadline, and exceeding the target is disclosed.
-The Celery job limit is 310 seconds, processing lease 330 seconds, recovery threshold 360 seconds.
+OpenAI narration uses `OPENAI_API_KEY`, `TTS_MODEL=gpt-4o-mini-tts` and `TTS_VOICE=coral`.
+The voice is disclosed as AI-generated. Local Whisper aligns generated speech;
+unvalidated alignment falls back to explicitly labeled estimated captions. Narration
+failures preserve evidence and offer retry; they never silently produce a silent video.
+Essential content that cannot fit one minute fails with a script-budget error.
 
-- `GET /api/cases/{id}/video`: playable MP4 with HTTP Range support; add `?download=true` to save it.
-- `GET /api/cases/{id}/video/captions`: English WebVTT captions.
-- `GET /api/cases/{id}/video/sources`: script, scene timing, source URLs and exact quotations.
-- `POST /api/cases/{id}/retry`: resume a failed analysis/render from saved evidence and scene artifacts.
+`VIDEO_ENABLED=false` disables automatic rendering. Manual `/render` requests still
+require complete live findings. All generation runs through Celery with admission
+limits, a 150-second rendering deadline, and atomic reusable stage checkpoints.
+The 90-second end-to-end goal is not guaranteed. The worker hard limit is 310 seconds,
+its lease is 330 seconds, and abandoned cases become recoverable after 360 seconds.
 
-Video failures preserve completed medical findings, visibly mark the case incomplete, and offer
-retry. Scene audio and encoded clips are content-versioned and reused on retry. Videos expire
-with temporary media after 24 hours: download the MP4 and sources for offline use. Instagram
-publishing remains outside the app.
+- `POST /api/cases/{id}/render?brainrot=false&sfx=true`: queue a staged video.
+- `POST /api/cases/{id}/retry`: resume failed analysis or rendering.
+- `GET /api/cases/{id}/video`: stream with Range support; `?download=true` saves MP4.
+- `GET /api/cases/{id}/video/captions`: download WebVTT.
+- `GET /api/cases/{id}/video/sources`: download script, source links and exact quotes.
+
+The image includes pinned browser and alignment dependencies, plus local fonts.
+Media expires after 24 hours; download artifacts for offline use. See
+[renderer operation](backend/app/video/VIDEO.md) and [decisions](backend/app/video/DECISIONS.md).

@@ -14,12 +14,12 @@
 // paper card is in plan pixels, not PNG pixels, so the compositor divides by the
 // PNG's own scale.
 //
-// Visual language, in one paragraph: the paper looks like a journal page, serif
+// Visual language: explicitly labeled source excerpts, serif
 // body, a small caps section heading, the evidence sentence physically marked inside
-// its paragraph. Interface chrome is a clean sans. The only saturated colours on
+// its paragraph. These are not original journal page captures. Interface chrome is a clean sans. The only saturated colours on
 // screen are the highlight and the finding. No monospace anywhere.
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync, renameSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
@@ -57,14 +57,12 @@ const CAPTION_CENTRE = 0.67
 
 function baseCss(W, H) {
   return `
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Inter:wght@400;500;600;700&display=swap">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0; overflow-wrap: anywhere; }
     html, body { width: ${W}px; height: ${H}px; overflow: hidden; }
-    body { font-family: Inter, "Helvetica Neue", Arial, sans-serif; color: #1b1a17; background: #f4efe6;
+    body { font-family: "DejaVu Sans", Arial, sans-serif; color: #1b1a17; background: #f4efe6;
            -webkit-font-smoothing: antialiased; }
-    .serif { font-family: "Source Serif 4", Georgia, "Times New Roman", serif; }
+    .serif { font-family: "DejaVu Serif", Georgia, serif; }
     .eyebrow { font-size: 15px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #6d6558; }
     .pill { display: inline-block; padding: 8px 14px; border-radius: 999px; font-size: 15px; font-weight: 700;
             letter-spacing: .08em; text-transform: uppercase; }
@@ -90,7 +88,7 @@ function clipCard(c, W, H) {
 }
 
 function claimCard(c, W, H) {
-  return `<div style="width:${W}px;height:${H}px;background:#1f2229;position:relative;display:flex;align-items:center;justify-content:center;padding:0 40px ${Math.round(H * SAFE_BOTTOM)}px 40px">
+  return `<div style="width:${W}px;height:${H}px;background:#1f2229;position:relative;display:flex;align-items:center;justify-content:center;padding:0 ${Math.round(W * SAFE_RIGHT) + 20}px ${Math.round(H * 0.42)}px 40px">
     <div style="background:#f4efe6;border-radius:22px;padding:36px 32px;width:100%;max-width:${W - 80}px">
       <div class="eyebrow" style="color:#b0502a">${esc(c.eyebrow || 'The claim')}</div>
       <div class="serif" style="font-size:40px;line-height:1.18;font-weight:600;margin-top:14px">${esc(c.title)}</div>
@@ -132,7 +130,7 @@ function paperCard(c, W, H) {
 
 function findingCard(c, W, H) {
   const counts = (c.badges || []).map((b) => `<div class="badge" style="min-width:120px"><div class="k">${esc(b.label)}</div><div class="v">${esc(b.value)}</div></div>`).join('')
-  return `<div style="width:${W}px;height:${H}px;background:#f4efe6;padding:0 ${Math.round(W * SAFE_RIGHT) + 20}px ${Math.round(H * SAFE_BOTTOM)}px 44px;display:flex;flex-direction:column;justify-content:center">
+  return `<div style="width:${W}px;height:${H}px;background:#f4efe6;padding:0 ${Math.round(W * SAFE_RIGHT) + 20}px ${Math.round(H * 0.42)}px 44px;display:flex;flex-direction:column;justify-content:center">
     <div class="eyebrow" style="color:#0f6a72">${esc(c.eyebrow || 'What the research found')}</div>
     <div class="serif" style="font-size:42px;line-height:1.16;font-weight:600;margin-top:18px;color:#0f6a72">${esc(c.title)}</div>
     ${(c.body || []).map((p) => `<p class="serif" style="font-size:21px;line-height:1.45;margin-top:18px;color:#2a2823">${esc(p)}</p>`).join('')}
@@ -142,7 +140,7 @@ function findingCard(c, W, H) {
 }
 
 function closeCard(c, W, H) {
-  return `<div style="width:${W}px;height:${H}px;background:#151a22;color:#f2efe8;display:flex;flex-direction:column;justify-content:center;padding:0 ${Math.round(W * SAFE_RIGHT) + 20}px ${Math.round(H * SAFE_BOTTOM)}px 44px">
+  return `<div style="width:${W}px;height:${H}px;background:#151a22;color:#f2efe8;display:flex;flex-direction:column;justify-content:center;padding:0 ${Math.round(W * SAFE_RIGHT) + 20}px ${Math.round(H * 0.42)}px 44px">
     ${c.eyebrow ? `<div class="eyebrow" style="color:#b8b1a4">${esc(c.eyebrow)}</div>` : ''}
     <div class="serif" style="font-size:46px;line-height:1.14;font-weight:600;margin-top:16px">${esc(c.title)}</div>
     ${(c.body || []).map((p) => `<p style="font-size:20px;line-height:1.45;margin-top:16px;color:#d8d2c6">${esc(p)}</p>`).join('')}
@@ -150,7 +148,7 @@ function closeCard(c, W, H) {
   </div>`
 }
 
-function captionPage(p, W, H) {
+function captionPage(p, W, H, captionY) {
   // The caption band: left 5 percent in, no wider than 80 percent, centred at 67
   // percent of the frame, which is below every card's content and above the bottom
   // 25 percent the platform draws over.
@@ -158,7 +156,7 @@ function captionPage(p, W, H) {
   const emphasis = Number.isInteger(p.emphasis) ? p.emphasis : -1
   const inner = words.map((w, i) => `<span style="${i === emphasis ? 'color:#ffd54a' : ''}">${esc(w)}</span>`).join(' ')
   return `<div style="width:${W}px;height:${H}px;background:transparent;position:relative">
-    <div style="position:absolute;left:${Math.round(W * 0.05)}px;top:${Math.round(H * CAPTION_CENTRE)}px;transform:translateY(-50%);max-width:${Math.round(W * 0.80)}px">
+    <div style="position:absolute;left:${Math.round(W * 0.05)}px;top:${captionY ?? Math.round(H * CAPTION_CENTRE)}px;transform:translateY(-50%);max-width:${Math.round(W * 0.80)}px">
       <div style="display:inline-block;background:rgba(20,22,28,.88);color:#ffffff;font-weight:800;font-size:50px;line-height:1.15;padding:14px 22px;border-radius:18px;letter-spacing:.005em">${inner}</div>
     </div>
   </div>`
@@ -166,22 +164,56 @@ function captionPage(p, W, H) {
 
 const RENDER = { clip: clipCard, claim: claimCard, paper: paperCard, finding: findingCard, close: closeCard }
 
+async function fitCard(page, card, W, H) {
+  await page.evaluate(({kind, W, H}) => {
+    const container = kind === 'paper' ? document.body.firstElementChild.firstElementChild : document.body.firstElementChild;
+    const fits = () => {
+      const box = container.getBoundingClientRect();
+      const textFits = [...container.querySelectorAll('*')].filter(el => el.childElementCount === 0 && el.textContent.trim()).every(el => {
+        const r = el.getBoundingClientRect();
+        return r.top >= 20 && r.left >= 20 && r.right <= W * 0.86 && r.bottom <= H * 0.60;
+      });
+      return textFits && container.scrollHeight <= container.clientHeight + 1 && container.scrollWidth <= container.clientWidth + 1
+        && box.bottom <= H && box.right <= W;
+    };
+    for (let n = 0; n < 14 && !fits(); n++) {
+      for (const el of container.querySelectorAll('*')) {
+        const size = parseFloat(getComputedStyle(el).fontSize);
+        el.style.fontSize = `${Math.max(14, size * 0.94)}px`;
+      }
+    }
+    if (!fits()) throw new Error('Card content does not fit; essential text was not clipped.');
+    const mark = document.getElementById('focus');
+    if (kind === 'paper') {
+      if (!mark) throw new Error('Evidence highlight is missing');
+      const r = mark.getBoundingClientRect();
+      if (r.top < 44 || r.bottom > H * 0.58 || r.right > W * 0.85)
+        throw new Error('Evidence highlight is outside the visible safe area');
+    }
+  }, {kind: card.kind, W, H});
+}
+
 async function main() {
   const spec = JSON.parse(readFileSync(specPath, 'utf8'))
   const { width: W, height: H, out_dir: outDir } = spec
   const chromium = await loadChromium(playwrightDir)
   const browser = await chromium.launch({ headless: true })
+  // Cards are deterministic and must work without network access.
+
   const result = { cards: [], captions: [] }
   try {
     for (const card of spec.cards || []) {
       const scale = card.kind === 'paper' ? 2 : 1
       const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: scale })
+      await ctx.route('**/*', route => route.abort())
       const page = await ctx.newPage()
       const html = `<!doctype html><html><head><meta charset="utf-8">${baseCss(W, H)}</head><body>${RENDER[card.kind](card, W, H)}</body></html>`
       await page.setContent(html, { waitUntil: 'load' })
       await Promise.race([page.evaluate(() => document.fonts.ready), page.waitForTimeout(2500)])
       const png = join(outDir, `card_${card.id}.png`)
-      await page.screenshot({ path: png, omitBackground: false })
+      await fitCard(page, card, W, H)
+      await page.screenshot({ path: png + ".part", type: "png", omitBackground: false })
+      renameSync(png + ".part", png)
       let focus = null
       if (card.kind === 'paper') {
         focus = await page.evaluate(() => {
@@ -196,13 +228,25 @@ async function main() {
     }
     if ((spec.captions || []).length) {
       const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 1 })
+      await ctx.route('**/*', route => route.abort())
       const page = await ctx.newPage()
       for (const cap of spec.captions) {
-        const html = `<!doctype html><html><head><meta charset="utf-8">${baseCss(W, H)}<style>body{background:transparent}</style></head><body>${captionPage(cap, W, H)}</body></html>`
+        const html = `<!doctype html><html><head><meta charset="utf-8">${baseCss(W, H)}<style>body{background:transparent}</style></head><body>${captionPage(cap, W, H, spec.caption_y)}</body></html>`
         await page.setContent(html, { waitUntil: 'load' })
         await Promise.race([page.evaluate(() => document.fonts.ready), page.waitForTimeout(1500)])
+        await page.evaluate(({ centre, W }) => {
+          const text = document.querySelector('body > div > div > div');
+          const fits = () => {
+            const r = text.getBoundingClientRect();
+            return r.top >= centre - 100 && r.bottom <= centre + 100 && r.right <= W * 0.86;
+          };
+          let size = 50;
+          while (!fits() && size > 22) { size -= 2; text.style.fontSize = `${size}px`; }
+          if (!fits()) throw new Error('Caption does not fit the safe area');
+        }, { centre: spec.caption_y ?? Math.round(H * CAPTION_CENTRE), W });
         const png = join(outDir, `caption_${cap.id}.png`)
-        await page.screenshot({ path: png, omitBackground: true })
+        await page.screenshot({ path: png + ".part", type: "png", omitBackground: true })
+        renameSync(png + ".part", png)
         result.captions.push({ id: cap.id, png })
       }
       await ctx.close()

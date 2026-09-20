@@ -20,7 +20,32 @@
           "end": 14.0,
           "text": "You just need to turn down your brightness."
         }
-      ]
+      ],
+      "claims": [
+        {
+          "id": "c1",
+          "text": "Blue light isn't ruining your sleep",
+          "start": 0.0,
+          "end": 4.0,
+          "search_terms": [
+            "blue light",
+            "melatonin"
+          ]
+        },
+        {
+          "id": "c2",
+          "text": "You just need to turn down your brightness",
+          "start": 9.0,
+          "end": 14.0,
+          "search_terms": [
+            "screen brightness",
+            "melatonin"
+          ]
+        }
+      ],
+      "language": "en",
+      "usable_speech": true,
+      "omitted_claims": 0
     },
     "claims": {
       "c1": {
@@ -149,6 +174,8 @@
           "limitations": []
         }
       }
-    }
-  }
+    },
+    "model_mode": "live"
+  },
+  "fixture_notice": "Synthetic contract fixture; not verified medical research or a live analysis."
 }

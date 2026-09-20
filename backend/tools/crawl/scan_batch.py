@@ -30,8 +30,8 @@ sys.path.insert(0, str(TOOLS))
 
 from paper_authorship import MAXIMUM_CHARACTERS, MINIMUM_CHARACTERS, _predict, read_scan  # noqa: E402
 
-YTDLP = TOOLS / ".venv" / "bin" / "yt-dlp"
-WHISPER_MODEL = TOOLS / "test" / "ggml-base.en.bin"
+YTDLP = os.environ.get("YTDLP_BIN", "yt-dlp")
+WHISPER_MODEL = Path(os.environ.get("WHISPER_MODEL", "/opt/whisper/ggml-base.en.bin"))
 DB_PATH = HERE / "transcripts.db"
 AUDIO_DIR = HERE / "audio"
 IMPERSONATE = ["chrome-136", "chrome-131:android"]

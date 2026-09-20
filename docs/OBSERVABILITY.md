@@ -1,6 +1,6 @@
 # Sentry and the pipeline observatory
 
-HypeCheck uses Sentry for errors, traces, profiles, structured logs, error-only browser replays, cron monitoring, external uptime monitoring, and Gemini request monitoring. The local **Observatory** remains useful when Sentry is unavailable: it shows persisted counts, p50/p95 durations, queue size, and average stage times.
+HypeCheck uses Sentry for errors, traces, profiles, structured logs, error-only browser replays, cron monitoring, external uptime monitoring, and optional Gemini request monitoring. OpenAI is the default provider; its work is visible in pipeline stage spans, but dedicated OpenAI token/usage spans are not currently implemented. The local **Observatory** remains useful when Sentry is unavailable: it shows persisted counts, p50/p95 durations, queue size, and average stage times.
 
 ## What is connected
 
@@ -11,7 +11,7 @@ HypeCheck uses Sentry for errors, traces, profiles, structured logs, error-only 
 | Logs | Explicit case-start and case-finish server logs | Only case ID, status, duration, mode, stage, and provider attributes are allowed |
 | Session Replay | React error sessions only | All text and inputs are masked; all media is blocked; no selectors are unmasked |
 | Uptime Monitoring | External `/healthz` monitor plus a one-minute Celery cron check-in | Health status only |
-| AI monitoring | Manual `gen_ai.request` spans around Gemini transcription and judgment | Model, operation, token counts, and finish reason only; no prompt, transcript, audio, evidence, or response |
+| Optional Gemini AI monitoring | Manual `gen_ai.request` spans around Gemini transcription and judgment | Model, operation, token counts, and finish reason only; no prompt, transcript, audio, evidence, or response |
 | Sentry MCP | Optional operator connection from an MCP client to the Sentry workspace | This is not part of the HypeCheck request path |
 
 Exceptions remove values and frame locals. Request bodies, user context, breadcrumbs, and arbitrary extras are also removed. Cases in mock mode are tagged so they can be separated from live runs.
@@ -51,7 +51,7 @@ Submit a case, then check both Sentry projects:
 2. In **Profiles**, open a sampled backend or browser trace. Profiles only appear when both the trace and profile samplers select that session.
 3. In **Logs**, filter for `case_id:<id>`. You should see the static start and finish messages with status and timing fields, without claim text.
 4. In a staging browser console, run `setTimeout(() => { throw new Error("Sentry Replay verification") }, 0)`, then open **Replays**. Verify rendered text and inputs are masked and video/audio is absent before relying on the configuration.
-5. For a live Gemini case, open the trace and find `gen_ai.request`. Confirm the operation, model, finish reason, and token counts. Search the event JSON for part of the submitted claim and confirm it is absent.
+5. Only when using the optional Gemini provider, open the trace and find `gen_ai.request`. Confirm the operation, model, finish reason, and token counts. Search the event JSON for part of the submitted claim and confirm it is absent.
 
 Frontend-to-backend propagation is limited to same-origin `/api/` requests. A browser trace and its queued worker trace may appear as related but separate transactions because the durable Celery boundary can outlive the HTTP request.
 
@@ -69,7 +69,7 @@ Use a one-minute interval if the account supports it. This external request veri
 
 ## AI monitoring and Sentry MCP
 
-Gemini is called through a direct REST adapter, so HypeCheck creates manual `gen_ai.request` spans rather than relying on an OpenAI, Anthropic, or LangChain integration. The spans use Sentry's generative-AI attributes and record token usage returned in Gemini's `usageMetadata`. HypeCheck is a fixed pipeline, not an autonomous agent, so it does not emit misleading agent/tool/handoff spans.
+The optional Gemini provider is called through a direct REST adapter, so HypeCheck creates manual `gen_ai.request` spans rather than relying on an OpenAI, Anthropic, or LangChain integration. The spans use Sentry's generative-AI attributes and record token usage returned in Gemini's `usageMetadata`. HypeCheck is a fixed pipeline, not an autonomous agent, so it does not emit misleading agent/tool/handoff spans.
 
 Sentry MCP serves a different purpose: it lets an authorized AI coding or operations client inspect Sentry issues and traces. To use it, add the remote server `https://mcp.sentry.dev` to an MCP-capable client, start the connection, and complete Sentry's OAuth flow in the browser. Select only the HypeCheck organization and grant the least access needed. Do not add an MCP credential to `.env`; MCP is an operator connection and is not required by the deployed app.
 
@@ -113,3 +113,13 @@ Limitations (cache state, sample count, mock/live):
 No real Sentry finding is claimed until a connected workspace receives a real run.
 
 Official references: [Python tracing](https://docs.sentry.io/platforms/python/tracing/), [Python logs](https://docs.sentry.io/platforms/python/logs/), [Python profiling](https://docs.sentry.io/platforms/python/profiling/), [React Session Replay](https://docs.sentry.io/platforms/javascript/guides/react/session-replay/), [React profiling](https://docs.sentry.io/platforms/javascript/guides/react/profiling/), [Uptime Monitoring](https://docs.sentry.io/product/uptime-monitoring/), and [LLM monitoring](https://docs.sentry.io/product/llm-monitoring/getting-started/).
+
+## Staged renderer
+
+The worker retains the `pipeline.rendering` span. `result.video.stage` records the
+active stage and the manifest stores successful per-stage elapsed seconds. Rendering
+runs in a cancellable subprocess; sanitized provider/budget failures are propagated
+back to the case, and other internal errors use a generic retry message. No raw
+provider response, narration text, local artifact path or credential is placed in a
+public failure message. Use stage timings to distinguish synthesis, layout, encoding
+and caption costs. `whisper` versus `estimated` caption timing is recorded explicitly.

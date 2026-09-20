@@ -44,7 +44,7 @@ function CaseView({ value, onUpdate }: { value: Case; onUpdate: (c: Case) => voi
   }
 
   return <section className="case-workspace" aria-label="Analysis results">
-    <div className="section-heading"><div><span className="eyebrow">YOUR EVIDENCE TRAIL</span><h2>{labels[value.status]}</h2></div>
+    <div className="section-heading"><div><span className="eyebrow">YOUR EVIDENCE TRAIL</span><h2>{value.result.video?.status === 'failed' ? 'Video generation incomplete' : labels[value.status]}</h2></div>
       <div className="elapsed"><span className={finished(value.status) ? 'status-dot' : 'status-dot live'} />
         {seconds(elapsed)}<span className="subtle"> / 90s target</span></div></div>
     <a className="source-link" href={value.source_url} target="_blank" rel="noreferrer">Original video ↗</a>
@@ -62,12 +62,16 @@ function CaseView({ value, onUpdate }: { value: Case; onUpdate: (c: Case) => voi
       <label className={`button upload-button ${uploading ? 'disabled' : ''}`}>{uploading ? 'Uploading…' : 'Choose video'}
         <input aria-label="Upload video" type="file" accept="video/*" disabled={uploading} onChange={e => void upload(e.target.files?.[0])} /></label></div></div> : null}
     {error ? <p className="error" role="alert">{error}</p> : null}
+    {value.result.video?.status === 'rendering' ? <p role="status">Creating video: {value.result.video.stage || 'preparing'}…</p> : null}
     {value.result.video?.status === 'ready' ? <section className="generated-video" aria-label="Generated fact-check video">
       <div><span className="eyebrow">YOUR FACT-CHECK VIDEO</span><h3>Evidence, ready to watch.</h3>
-        <p>AI-generated narration. Captions have approximate timing. Sources and limitations are included.</p>
+        <p>One selected claim, with its sources and limitations. All assessed claims remain below.</p>
         <a className="button" href={`/api/cases/${value.id}/video?download=true`}>Download MP4 ↓</a>{' '}
         <a className="button secondary" href={`/api/cases/${value.id}/video/sources`}>Video sources ↓</a>
       </div>
+      {value.result.video.selected_claim ? <p><b>Selected claim:</b> {value.result.video.selected_claim}</p> : null}
+      <p>AI-generated narration. {value.result.video.caption_timing === 'whisper' ? 'Narration captions aligned to generated speech.' : 'Caption timings are approximate.'} Source excerpts are reproduced text, not original page captures.</p>
+      <a href={`/api/cases/${value.id}/video/captions`}>Download captions ↓</a>
       <video controls playsInline preload="metadata" src={`/api/cases/${value.id}/video`}>
         <track kind="captions" src={`/api/cases/${value.id}/video/captions`} srcLang="en" label="English" default />
       </video>
@@ -78,7 +82,7 @@ function CaseView({ value, onUpdate }: { value: Case; onUpdate: (c: Case) => voi
         setRetrying(true); setError('');
         try { await api<Case>(`/api/cases/${value.id}/retry`, { method: 'POST' }); window.location.reload(); }
         catch (e) { setError((e as Error).message); setRetrying(false); }
-      }}>{retrying ? 'Resuming…' : 'Retry analysis and create video'}</button> : null}
+      }}>{retrying ? 'Resuming…' : value.result.video?.status === 'failed' ? 'Retry video generation' : 'Retry analysis and create video'}</button> : null}
     {value.result.outcome ? <div className="notice">{value.result.outcome}</div> : null}
     {items.length ? <div className="claims-list">{items.map((item, i) => <Evidence key={item.claim.id} item={item} index={i} mock={value.result.model_mode === 'mock'} />)}</div> : null}
     {value.result.analysis?.omitted_claims ? <p className="notice">{value.result.analysis.omitted_claims} additional claim(s) were omitted from this bounded analysis.</p> : null}

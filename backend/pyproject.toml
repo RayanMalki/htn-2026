@@ -11,7 +11,7 @@ dependencies = [
   "pydantic-settings>=2.7,<3", "sqlalchemy>=2.0,<3", "psycopg[binary]>=3.2,<4",
   "celery[redis]>=5.4,<6", "redis>=5,<7", "httpx>=0.28,<1",
   "python-multipart>=0.0.20,<1", "sentry-sdk[fastapi,celery]>=2.30,<3",
-  "pillow==11.3.0", "yt-dlp==2026.8.19", "yt-dlp-ejs==0.8.0", "defusedxml>=0.7,<1",
+  "psutil==7.0.0", "pillow==11.3.0", "yt-dlp==2026.8.19", "yt-dlp-ejs==0.8.0", "defusedxml>=0.7,<1",
 ]
 
 [project.optional-dependencies]
@@ -31,3 +31,6 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F", "I", "UP"]
+
+[tool.setuptools.package-data]
+"app.video" = ["*.mjs", "*.json"]

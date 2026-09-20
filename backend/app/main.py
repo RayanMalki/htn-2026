@@ -99,6 +99,9 @@ async def ready():
         checks.setdefault("elasticsearch", False)
         checks["semantic_endpoint"] = False
     checks["model_configured"] = settings().model_configured
+    if settings().video_enabled and settings().model_mode == 'live':
+        from app.video import dependencies
+        checks.update({f'video_{key}': value for key, value in dependencies().items()})
     return JSONResponse({"status": "ready" if all(checks.values()) else "not_ready", "checks": checks,
                          "model_mode": settings().model_mode}, status_code=200 if all(checks.values()) else 503)
 
@@ -145,37 +148,8 @@ def case_detail(case_id: str):
 
 
 @app.post("/api/cases/{case_id}/render", status_code=202)
-async def render_video(case_id: str, brainrot: bool = False, sfx: bool = True):
-    """Start rendering the rebuttal video for a finished case, in the background.
-
-    Rendering is a minute or two of ffmpeg and a browser, so the request returns at
-    once and the case's result carries a "render" block that moves from rendering to
-    done or failed. The page polls the case as it already does. Nothing here blocks
-    the evidence pipeline, and a render failure never touches the verdict.
-    """
-    from app.video.render import RENDER_ROOT, render_case
-
-    case = get_case(case_id)
-    started = now().isoformat()
-    update_case(case_id, result_patch={"render": {"status": "rendering", "started_at": started}})
-
-    async def job():
-        try:
-            plan = await asyncio.to_thread(
-                render_case, case, RENDER_ROOT / case_id, sfx=sfx, brainrot=brainrot, log=lambda *_: None,
-            )
-            update_case(case_id, result_patch={"render": {
-                "status": "done", "path": plan.output_path, "started_at": started, "finished_at": now().isoformat(),
-                "duration": round(plan.duration, 2), "brainrot": brainrot, "sfx": sfx,
-            }})
-        except Exception as exc:  # noqa: BLE001 - a failed render is reported on the case, never raised
-            sentry_sdk.capture_exception(exc)
-            update_case(case_id, result_patch={"render": {
-                "status": "failed", "started_at": started, "error": str(exc)[:300],
-            }})
-
-    asyncio.create_task(job())
-    return {"case_id": case_id, "render": "started"}
+def request_render(case_id: str, request: Request, brainrot: bool = False, sfx: bool = True):
+    return queue_retry(case_id, request, render_options={"brainrot": brainrot, "sfx": sfx})
 
 
 @app.post("/api/cases/{case_id}/media", status_code=202)
@@ -303,35 +277,58 @@ def controlled_failure(authorization: str | None = Header(default=None)):
 
 @app.post("/api/cases/{case_id}/retry", status_code=202)
 def retry_case(case_id: str, request: Request):
+    return queue_retry(case_id, request)
+
+
+def queue_retry(case_id: str, request: Request, render_options: dict | None = None):
+    from app.video.script import eligible_claims
     case_id = valid_id(case_id)
     rate_limit(request)
     gate = redis_client().lock("admission", timeout=5, blocking_timeout=1)
     if not gate.acquire():
         raise HTTPException(503, "Submission busy. Please retry.")
     lock = redis_client().lock(f"processing:{case_id}", timeout=10, blocking=False)
-    if not lock.acquire(blocking=False):
-        gate.release()
-        raise HTTPException(409, "This case is already processing.")
+    acquired = False
     try:
         case = get_case(case_id)
-        if case["status"] not in {"incomplete", "complete"}:
-            raise HTTPException(409, "Only finished analyses can be retried.")
-        if case['result'].get('video', {}).get('status') == 'ready':
-            return case
+        current = case['result'].get('video', {})
+        options = render_options if render_options is not None else current.get('options', {'sfx': True, 'brainrot': False})
+        same = current.get('options', {'sfx': True, 'brainrot': False}) == options
+        if render_options is not None:
+            try:
+                eligible_claims(case)
+            except ValueError as exc:
+                raise HTTPException(409, str(exc)) from exc
+            if same and current.get('status') in {'pending', 'rendering'} and case['status'] in {'queued', 'rendering'}:
+                return case
+        if same and current.get('status') == 'ready':
+            from app.video.plan import VERSION
+            try:
+                video_artifact(case_id, 'response.mp4')
+                available = True
+            except HTTPException:
+                available = False
+            if available and (render_options is None or current.get('version') == VERSION):
+                return case
+        acquired = lock.acquire(blocking=False)
+        if not acquired or case['status'] not in {'incomplete', 'complete'}:
+            raise HTTPException(409, 'This case is already processing or has no finished analysis.')
         with session() as db:
             active = db.scalar(select(func.count()).select_from(Case).where(
-                Case.status.in_(["queued", "downloading", "transcribing", "researching", "judging", "rendering"])))
+                Case.status.in_(['queued', 'downloading', 'transcribing', 'researching', 'judging', 'rendering'])))
         if active >= settings().max_active_cases:
-            raise HTTPException(429, "The demo queue is full. Please try again shortly.")
+            raise HTTPException(429, 'The demo queue is full. Please try again shortly.')
         claims = case['result'].get('claims', {})
         for item in claims.values():
             if item.get('status') == 'incomplete' and item.get('evidence') is not None:
                 item['status'] = 'researched'
                 item.pop('error', None)
         result = update_case(case_id, status='queued', error=None, finished_at=None,
-                             result_patch={'claims': claims, 'video': {'status': 'pending'}})
+            result_patch={'claims': claims, 'video': {'status': 'pending', 'options': options,
+                          'requested': render_options is not None or current.get('requested', False)}})
     finally:
-        lock.release()
+        if acquired:
+            lock.release()
         gate.release()
     try:
         enqueue(case_id)
@@ -349,7 +346,10 @@ def video_artifact(case_id: str, filename: str):
     artifact = video.get('artifact', '')
     if not re.fullmatch(r'[a-f0-9]{20}', artifact):
         raise HTTPException(404, 'Video artifact not found.')
-    path = settings().media_root / case['id'] / 'video' / artifact / filename
+    root = (settings().media_root / case['id'] / 'video').resolve()
+    path = (root / artifact / filename).resolve()
+    if not path.is_relative_to(root):
+        raise HTTPException(404, 'Video artifact not found.')
     if not path.is_file():
         raise HTTPException(410, 'This temporary video has expired.')
     return path
@@ -357,11 +357,6 @@ def video_artifact(case_id: str, filename: str):
 
 @app.get('/api/cases/{case_id}/video')
 def generated_video(case_id: str, download: bool = False):
-    case = get_case(case_id)
-    info = case['result'].get('render') or {}
-    if info.get('status') == 'done' and info.get('path'):
-        return FileResponse(info['path'], media_type='video/mp4',
-                            filename=f'hypecheck-{case["id"]}.mp4' if download else None)
     return FileResponse(video_artifact(case_id, 'response.mp4'), media_type='video/mp4',
                         filename=f'hypecheck-{valid_id(case_id)}.mp4' if download else None)
 

@@ -163,7 +163,7 @@ test('submit a YouTube Short and preserve its original link', async ({ page }) =
 test('completed generated video has playback, captions and download', async ({ page }) => {
   const result = { ...complete, result: { ...complete.result, video: { status: 'ready', duration_seconds: 45 } } };
   await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: result }));
-  await page.route(`**/api/cases/${id}/video*`, route => route.fulfill({ status: 200, body: '' }));
+  await page.route(`**/api/cases/${id}/video**`, route => route.fulfill({ status: 200, body: '' }));
   await page.goto(`/?case=${id}`);
   const section = page.getByRole('region', { name: 'Generated fact-check video' });
   await expect(section).toBeVisible();
@@ -171,4 +171,21 @@ test('completed generated video has playback, captions and download', async ({ p
   await expect(section.locator('track')).toHaveAttribute('src', `/api/cases/${id}/video/captions`);
   await expect(section.getByRole('link', { name: 'Download MP4' })).toHaveAttribute('href', `/api/cases/${id}/video?download=true`);
   await expect(section).toContainText('AI-generated narration');
+});
+
+
+test('video progress and render-only retry preserve evidence', async ({ page }) => {
+  const failed = { ...complete, status: 'incomplete', result: { ...complete.result,
+    video: { status: 'failed', stage: 'voice', error: 'OpenAI rejected narration. Check credits, then retry.' } } };
+  const rendering = { ...failed, status: 'rendering', sequence: 99, finished_at: null,
+    result: { ...failed.result, video: { status: 'rendering', stage: 'voice' } } };
+  let current = failed;
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: current }));
+  await page.route(`**/api/cases/${id}/retry`, route => { current = rendering as typeof failed; return route.fulfill({ status: 202, json: rendering }); });
+  await page.route(`**/api/cases/${id}/events**`, route => route.fulfill({contentType:'text/event-stream',body:': heartbeat\n\n'}));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByText(/OpenAI rejected narration/)).toBeVisible();
+  await page.getByRole('button', { name: 'Retry video generation' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Creating video:' })).toContainText('Creating video: voice');
+  await expect(page.locator('.claim-card').first()).toBeVisible();
 });

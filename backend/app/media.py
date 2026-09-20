@@ -9,6 +9,8 @@ from ipaddress import ip_address
 from pathlib import Path
 from urllib.parse import urlsplit
 
+import psutil
+
 from app.config import settings
 
 MAX_BYTES = 100 * 1024 * 1024
@@ -26,6 +28,17 @@ async def run_process(*args: str, timeout: float):
     try:
         stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
     except BaseException:
+        # Playwright starts Chromium in a separate process group. Kill the complete
+        # descendant tree as well as the renderer group so cancellation cannot orphan it.
+        try:
+            descendants = psutil.Process(proc.pid).children(recursive=True)
+        except (psutil.Error, OSError):
+            descendants = []
+        for child in reversed(descendants):
+            try:
+                child.kill()
+            except (psutil.Error, OSError):
+                pass
         try:
             os.killpg(proc.pid, signal.SIGKILL)
         except ProcessLookupError:

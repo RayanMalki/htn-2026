@@ -15,19 +15,7 @@ from app.models import models
 from app.observability import log_event, record_case_duration, stage
 from app.schemas import AudioAnalysis, Claim, validate_verdict
 from app.search import ElasticSearch
-from app.video import artifact, pipeline_adapter
-
-
-def select_renderer(cfg):
-    """Which renderer the pipeline runs once a case completes. VIDEO_RENDERER picks it,
-    "plan" for app/video/render.py, anything else for app/video/artifact.py."""
-    return pipeline_adapter.render_video if cfg.video_renderer == "plan" else artifact.render_video
-
-
-async def render_video(case: dict) -> dict:
-    """The renderer the pipeline calls. Kept as a module-level name so tests and other
-    code can patch it as before, the choice of engine happens inside."""
-    return await select_renderer(settings())(case)
+from app.video import RenderError, render_video
 
 TERMINAL = {"complete", "no_claims", "incomplete", "awaiting_upload"}
 
@@ -41,7 +29,7 @@ async def run_case(case_id: str):
         saved = db.get(Case, case_id)
         media_path = saved.media_path
     cfg = settings()
-    video_requested = cfg.video_enabled and cfg.model_mode == "live"
+    video_requested = (cfg.video_enabled or existing["result"].get("video", {}).get("requested", False)) and cfg.model_mode == "live"
     result = dict(existing["result"])
     if "analysis" in result and (result.get("model_mode") != cfg.model_mode
             or (result.get("model_id") is not None and result["model_id"] != cfg.model_id)):
@@ -73,7 +61,7 @@ async def run_case(case_id: str):
 
     try:
         async with asyncio.timeout(cfg.case_timeout_seconds):
-            if not media_path:
+            if not media_path and "analysis" not in result:
                 update_case(case_id, status="downloading")
                 try:
                     with stage("download", timings):
@@ -210,7 +198,8 @@ async def run_case(case_id: str):
             })
         if read_case(case_id)["status"] == "rendering":
             stage_name = "rendering"
-            save(video={"status": "rendering"}, analysis_seconds=timings["total"])
+            save(video={**read_case(case_id)["result"].get("video", {}), "status": "rendering"},
+                 analysis_seconds=timings["total"])
             with stage("rendering", timings):
                 async with asyncio.timeout(cfg.video_timeout_seconds):
                     video = await render_video(read_case(case_id))
@@ -221,7 +210,10 @@ async def run_case(case_id: str):
     except Exception as exc:
         sentry_sdk.capture_exception(exc)
         if stage_name == "rendering":
-            save(video={"status": "failed", "error": "Video generation failed. Saved evidence is intact; retry to resume."})
+            save(video={**read_case(case_id)["result"].get("video", {}), "status": "failed",
+                        "error_code": exc.code if isinstance(exc, RenderError) else "render_failed",
+                        "error": str(exc) if isinstance(exc, RenderError) else
+                        "Video generation stopped or timed out. Saved evidence is intact; retry to resume."})
         timings["total"] = round(monotonic() - started + previous_attempt, 3)
         message = str(exc) if isinstance(exc, MediaError) else f"The {stage_name} stage did not complete. No unsupported verdict was assigned."
         latest = read_case(case_id)["result"]

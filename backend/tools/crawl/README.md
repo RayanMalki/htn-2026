@@ -1,6 +1,6 @@
 # TikTok discovery crawl and transcript scan
 
-Find health videos on TikTok without logging in, pull their audio, transcribe locally, and score the transcripts with GPTZero. This is the investigative half of the GPTZero track ("scan a significant source for AI slop") and it feeds the leaderboard. The pipeline's own verdict step decides which videos are false. This folder only builds the sample and the scan.
+Find health videos on TikTok without logging in, pull their audio, transcribe locally, and score the transcripts with GPTZero. This is the investigative half of the GPTZero track ("scan a significant source for AI slop") and it feeds the leaderboard. The pipeline's own verdict step decides which claims are supported, contradicted or uncertain. This folder only builds the sample and the scan.
 
 ## Run
 
@@ -21,7 +21,29 @@ python3 report.py
 sqlite3 transcripts.db "UPDATE transcripts SET gptzero_status=NULL WHERE gptzero_status='skipped'"
 ```
 
-Needs: `yt-dlp` in `../.venv` (with `curl_cffi` for browser impersonation), `whisper-cli` on the path with the model at `../test/ggml-base.en.bin`, `ffmpeg`, and Playwright from the sibling `htn-directory` install.
+## Dependencies and paths
+
+This crawler is experimental and separate from the app's video pipeline. The results
+below are historical samples, not current live acceptance.
+
+From the repository root, install Python requirements as described in the main README,
+then install the locked browser runtime:
+
+```sh
+npm ci --prefix backend/app/video
+node backend/app/video/node_modules/playwright/cli.js install chromium
+export PATH="$PWD/.venv/bin:$PATH"
+export WHISPER_MODEL=/absolute/path/to/ggml-base.en.bin
+cd backend/tools/crawl
+```
+
+Install FFmpeg and `whisper-cli` on PATH. The renderer Docker build records the pinned
+Whisper runtime/model versions. `YTDLP_BIN` optionally selects another yt-dlp executable;
+it otherwise uses PATH. The crawler's browser-impersonation mode additionally needs
+`curl_cffi` in the Python environment running yt-dlp; it is not a core app dependency.
+`HYPECHECK_PLAYWRIGHT_DIR` can select another installed Playwright directory.
+No sibling developer checkout is required. Set `PLAYWRIGHT_BROWSERS_PATH` if Chromium
+was installed into a custom location. Run the three commands above from this directory.
 
 ## What each discovery route did, logged out, Saturday Sept 19
 

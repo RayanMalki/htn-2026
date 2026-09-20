@@ -37,7 +37,8 @@ export type Case = {
   error: { code: string; message: string } | null;
   result: { schema_version: number; model_mode: 'mock' | 'live'; input_mode?: string;
     video?: { status: 'pending' | 'rendering' | 'ready' | 'failed'; error?: string;
-      duration_seconds?: number; captions_url?: string; url?: string; sources_url?: string };
+      duration_seconds?: number; captions_url?: string; url?: string; sources_url?: string;
+      stage?: string; selected_claim?: string; selected_claim_id?: string; caption_timing?: string; error_code?: string };
     submitted_at?: string;
     timings?: Record<string, number>; limitations?: string[]; outcome?: string;
     analysis?: { transcript: { start: number; end: number; text: string }[]; claims: Claim[]; omitted_claims: number };

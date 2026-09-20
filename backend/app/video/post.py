@@ -1,9 +1,8 @@
 """
 Post: sound effects on the cuts, and the optional split screen.
 
-Both are toggles on the plan (plan.sfx, plan.brainrot), and both can be forced from
-the shell for a quick look, SFX=1 or SFX=0 and BRAINROT=1 or BRAINROT=0, which wins
-over the plan when set.
+Both are explicit toggles on the plan (plan.sfx, plan.brainrot), supplied by the
+API or CLI. They are part of the artifact identity and stay fixed for each job.
 
 Sound effects are synthesized by ffmpeg from nothing: a whoosh from shaped noise, a
 low thud from a decaying sine, a short pop from high noise. Nothing is downloaded
@@ -21,20 +20,15 @@ hypnotic enough to prove the layout.
 from __future__ import annotations
 
 import os
-import subprocess
 from pathlib import Path
 
 from app.video.plan import RenderPlan
+from app.video.runtime import ff as _ff
 
 TOP_H = 760
 SFX_GAIN = {"whoosh": 0.55, "thud": 0.9, "pop": 0.5}
 
 
-def _ff(args: list[str], timeout: int = 900) -> None:
-    proc = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", *args],
-                          capture_output=True, text=True, timeout=timeout)
-    if proc.returncode != 0:
-        raise RuntimeError(f"ffmpeg failed: {proc.stderr.strip()[-800:]}")
 
 
 def _flag(env: str, default: bool) -> bool:
@@ -118,7 +112,7 @@ def add_brainrot(src: Path, dst: Path, plan: RenderPlan) -> str:
     ]
     # crf 23, not lower: the bottom pane is busy by design and the file balloons otherwise.
     _ff(["-i", str(src), *game, "-filter_complex", ";".join(filters), "-map", "[out]", "-map", "0:a",
-         "-t", f"{plan.duration:.3f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-r", str(fps),
+         "-t", f"{plan.duration:.3f}", "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-threads", "2", "-r", str(fps),
          "-c:a", "copy", "-movflags", "+faststart", str(dst)])
     return note
 
@@ -129,8 +123,8 @@ def apply(plan: RenderPlan, out_dir: Path) -> RenderPlan:
         raise RuntimeError("plan.output_path is missing, run compose first")
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    sfx = _flag("SFX", plan.sfx)
-    brainrot = _flag("BRAINROT", plan.brainrot)
+    sfx = plan.sfx
+    brainrot = plan.brainrot
     # Output names derive from the input name, so applying a stage to a file that
     # already went through it never asks ffmpeg to overwrite its own input.
     current = Path(plan.output_path)

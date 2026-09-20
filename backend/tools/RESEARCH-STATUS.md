@@ -1,6 +1,24 @@
 # Where we are: reading papers, reasoning on them, seeing videos
 
-Written Saturday Sept 19, 5:30 PM, during the code window. Everything below was measured on real papers and a real video today, not estimated.
+## Current integration status
+
+This document preserves a September 19 prototype report, not current app acceptance.
+
+| Capability | App status |
+|---|---|
+| Europe PMC / MedlinePlus retrieval and exact citation validation | Integrated through `app/literature.py` and the worker |
+| Transcript GPTZero detection | Integrated, optional, non-fatal; unrelated to medical truth |
+| Resolver extensions, paper authorship, weighting, web-search fallback | Experimental tools; not wired into the app |
+| TikTok discovery crawler | Standalone sample collection; not an app intake route |
+| Staged video renderer | Integrated; see `../app/video/VIDEO.md` |
+
+Measurements below belong to an earlier machine and sample. No current credentials,
+artifacts or independent medical validation are implied. `abstract_only` means that
+only abstract text was obtained, not proof that no free full text exists anywhere.
+
+## Historical prototype report
+
+Reported Saturday September 19, 5:30 PM during the original code window.
 
 ## 1. Reading full papers
 
@@ -97,13 +115,13 @@ Three fixes are in the resolver now. **A cache**, keyed by PMCID, DOI or PMID, s
 
 ## 7. When the papers run thin
 
-`websearch_fallback.py` fires only when fewer than two studies take a side, or every study is unclear. That guard is in the function, and a test proves a live key never reaches the network when two clear studies exist. It asks OpenAI's Responses API with the web search tool, restricted to eleven guideline and public-health domains (WHO, CDC, NIH, NHS, Health Canada, Cochrane and the like), for a stance and a short cited paragraph. Every result is badged `web_sources` with the text "From guidelines and public-health sources, not the primary literature", so the page never passes a web summary off as peer-reviewed evidence. Any numeric score the model emits is stripped. It runs on `gpt-5.6-terra`, about 0.006 dollars per call, and in mock mode without a key. Fourteen tests pass. `WIRING.md` names the exact line in `pipeline.py` where it slots in.
+`websearch_fallback.py` fires only when fewer than two studies take a side, or every study is unclear. That guard is in the function, and a test proves a live key never reaches the network when two clear studies exist. It asks OpenAI's Responses API with the web search tool, restricted to eleven guideline and public-health domains (WHO, CDC, NIH, NHS, Health Canada, Cochrane and the like), for a stance and a short cited paragraph. Every result is badged `web_sources` with the text "From guidelines and public-health sources, not the primary literature", so the page never passes a web summary off as peer-reviewed evidence. Any numeric score the model emits is stripped. It runs on `gpt-5.6-terra`, about 0.006 dollars per call, and in mock mode without a key. Fourteen tests pass. `WIRING.md` now documents the schema and source-validation work required before integration.
 
 ## 8. Video polish, built in the lab, to be ported
 
 In `video-lab/ffmpeg/post.py`, two toggles on top of the finished render: `SFX=1` mixes a whoosh on every scene change, a pop when the study badges land and a thud when the finding card lands, all synthesized by ffmpeg from noise and sine waves, so nothing is downloaded or licensed. `BRAINROT=1` makes the split screen, rebuttal on top over a blurred copy of itself, a muted looping gameplay clip below, captions at the seam. The gameplay clip is whatever sits at `assets/brainrot.mp4`. Subway Surfers footage is copyrighted by its maker and is not fetched or bundled, pick a lookalike runner from a free-licence stock site. Without a file a Mandelbrot zoom stands in. The transitions in `render.py` are now fade, smoothup, circleopen and fadeblack, from the 59 this ffmpeg build supports.
 
-That folder is a pre-event prototype, so `post.py` is not on the branch. Its logic is plain ffmpeg on a finished MP4 plus the cue times, and it ports as-is once the repo has its own renderer, which it does not yet.
+That was the prototype state at the time of this report. The repository now has its own staged renderer and post-processing in `backend/app/video/`; follow its current documentation.
 
 ## 9. Finding videos on our own, and scanning them
 

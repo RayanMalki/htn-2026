@@ -1,92 +1,171 @@
-"""
-The orchestrator runs every stage in order and leaves a plan.json behind.
-
-The visual stages need ffmpeg and a browser, so here they are replaced by stubs
-that only mark the plan the way the real stages would. That keeps this test about
-one thing, the order and the hand-offs in render.py, and lets it run anywhere the
-audio stages run, which includes CI with no voice engine (the silent path).
-"""
-
-from __future__ import annotations
-
+"""Fault injection at every stage checks durable recovery without provider calls."""
 import json
-import sys
-import types
 from pathlib import Path
+from unittest.mock import Mock
 
 import pytest
 
-import app.video as video_pkg
 from app.video import render
-from app.video.plan import RenderPlan
+from app.video.plan import Voice
 
-EXAMPLE = Path(__file__).resolve().parents[1] / "app" / "video" / "examples" / "blue_light_case.json"
+EXAMPLE = Path(__file__).resolve().parents[1] / 'app/video/examples/blue_light_case.json'
 
 
-def _stub_visual_stages(monkeypatch, calls: list[str]):
-    """Stand-ins for cards, compose and post that record being called."""
-
-    def render_cards(plan: RenderPlan, out_dir: Path) -> RenderPlan:
-        calls.append("cards")
-        for scene in plan.scenes:
-            scene.card_png = str(out_dir / f"{scene.kind}.png")
-            if scene.kind == "paper":
-                scene.focus_box = {"x": 40, "y": 600, "w": 640, "h": 120}
+@pytest.mark.parametrize('failed_stage', ['voice', 'cards', 'compose', 'post', 'captions'])
+def test_checkpoint_recovery_reuses_completed_stages(tmp_path, monkeypatch, failed_stage):
+    from app.video import captions, cards, compose, post, voice
+    calls = {name: 0 for name in ['voice', 'cards', 'compose', 'post', 'captions']}
+    fail = [True]
+    def stage(name):
+        calls[name] += 1
+        if name == failed_stage and fail[0]:
+            fail[0] = False
+            raise RuntimeError('interrupted')
+    def voice_fn(plan, out):
+        stage('voice')
+        audio = out / 'voice.wav'
+        audio.write_bytes(b'audio')
+        plan.voice = Voice(audio_path=str(audio), duration=45, engine='openai')
+        plan.scenes[-1].end = 45
         return plan
-
-    def render_caption_pages(pages, plan, out_dir):
-        calls.append("caption_pages")
-        return [{**p, "png": str(out_dir / "cap.png")} for p in pages]
-
-    def compose(plan: RenderPlan, out_dir: Path, caption_pages) -> RenderPlan:
-        calls.append("compose")
-        assert plan.voice is not None, "compose ran before voice"
-        assert all(s.card_png for s in plan.scenes), "compose ran before cards"
-        assert caption_pages and all("png" in p for p in caption_pages), "compose ran before caption pages"
-        plan.output_path = str(out_dir / "rebuttal.mp4")
+    def cards_fn(plan, out):
+        stage('cards')
+        for i, scene in enumerate(plan.scenes):
+            target = out / f'card_{i}.png'
+            target.write_bytes(b'card')
+            scene.card_png = str(target)
         return plan
-
-    def apply(plan: RenderPlan, out_dir: Path) -> RenderPlan:
-        calls.append("post")
-        assert plan.output_path, "post ran before compose"
+    def compose_fn(plan, out):
+        stage('compose')
+        target = out / 'composed.mp4'
+        target.write_bytes(b'composed')
+        plan.output_path = str(target)
         return plan
-
-    cards = types.ModuleType("app.video.cards")
-    cards.render_cards = render_cards
-    cards.render_caption_pages = render_caption_pages
-    comp = types.ModuleType("app.video.compose")
-    comp.compose = compose
-    post = types.ModuleType("app.video.post")
-    post.apply = apply
-    for name, mod in (("cards", cards), ("compose", comp), ("post", post)):
-        monkeypatch.setitem(sys.modules, f"app.video.{name}", mod)
-        monkeypatch.setattr(video_pkg, name, mod, raising=False)
-
-
-def test_render_case_runs_stages_in_order_and_saves_the_plan(monkeypatch, tmp_path):
-    for key in ("ELEVENLABS_API_KEY", "GEMINI_API_KEY", "OPENAI_API_KEY"):
-        monkeypatch.delenv(key, raising=False)
-    calls: list[str] = []
-    _stub_visual_stages(monkeypatch, calls)
+    def post_fn(plan, out):
+        stage('post')
+        return plan
+    def overlay(plan, out, pages):
+        stage('captions')
+        target = out / 'response.mp4'
+        target.write_bytes(b'final')
+        plan.output_path = str(target)
+        return plan
+    monkeypatch.setattr(voice, 'synthesize', voice_fn)
+    monkeypatch.setattr(cards, 'render_cards', cards_fn)
+    monkeypatch.setattr(cards, 'render_caption_pages', lambda pages, *args: pages)
+    monkeypatch.setattr(captions, 'pages', lambda plan: [])
+    monkeypatch.setattr(compose, 'compose', compose_fn)
+    monkeypatch.setattr(compose, 'overlay_captions', overlay)
+    monkeypatch.setattr(post, 'apply', post_fn)
+    monkeypatch.setattr(render, 'valid_media', lambda *args, **kw: True)
+    monkeypatch.setattr(render, 'probe', lambda *args: {'format': {'duration': '45'},
+                       'streams': [{'codec_type': 'video'}, {'codec_type': 'audio'}]})
     case = json.loads(EXAMPLE.read_text())
+    with pytest.raises(RuntimeError, match='interrupted'):
+        render.render_case(case, tmp_path)
+    plan = render.render_case(case, tmp_path)
+    assert plan.finding.label == 'contradicts'
+    assert calls[failed_stage] == 2
+    assert all(count == 1 for name, count in calls.items() if name != failed_stage)
+    before = calls.copy()
+    render.render_case(case, tmp_path)
+    assert before == calls
+    # Corrupting final output only repeats the final stage, not paid voice generation.
+    Path(plan.output_path).write_bytes(b'corrupt')
+    render.render_case(case, tmp_path)
+    assert calls['voice'] == before['voice']
+    assert calls['captions'] == before['captions'] + 1
 
-    plan = render.render_case(case, tmp_path, sfx=False, brainrot=True, log=lambda *_: None)
 
-    assert calls == ["cards", "caption_pages", "compose", "post"], calls
-    assert plan.output_path and plan.output_path.endswith("rebuttal.mp4")
-    assert plan.brainrot is True and plan.sfx is False
-    assert plan.finding is not None and plan.finding.label == "mixed"
-    assert plan.voice is not None and plan.voice.duration > 0
-    saved = RenderPlan.load(tmp_path / "plan.json")
-    assert saved.case_id == plan.case_id and len(saved.scenes) == len(plan.scenes)
-    assert abs(saved.scenes[-1].end - saved.voice.duration) < 0.05, "scenes were not rescaled to the audio"
+def test_api_has_one_video_route_and_manual_render_is_queued(client, case_id, passage, monkeypatch):
+    from app.db import read_case, update_case
+    from app.main import app
+    from app.schemas import Claim
+    claim = Claim(id='c1', text='Vitamin C prevents colds.', start=0, end=1, search_terms=['vitamin C'])
+    assert client.post(f'/api/cases/{case_id}/render').status_code == 409
+    update_case(case_id, status='complete', result_patch={'model_mode': 'live',
+        'analysis': {'claims': [claim.model_dump()]}, 'claims': {'c1': {'claim': claim.model_dump(),
+        'status': 'complete', 'evidence': [passage.model_dump()], 'verdict': {'label': 'contradicts',
+        'explanation': 'The review did not find prevention.', 'limitations': [],
+        'citations': [{'passage_id': passage.id, 'quote': passage.text}]}}}})
+    enqueue = Mock()
+    monkeypatch.setattr('app.main.enqueue', enqueue)
+    for _ in range(2):
+        assert client.post(f'/api/cases/{case_id}/render?brainrot=true&sfx=false').status_code == 202
+    enqueue.assert_called_once_with(case_id)
+    video = read_case(case_id)['result']['video']
+    assert video['options'] == {'brainrot': True, 'sfx': False}
+    assert video['requested'] is True
+    assert len([r for r in app.routes if getattr(r, 'path', '') == '/api/cases/{case_id}/video'
+                and 'GET' in getattr(r, 'methods', set())]) == 1
+    assert client.get(f'/api/cases/{case_id}/video').status_code == 409
 
 
-def test_render_case_reports_a_missing_stage_clearly(monkeypatch, tmp_path):
-    """A stage that is not there fails at render time with its name, never at app import."""
-    for name in ("cards", "compose", "post"):
-        monkeypatch.setitem(sys.modules, f"app.video.{name}", None)
-        monkeypatch.delattr(video_pkg, name, raising=False)
+async def test_render_process_cancellation_is_awaited(case_id, passage, monkeypatch):
+    import asyncio
+
+    from app.db import read_case, update_case
+    from app.video import render_video
+    from app.video.script import eligible_claims
     case = json.loads(EXAMPLE.read_text())
-    with pytest.raises(ImportError):
-        render.render_case(case, tmp_path, log=lambda *_: None)
+    case['id'] = case_id
+    eligible_claims(case)
+    update_case(case_id, result_patch=case['result'])
+    cancelled = asyncio.Event()
+    started = asyncio.Event()
+    async def process(*args, **kwargs):
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            cancelled.set()
+    monkeypatch.setattr('app.video.run_process', process)
+    task = asyncio.create_task(render_video(read_case(case_id)))
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert cancelled.is_set()
+
+
+async def test_cancel_kills_detached_descendants(tmp_path):
+    import asyncio
+    import sys
+
+    import psutil
+
+    from app.media import run_process
+    pidfile = tmp_path / 'child.pid'
+    code = ('import subprocess,sys,time,pathlib; '
+            'p=subprocess.Popen([sys.executable,"-c","import time; time.sleep(30)"],start_new_session=True); '
+            'pathlib.Path(sys.argv[1]).write_text(str(p.pid)); time.sleep(30)')
+    task = asyncio.create_task(run_process(sys.executable, '-c', code, str(pidfile), timeout=10))
+    for _ in range(100):
+        if pidfile.exists():
+            break
+        await asyncio.sleep(0.02)
+    assert pidfile.exists()
+    pid = int(pidfile.read_text())
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    for _ in range(50):
+        if not psutil.pid_exists(pid) or psutil.Process(pid).status() == psutil.STATUS_ZOMBIE:
+            break
+        await asyncio.sleep(0.02)
+    assert not psutil.pid_exists(pid) or psutil.Process(pid).status() == psutil.STATUS_ZOMBIE
+
+
+def test_legacy_artifacts_are_readable_but_legacy_paths_are_not_served(client, case_id, tmp_path):
+    from app.config import settings
+    from app.db import update_case
+    artifact = 'a' * 20
+    folder = settings().media_root / case_id / 'video' / artifact
+    folder.mkdir(parents=True)
+    (folder / 'response.mp4').write_bytes(b'version-two-artifact')
+    update_case(case_id, status='complete', result_patch={'video': {'version': 2, 'status': 'ready', 'artifact': artifact}})
+    assert client.get(f'/api/cases/{case_id}/video').content == b'version-two-artifact'
+    private = tmp_path / 'private.txt'
+    private.write_text('must not be served')
+    update_case(case_id, result_patch={'video': {}, 'render': {'status': 'done', 'path': str(private)}})
+    assert client.get(f'/api/cases/{case_id}/video').status_code == 409

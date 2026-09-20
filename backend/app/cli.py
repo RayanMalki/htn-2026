@@ -104,6 +104,9 @@ async def preflight():
                 result["notes"] = ["Text inference verified; speech access still requires a live audio test."]
             except Exception as exc:
                 result["checks"]["backboard_access"] = type(exc).__name__
+    if cfg.video_enabled and cfg.model_mode == 'live':
+        from app.video import dependencies
+        result['checks'].update({f'video_{k}': 'ok' if v else 'missing' for k, v in dependencies().items()})
     print(json.dumps(result, indent=2))
     return all(value == "ok" for value in result["checks"].values())
 

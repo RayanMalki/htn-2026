@@ -12,12 +12,16 @@
 //
 // Output: one JSON line per unique video in urls.jsonl, with the route that found it.
 
-import { chromium } from 'playwright'
+import { createRequire } from 'node:module'
 import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
+const require = createRequire(import.meta.url)
+const playwrightDir = process.env.HYPECHECK_PLAYWRIGHT_DIR || join(HERE, '../../app/video/node_modules/playwright')
+const { chromium } = require(playwrightDir)
+
 const args = process.argv.slice(2)
 const flag = (name, fallback) => {
   const i = args.indexOf(name)

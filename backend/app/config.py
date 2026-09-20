@@ -40,13 +40,9 @@ class Settings(BaseSettings):
     research_timeout_seconds: int = 35
     video_enabled: bool = True
     video_timeout_seconds: int = 150
-    # Which renderer the pipeline runs once a case completes. "plan" is app/video/render.py
-    # (browser cards, engine-ordered voice with word-timed captions, the real clip as the
-    # opener, sound effects, split screen). "artifact" is app/video/artifact.py (Pillow
-    # cards, OpenAI speech). Both stay available, this only picks the default.
-    video_renderer: str = "plan"
     tts_model: str = "gpt-4o-mini-tts"
     tts_voice: str = "coral"
+    whisper_model: str = "/opt/whisper/ggml-base.en.bin"
     uptime_url: str = "http://127.0.0.1:8000/healthz"
     # Appended rather than grouped with the other providers, so that concurrent
     # branches adding their own settings do not collide on the same anchor line.

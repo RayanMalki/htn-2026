@@ -45,7 +45,7 @@ def cleanup():
     with session() as db:
         expired = db.scalars(select(Case).where(Case.updated_at < now() - timedelta(hours=24))).all()
         for case in expired:
-            if case.status in {"queued", "downloading", "transcribing", "researching", "judging"}:
+            if case.status in {"queued", "downloading", "transcribing", "researching", "judging", "rendering"}:
                 continue
             folder = settings().media_root / case.id
             if folder.exists():

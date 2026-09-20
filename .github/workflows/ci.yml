@@ -8,6 +8,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --prefix backend/app/video && node backend/app/video/node_modules/playwright/cli.js install --with-deps chromium
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - run: pip install -r backend/requirements.lock && pip install -e './backend[dev]'
       - run: ruff check --config ruff.toml backend scripts
@@ -28,3 +32,11 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chrome
       - run: npm test
+  video-container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the deployed renderer runtime
+        run: docker build -f backend/Dockerfile -t hypecheck-video-test .
+      - name: Verify renderer in the production image without network access
+        run: docker run --rm --network none --entrypoint python hypecheck-video-test -m pytest tests/test_video.py tests/test_video_audio.py tests/test_video_compose.py tests/test_video_render.py -q

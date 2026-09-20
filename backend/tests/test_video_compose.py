@@ -14,6 +14,8 @@ import pytest
 from app.video import cards, compose, post
 from app.video.plan import Badge, Card, Finding, RenderPlan, Scene, Voice
 
+requires_media = pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="Media tools required")
+
 
 def _png(path, colour, w=720, h=1280):
     subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi",
@@ -53,11 +55,10 @@ def _plan():
               card=Card(kind="finding", title="Partly right.")),
     ]
     return RenderPlan(case_id="test", claim="Blue light is not ruining your sleep", scenes=scenes,
-                      finding=Finding(label="mixed", sentence="Partly right.", supports=2, contradicts=5))
+                      finding=Finding(label="uncertain", sentence="Partly right.", papers=7))
 
 
-@pytest.mark.skipif(not shutil.which("ffmpeg") or not shutil.which("ffprobe"),
-                    reason="FFmpeg and FFprobe must be installed and available on PATH")
+@requires_media
 def test_compose_then_post_produces_correct_videos(tmp_path):
     plan = _plan()
     plan.voice = Voice(audio_path=_silence(tmp_path / "voice.wav", 6), duration=6.0, engine="silent")

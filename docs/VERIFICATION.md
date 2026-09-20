@@ -1,4 +1,80 @@
-# Verification record
+# Current staged renderer verification — September 19, 2026
+
+Tested tree: base `ce537f3` (merged main, including authorship detection, Elastic
+preflight, the renderer switch and YouTube share links), plus the uncommitted staged
+renderer reconciliation and documentation changes in this checkout. This is not a
+claim that remote main already contains these changes.
+
+| Acceptance check | Result on the combined tree |
+|---|---|
+| Backend suite | 169 passed, no skips; 29.90 seconds; six dependency deprecation warnings |
+| Desktop/mobile browser suite | 20 passed; 10.8 seconds; fixture API responses |
+| Ruff and TypeScript/Vite build | Passed |
+| Real Chromium/FFmpeg render | Passed; 45-second 720×1280 H.264/AAC fixture with synthetic narration tones |
+| Recovery and media delivery | Stage interruption, cache reuse, cancellation, original audio, Range requests and expiry covered |
+| Production Docker image | Not run: Docker unavailable on this host |
+| Live OpenAI/Elastic medical inputs | Not run: credentials unavailable in this checkout |
+| Public deployment and social publishing | Outside this work |
+
+The historical sections below describe other checkouts/providers. They do not certify
+the combined staged renderer. Earlier 137-test results preceded the main reconciliation.
+The previous 190.617-second version-2 video is a legacy artifact, not a passing example
+of the new 45–60-second contract.
+
+## Reconciliation decisions
+
+- Retained main's GPTZero integration, Elasticsearch preflight, YouTube share-link
+  normalization and caption-canvas pixel-format fix.
+- Replaced `artifact.py`, `pipeline_adapter.py` and `VIDEO_RENDERER` switching with
+  one worker entry point. Legacy version-2 files remain downloadable without retaining
+  a second generation implementation. Unsafe `result.render` paths require regeneration.
+- Removed the direct API host-port mapping; Caddy is the public Compose entry point.
+- Updated both Python locks for psutil and separated historical handoffs from current
+  contributor instructions. Research/crawler experiments remain outside app execution.
+
+## Implemented and checked here
+
+- Preserved main's import/route fixes and removed the remaining parallel renderer paths.
+- Unified automatic/manual/retry generation on Celery and `result.video`.
+- Revalidated live/complete findings and exact quotations; preserved limitations,
+  separate summary access labels and unique-paper counts in the one-claim script.
+- Added atomic stage checkpoints, settings-sensitive audio/artifact caches, bounded
+  renderer execution, and cleanup of detached browser descendants on cancellation.
+- Real FFmpeg and Chromium generated a 45-second 720×1280 H.264/AAC synthetic fixture.
+  HTTP Range serving, captions, source manifests, expiry, original-clip audio, final
+  frame continuity, and cached resume through the actual worker subprocess are tested.
+- Fixed a compositor failure where mixed-size caption PNGs could end the video stream
+  before the audio stream; canvases are normalized and video duration is validated.
+- Built the pinned whisper.cpp runtime locally and aligned its supplied 11-second JFK
+  speech sample. Validated 22 word timestamps; removed the prototype's `-nt` flag,
+  which disabled usable timing. This is alignment verification, not OpenAI TTS access.
+- Ruff and the TypeScript/Vite production build passed. The combined backend suite passed 169
+  tests with no skips, including legacy-artifact compatibility and detached-process
+  cleanup. Six dependency deprecation warnings remain.
+- All 20 desktop/mobile browser checks passed, including authorship and render
+  progress/retry checks. Browser API tests use fixtures. Separate real playback
+  checks opened the retained 45-second MP4 in desktop and mobile Chromium, advanced
+  playback beyond one second, sought beyond 20 seconds and observed no media error.
+
+## Remaining acceptance gates
+
+There is no ignored `.env`, real case database or previous media collection in this
+checkout. No OpenAI/Elastic live inference or three representative medical inputs
+were exercised during this implementation. Provider credits and medical accuracy
+remain unverified. No paid model calls were made.
+
+Docker is not installed on this machine. The updated production image and its new
+network-disabled renderer CI job have not been executed locally. The image pins
+Playwright and whisper.cpp/model revisions and includes fonts/browser dependencies;
+passing host tests does not establish container acceptance.
+
+Synthetic video verification artifacts, when retained, are under
+`artifacts/video-verification/`. They use generated tones in place of TTS and are
+not live medical assessments. Do not present their timing as a live latency benchmark.
+
+---
+
+# Historical verification record
 
 ## What is automated
 

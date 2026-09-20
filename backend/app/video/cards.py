@@ -1,22 +1,3 @@
-"""
-Card rendering: each scene's Card becomes a PNG, and caption pages become PNGs.
-
-Text in the video is never drawn by ffmpeg (this build has no drawtext), it is HTML
-rendered in a headless browser by cards.mjs and composited as images. The browser is
-Playwright from node, borrowed from the frontend so the backend gains no Python
-dependency. Search order for the Playwright package:
-
-  1. the directory named by HYPECHECK_PLAYWRIGHT_DIR
-  2. frontend/node_modules/@playwright/test  (bundles the browsers)
-  3. frontend/node_modules/playwright
-
-If the frontend has no node_modules yet and npm is installed, `npm ci` is run once in
-frontend/ to get them, unless HYPECHECK_NO_NPM_CI is set. When node or the package is
-missing a RuntimeError names exactly what is missing, and the tests skip rendering.
-Continuous integration has ffmpeg but no node, so the compositor is tested there with
-placeholder PNGs and the browser path is tested locally.
-"""
-
 from __future__ import annotations
 
 import json
@@ -38,20 +19,13 @@ class CardsUnavailable(RuntimeError):
 
 
 def find_playwright(install: bool = True) -> Path:
-    """Return the Playwright package directory, installing the frontend's node
-    modules first if that is the only thing standing in the way."""
+    """Locate the preinstalled browser package; never install during a job."""
     override = os.environ.get("HYPECHECK_PLAYWRIGHT_DIR")
     candidates = [Path(override)] if override else []
-    candidates += [FRONTEND / "node_modules" / "@playwright" / "test", FRONTEND / "node_modules" / "playwright"]
+    candidates += [HERE / "node_modules" / "playwright", FRONTEND / "node_modules" / "@playwright" / "test", FRONTEND / "node_modules" / "playwright"]
     for c in candidates:
         if (c / "package.json").exists():
             return c
-    if install and not os.environ.get("HYPECHECK_NO_NPM_CI") and shutil.which("npm") and (FRONTEND / "package.json").exists():
-        subprocess.run(["npm", "ci", "--no-audit", "--no-fund"], cwd=FRONTEND, check=False,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=900)
-        for c in candidates[-2:]:
-            if (c / "package.json").exists():
-                return c
     raise CardsUnavailable(
         "Playwright is not available. Install the frontend's node modules (cd frontend && npm ci) "
         "or point HYPECHECK_PLAYWRIGHT_DIR at a node_modules/playwright directory."
@@ -88,7 +62,7 @@ def render_cards(plan: RenderPlan, out_dir: Path) -> RenderPlan:
     """Render one PNG per scene at the plan size. Paper scenes also get a focus_box,
     the pixel box of the highlighted sentence in plan coordinates."""
     spec = {
-        "width": plan.width, "height": plan.height, "out_dir": str(out_dir),
+        "width": plan.width, "height": plan.height, "out_dir": str(out_dir.resolve()),
         "cards": [_card_spec(f"s{i}", s.card) for i, s in enumerate(plan.scenes)],
         "captions": [],
     }
@@ -111,7 +85,8 @@ def render_caption_pages(pages: list[dict], plan: RenderPlan, out_dir: Path) -> 
     if not pages:
         return pages
     spec = {
-        "width": plan.width, "height": plan.height, "out_dir": str(out_dir),
+        "width": plan.width, "height": plan.height, "out_dir": str(out_dir.resolve()),
+        "caption_y": 760 if plan.brainrot else round(plan.height * 0.67),
         "cards": [],
         "captions": [{"id": f"c{i}", "text": p.get("text", ""), "emphasis": p.get("emphasis")} for i, p in enumerate(pages)],
     }

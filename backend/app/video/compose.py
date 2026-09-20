@@ -1,11 +1,8 @@
 """
 Compose: the scenes, the caption pages and the voice track become one MP4.
 
-Pure ffmpeg. Remotion was tried in a pre-event lab and its motion is nicer, but its
-free licence covers teams of up to three people and this team is four, so ffmpeg is
-the renderer until that is settled in writing. Every piece of text on screen is a PNG
-from the card stage, because this ffmpeg build has no drawtext and no subtitles
-filter.
+FFmpeg composes browser-rendered card and caption PNGs. Text layout does not depend
+on the host FFmpeg build having drawtext or subtitle filters.
 
 How the time lines up: each scene becomes its own clip, then one join pass runs the
 clips through xfade so scene boundaries sit exactly at scene.start, then the caption
@@ -20,18 +17,15 @@ import subprocess
 from pathlib import Path
 
 from app.video.plan import RenderPlan, Scene
+from app.video.runtime import concat_line, valid_media
+from app.video.runtime import ff as _ff
 
 T = 0.3            # seconds a transition takes, centred on the scene boundary
 T_NONE = 0.04      # "none" still goes through xfade, as a cut this short
-ZOOM = 1.18        # how far the paper push-in goes
-ENC = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"]
+ZOOM = 1.06        # how far the paper push-in goes
+ENC = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-threads", "2"]
 
 
-def _ff(args: list[str], timeout: int = 900) -> None:
-    proc = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", *args],
-                          capture_output=True, text=True, timeout=timeout)
-    if proc.returncode != 0:
-        raise RuntimeError(f"ffmpeg failed: {proc.stderr.strip()[-800:]}")
 
 
 def probe_size(path: str | Path) -> tuple[int, int]:
@@ -78,10 +72,12 @@ def _t_for(name: str) -> float:
 def _render_scene(plan: RenderPlan, scene: Scene, length: float, out_dir: Path, idx: int) -> Path:
     W, H, fps = plan.width, plan.height, plan.fps
     out = out_dir / f"scene_{idx}.mp4"
+    if valid_media(out, video=True, duration=length, size=(W, H)):
+        return out
     if scene.kind == "clip" and plan.source_clip and Path(plan.source_clip).exists():
         # The original video, looped if it is shorter than the scene, cropped to fill.
-        _ff(["-stream_loop", "-1", "-i", str(plan.source_clip), "-t", f"{length:.3f}",
-             "-vf", f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps={fps}",
+        _ff(["-ss", str(plan.source_start), "-i", str(plan.source_clip), "-t", f"{length:.3f}",
+             "-vf", f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1,fps={fps},tpad=stop_mode=clone:stop_duration=0.3",
              "-an", *ENC, str(out)])
         return out
     if not scene.card_png or not Path(scene.card_png).exists():
@@ -162,8 +158,8 @@ def _caption_concat(pages: list[dict], plan: RenderPlan, out_dir: Path, total: f
         entries.append((str(blank), total - cursor))
     lines = ["ffconcat version 1.0"]
     for f, dur in entries:
-        lines += [f"file '{f}'", f"duration {dur:.4f}"]
-    lines.append(f"file '{entries[-1][0]}'")
+        lines += [concat_line(f), f"duration {dur:.4f}"]
+    lines.append(concat_line(entries[-1][0]))
     path = out_dir / "captions.ffconcat"
     path.write_text("\n".join(lines) + "\n")
     return path
@@ -174,7 +170,7 @@ def compose(plan: RenderPlan, out_dir: Path, caption_pages: list[dict] | None = 
     returns plan.output_path."""
     if not plan.scenes:
         raise ValueError("plan has no scenes")
-    out_dir = Path(out_dir)
+    out_dir = Path(out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     d, lengths, offsets = _timing(plan)
     total = sum(d)
@@ -214,5 +210,18 @@ def compose(plan: RenderPlan, out_dir: Path, caption_pages: list[dict] | None = 
     _ff([*args, "-filter_complex", ";".join(filters), "-map", "[out]", "-map", f"{audio_idx}:a",
          "-t", f"{total:.3f}", *ENC, "-r", str(plan.fps), "-c:a", "aac", "-b:a", "160k",
          "-movflags", "+faststart", str(out)])
+    plan.output_path = str(out)
+    return plan
+
+
+def overlay_captions(plan, out_dir, pages):
+    concat = _caption_concat(pages, plan, out_dir, plan.duration)
+    if not concat:
+        return plan
+    out = out_dir / 'response.mp4'
+    _ff(['-i', plan.output_path, '-f', 'concat', '-safe', '0', '-i', str(concat),
+         '-filter_complex', f'[1:v]fps={plan.fps},format=rgba[c];[0:v][c]overlay=0:0:eof_action=pass[v]',
+         '-map', '[v]', '-map', '0:a', '-t', str(plan.duration), *ENC, '-c:a', 'copy',
+         '-movflags', '+faststart', str(out)])
     plan.output_path = str(out)
     return plan
