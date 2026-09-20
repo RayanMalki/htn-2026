@@ -81,3 +81,12 @@ def test_transcript_and_claim_timestamps_allow_full_100_seconds():
     assert TranscriptSegment(start=96, end=100, text='Final words').end == 100
     with pytest.raises(ValidationError):
         TranscriptSegment(start=96, end=100.01, text='Too long')
+
+
+def test_youtu_be_share_links_normalize_to_shorts():
+    # The YouTube app's share sheet produces this form. A judge sharing straight from
+    # the app must not be turned away by the validator.
+    assert CaseCreate(source_url="https://youtu.be/BaW_jenozKc?si=tracking").source_url == \
+        "https://www.youtube.com/shorts/BaW_jenozKc"
+    with pytest.raises(ValueError):
+        CaseCreate(source_url="https://youtu.be/not-eleven-characters")
