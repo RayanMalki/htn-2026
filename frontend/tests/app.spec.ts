@@ -189,3 +189,18 @@ test('video progress and render-only retry preserve evidence', async ({ page }) 
   await expect(page.getByRole('status').filter({ hasText: 'Creating video:' })).toContainText('Creating video: voice');
   await expect(page.locator('.claim-card').first()).toBeVisible();
 });
+
+test('a shared link in the address starts the check without a tap', async ({ page }) => {
+  // The iPhone share-sheet shortcut opens the site as /?url=<short>. Nothing to fill, nothing to click.
+  const shared = 'https://www.youtube.com/shorts/BaW_jenozKc';
+  let posted = '';
+  await page.route('**/api/cases', async route => {
+    posted = (route.request().postDataJSON() as { source_url: string }).source_url;
+    await route.fulfill({ status: 202, json: complete });
+  });
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: complete }));
+  await page.goto(`/?url=${encodeURIComponent(shared)}`);
+  await expect.poll(() => posted).toBe(shared);
+  await expect(page).toHaveURL(new RegExp(`\\?case=${id}$`));
+  await expect(page.getByLabel('Start with an Instagram Reel or YouTube Short')).toHaveValue(shared);
+});

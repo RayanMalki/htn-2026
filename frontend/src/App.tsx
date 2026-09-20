@@ -128,14 +128,28 @@ export default function App() {
     return () => { disposed = true; controller.abort(); source?.close(); };
   }, [caseId]);
 
-  async function submit(event: FormEvent) {
-    event.preventDefault(); setError(''); setSubmitting(true);
+  async function start(sourceUrl: string) {
+    setError(''); setSubmitting(true);
     try {
-      const c = await api<Case>('/api/cases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source_url: url }) });
+      const c = await api<Case>('/api/cases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ source_url: sourceUrl }) });
       setCase(c); setCaseId(c.id); history.replaceState(null, '', `?case=${c.id}`);
     } catch (e) { setError((e as Error).message); }
     finally { setSubmitting(false); }
   }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    await start(url);
+  }
+
+  // A shared link arrives as ?url=… from the iPhone share-sheet shortcut, a QR code or a
+  // bookmarklet. Fill the box and start the check without a tap, unless a case is already open.
+  useEffect(() => {
+    const shared = new URLSearchParams(location.search).get('url');
+    if (!shared || caseId) return;
+    setUrl(shared);
+    void start(shared);
+  }, []);
 
   return <><header className="site-header"><a href="/" className="brand"><span className="brand-mark"><PulseLogo /></span>hypecheck<span className="brand-period">.</span></a>
     <nav aria-label="Main navigation"><button className={tab === 'check' ? 'selected' : ''} onClick={() => setTab('check')}>Check a Reel</button>

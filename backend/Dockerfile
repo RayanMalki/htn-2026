@@ -1,5 +1,9 @@
 FROM node:22-bookworm-slim AS node
 FROM debian:bookworm-slim AS whisper
+FROM node:22-bookworm-slim AS node
+# git is needed at configure time: ggml's CMakeLists calls find_program(GIT_EXE) and
+# fails the build outright when it is missing, even though the source arrives by tarball.
+FROM debian:bookworm-slim AS whisper
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential cmake curl ca-certificates git && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 # Immutable whisper.cpp v1.7.6 commit and immutable base.en model repository revision.
