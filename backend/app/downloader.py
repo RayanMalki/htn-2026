@@ -17,7 +17,7 @@ def main():
     socket.getaddrinfo = public_resolver(socket.getaddrinfo)
     # Disable proxy environment: otherwise a proxy could resolve private destinations on our behalf.
     import yt_dlp
-    yt_dlp.main(["--proxy", "", "--use-extractors", "Instagram", *sys.argv[1:]])
+    yt_dlp.main(["--proxy", "", "--use-extractors", "Instagram,Youtube", "--js-runtimes", "node", *sys.argv[1:]])
 
 
 if __name__ == "__main__":

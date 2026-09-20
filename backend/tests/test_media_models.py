@@ -83,3 +83,25 @@ def test_sentry_scrubs_payloads():
                 "stacktrace": {"frames": [{"vars": {"api_key": "secret"}}]}}]},
              "spans": [{"op": "http.client", "description": "https://url?key=secret", "data": {"body": "secret"}}]}
     assert "secret" not in json.dumps(scrub(event, {}))
+
+
+@pytest.mark.parametrize('duration', [97, 100, 100.01])
+async def test_video_duration_boundary(monkeypatch, tmp_path, duration):
+    video = tmp_path / 'input.mp4'
+    video.write_bytes(b'fixture')
+    calls = []
+
+    async def process(*args, timeout):
+        calls.append(args)
+        return json.dumps({'format': {'duration': str(duration)}, 'streams': [
+            {'codec_type': 'video'}, {'codec_type': 'audio'}]}).encode()
+
+    monkeypatch.setattr('app.media.run_process', process)
+    if duration > 100:
+        with pytest.raises(MediaError, match='100 seconds'):
+            await extract_audio(video)
+        assert len(calls) == 1
+    else:
+        _, measured = await extract_audio(video)
+        assert measured == duration
+        assert calls[1][calls[1].index('-t') + 1] == '100'

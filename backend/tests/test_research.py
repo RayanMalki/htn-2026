@@ -124,13 +124,15 @@ async def test_hybrid_filter_and_keyword_fallback(passage):
 @respx.mock
 async def test_index_partial_failure_is_detected(passage):
     index = settings().elastic_index
-    respx.post(f"https://elastic.test/{index}/_mget").mock(return_value=httpx.Response(200, json={"docs": []}))
+    mget = respx.post(f"https://elastic.test/{index}/_mget").mock(return_value=httpx.Response(200, json={"docs": []}))
     bulk = respx.post(f"https://elastic.test/{index}/_bulk").mock(side_effect=[
         httpx.Response(200, json={"errors": True, "items": [{"index": {"_id": "p1", "error": {"type": "inference"}}}]}),
         httpx.Response(200, json={"errors": False, "items": [{"index": {"_id": "p1", "status": 201}}]}),
     ])
     async with httpx.AsyncClient() as client:
         result = await ElasticSearch(client).index([passage])
+    assert json.loads(mget.calls[0].request.content) == {"ids": [passage.id]}
+    assert "semantic" in mget.calls[0].request.url.params["_source_includes"]
     assert result["index_mode"] == "keyword_only"
     assert bulk.calls[0].request.headers["Content-Type"] == "application/x-ndjson"
     assert '"semantic"' not in bulk.calls[1].request.content.decode()

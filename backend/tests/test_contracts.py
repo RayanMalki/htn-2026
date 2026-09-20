@@ -52,3 +52,32 @@ def test_retracted_passage_not_citable(passage):
     verdict = Verdict(label="supports", explanation="No", citations=[Citation(passage_id=passage.id, quote=passage.text)], limitations=[])
     with pytest.raises(ValueError):
         validate_verdict(verdict, [passage])
+
+
+@pytest.mark.parametrize("host", ["youtube.com", "www.youtube.com", "m.youtube.com"])
+def test_shorts_normalizes_tracking(host):
+    assert CaseCreate(source_url=f"https://{host}/shorts/BaW_jenozKc/?si=tracking#fragment").source_url == \
+        "https://www.youtube.com/shorts/BaW_jenozKc"
+
+
+@pytest.mark.parametrize("url", [
+    "https://youtube.com.evil.test/shorts/BaW_jenozKc",
+    "https://user:pw@youtube.com/shorts/BaW_jenozKc",
+    "https://youtube.com:8443/shorts/BaW_jenozKc",
+    "https://youtube.com/shorts/../BaW_jenozKc",
+    "https://youtube.com/shorts/BaW_jenozKc%2f",
+    "https://youtube.com/shorts/invalid",
+    "https://youtube.com/watch?v=BaW_jenozKc",
+    "https://youtube.com/playlist?list=123",
+])
+def test_reject_unsupported_youtube_urls(url):
+    with pytest.raises(ValueError):
+        CaseCreate(source_url=url)
+
+
+def test_transcript_and_claim_timestamps_allow_full_100_seconds():
+    from app.schemas import TranscriptSegment
+
+    assert TranscriptSegment(start=96, end=100, text='Final words').end == 100
+    with pytest.raises(ValidationError):
+        TranscriptSegment(start=96, end=100.01, text='Too long')

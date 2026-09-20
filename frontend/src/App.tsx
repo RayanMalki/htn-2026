@@ -4,8 +4,8 @@ import Evidence from './Evidence';
 import type { Case, ClaimResult } from './types';
 
 const Dashboard = lazy(() => import('./Dashboard'));
-const stages = ['queued', 'downloading', 'transcribing', 'researching', 'judging', 'complete'];
-const labels: Record<string, string> = { queued: 'Queued', downloading: 'Reading the Reel', transcribing: 'Finding spoken claims', researching: 'Searching the literature', judging: 'Checking the evidence', complete: 'Analysis complete', awaiting_upload: 'Video upload needed', incomplete: 'Analysis incomplete', no_claims: 'No spoken medical claims' };
+const stages = ['queued', 'downloading', 'transcribing', 'researching', 'judging', 'rendering', 'complete'];
+const labels: Record<string, string> = { queued: 'Queued', downloading: 'Reading the video', rendering: 'Creating your video', transcribing: 'Finding spoken claims', researching: 'Searching the literature', judging: 'Checking the evidence', complete: 'Analysis complete', awaiting_upload: 'Video upload needed', incomplete: 'Analysis incomplete', no_claims: 'No spoken medical claims' };
 
 function PulseLogo() {
   return <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="M3 17h6l4-10 6 19 4-9h6" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>;
@@ -15,6 +15,7 @@ function CaseView({ value, onUpdate }: { value: Case; onUpdate: (c: Case) => voi
   const [tick, setTick] = useState(Date.now());
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [retrying, setRetrying] = useState(false);
   useEffect(() => {
     if (finished(value.status) || value.status === 'awaiting_upload') return;
     const timer = setInterval(() => setTick(Date.now()), 1000);
@@ -45,10 +46,10 @@ function CaseView({ value, onUpdate }: { value: Case; onUpdate: (c: Case) => voi
     <div className="section-heading"><div><span className="eyebrow">YOUR EVIDENCE TRAIL</span><h2>{labels[value.status]}</h2></div>
       <div className="elapsed"><span className={finished(value.status) ? 'status-dot' : 'status-dot live'} />
         {seconds(elapsed)}<span className="subtle"> / 90s target</span></div></div>
-    <a className="source-link" href={value.source_url} target="_blank" rel="noreferrer">Original Instagram Reel ↗</a>
+    <a className="source-link" href={value.source_url} target="_blank" rel="noreferrer">Original video ↗</a>
     <ol className="progress-stages" aria-label="Pipeline progress">{stages.slice(1).map((s, i) => <li key={s}
       className={`${activeIndex > i + 1 || value.status === 'complete' ? 'done' : ''} ${activeIndex === i + 1 ? 'active' : ''}`}>
-      <span>{activeIndex > i + 1 || value.status === 'complete' ? '✓' : i + 1}</span>{['Read video', 'Extract claims', 'Find research', 'Check evidence', 'Results'][i]}</li>)}</ol>
+      <span>{activeIndex > i + 1 || value.status === 'complete' ? '✓' : i + 1}</span>{['Read video', 'Extract claims', 'Find research', 'Check evidence', 'Create video', 'Results'][i]}</li>)}</ol>
     {value.result.model_mode === 'mock' ? <div className="notice"><b>Mock model mode</b> The claim and judgment are prepared inputs. Literature retrieval is real when configured. This is not an analysis of the submitted video.</div> : null}
     {!finished(value.status) && elapsed > 90 && value.status !== 'awaiting_upload' ? <div className="notice">This run is taking longer than the demo target. Progress and any completed evidence remain available.</div> : null}
     {value.result.limitations?.length ? <div className="notice" aria-label="Analysis limitations">
@@ -56,10 +57,27 @@ function CaseView({ value, onUpdate }: { value: Case; onUpdate: (c: Case) => voi
     </div> : null}
     {value.error ? <p className="error" role="alert">{value.error.message}</p> : null}
     {value.status === 'awaiting_upload' ? <div className="upload-panel"><span className="upload-symbol">↥</span><div><h3>Have the video file?</h3>
-      <p>Upload it to continue this same analysis. Spoken English · up to 60 seconds · 100 MB.</p>
+      <p>Upload it to continue this same analysis. Spoken English · up to 100 seconds · 100 MB.</p>
       <label className={`button upload-button ${uploading ? 'disabled' : ''}`}>{uploading ? 'Uploading…' : 'Choose video'}
         <input aria-label="Upload video" type="file" accept="video/*" disabled={uploading} onChange={e => void upload(e.target.files?.[0])} /></label></div></div> : null}
     {error ? <p className="error" role="alert">{error}</p> : null}
+    {value.result.video?.status === 'ready' ? <section className="generated-video" aria-label="Generated fact-check video">
+      <div><span className="eyebrow">YOUR FACT-CHECK VIDEO</span><h3>Evidence, ready to watch.</h3>
+        <p>AI-generated narration. Captions have approximate timing. Sources and limitations are included.</p>
+        <a className="button" href={`/api/cases/${value.id}/video?download=true`}>Download MP4 ↓</a>{' '}
+        <a className="button secondary" href={`/api/cases/${value.id}/video/sources`}>Video sources ↓</a>
+      </div>
+      <video controls playsInline preload="metadata" src={`/api/cases/${value.id}/video`}>
+        <track kind="captions" src={`/api/cases/${value.id}/video/captions`} srcLang="en" label="English" default />
+      </video>
+    </section> : null}
+    {value.result.video?.status === 'failed' ? <p className="error">{value.result.video.error}</p> : null}
+    {value.status === 'incomplete' || (value.status === 'complete' && !value.result.video) ?
+      <button className="button secondary" disabled={retrying} onClick={async () => {
+        setRetrying(true); setError('');
+        try { await api<Case>(`/api/cases/${value.id}/retry`, { method: 'POST' }); window.location.reload(); }
+        catch (e) { setError((e as Error).message); setRetrying(false); }
+      }}>{retrying ? 'Resuming…' : 'Retry analysis and create video'}</button> : null}
     {value.result.outcome ? <div className="notice">{value.result.outcome}</div> : null}
     {items.length ? <div className="claims-list">{items.map((item, i) => <Evidence key={item.claim.id} item={item} index={i} mock={value.result.model_mode === 'mock'} />)}</div> : null}
     {value.result.analysis?.omitted_claims ? <p className="notice">{value.result.analysis.omitted_claims} additional claim(s) were omitted from this bounded analysis.</p> : null}
@@ -120,11 +138,11 @@ export default function App() {
     <main>{tab === 'check' ? <><section className={`hero ${caseValue ? 'compact' : ''}`}>
       <div className="hero-copy"><span className="eyebrow"><span className="tiny-star">✳</span> HEALTH CLAIMS, WITH RECEIPTS</span>
         <h1>Your feed moves fast.<br /><em>Evidence matters.</em></h1>
-        <p className="hero-description">Follow a health claim from an Instagram Reel to the medical research. See what the evidence says—and exactly where it says it.</p>
-        <form onSubmit={submit} className="link-form"><label htmlFor="reel-url">Start with an Instagram Reel</label>
-          <div className="input-row"><span className="link-icon" aria-hidden="true">↗</span><input id="reel-url" type="url" required placeholder="https://www.instagram.com/reel/…" value={url} onChange={e => setUrl(e.target.value)} />
+        <p className="hero-description">Follow a health claim from an Instagram Reel or YouTube Short to the medical research. See what the evidence says—and exactly where it says it.</p>
+        <form onSubmit={submit} className="link-form"><label htmlFor="reel-url">Start with an Instagram Reel or YouTube Short</label>
+          <div className="input-row"><span className="link-icon" aria-hidden="true">↗</span><input id="reel-url" type="url" required placeholder="https://www.youtube.com/shorts/…" value={url} onChange={e => setUrl(e.target.value)} />
             <button type="submit" disabled={submitting}>{submitting ? 'Starting…' : 'Check the evidence'}<span aria-hidden="true">↗</span></button></div>
-          <div className="form-caption"><span>Spoken English · Up to 60 seconds</span><span>3 claims. Sources included.</span></div>
+          <div className="form-caption"><span>Spoken English · Up to 100 seconds</span><span>3 claims. Sources included.</span></div>
         </form>{error ? <p className="error" role="alert">{error}</p> : null}
         <div className="mode-line"><span className="status-dot" />{config ? config.model_mode === 'mock' ? 'Infrastructure preview · mock AI adapters' : 'Live model pipeline' : 'Connecting to pipeline…'}
           <span className="mode-divider" />No account required</div>

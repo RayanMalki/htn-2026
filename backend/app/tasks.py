@@ -14,7 +14,7 @@ from app.queue import celery, enqueue, redis_client
 
 @celery.task(name="app.tasks.process_case")
 def process_case(case_id: str):
-    lock = redis_client().lock(f"processing:{case_id}", timeout=170, blocking=False)
+    lock = redis_client().lock(f"processing:{case_id}", timeout=330, blocking=False)
     if not lock.acquire(blocking=False):
         return
     try:
@@ -31,8 +31,8 @@ def recover():
     # Database cases act as an outbox if API-to-broker dispatch or a worker fails.
     with session() as db:
         pending = db.scalars(select(Case).where(
-            Case.status.in_(["queued", "downloading", "transcribing", "researching", "judging"]),
-            Case.updated_at < now() - timedelta(seconds=180),
+            Case.status.in_(["queued", "downloading", "transcribing", "researching", "judging", "rendering"]),
+            Case.updated_at < now() - timedelta(seconds=360),
         )).all()
         for case in pending:
             if not redis_client().exists(f"processing:{case.id}"):

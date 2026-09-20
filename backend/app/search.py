@@ -76,10 +76,10 @@ class ElasticSearch:
         if not passages:
             return {"index_cache_hits": 0, "indexed": 0, "index_mode": "hybrid"}
         unique = {p.id: p for p in passages}
-        current = (await self.call("POST", f"/{self.cfg.elastic_index}/_mget", json={
-            "ids": list(unique), "_source": ["semantic", "study_types", "known_retracted",
-                                               "provider", "source_kind", "access_type"],
-        })).json()
+        current = (await self.call("POST", f"/{self.cfg.elastic_index}/_mget",
+            params={"_source_includes": "semantic,study_types,known_retracted,provider,source_kind,access_type"},
+            json={"ids": list(unique)},
+        )).json()
         existing = {d["_id"]: d.get("_source", {}) for d in current["docs"] if d.get("found")}
         pending = [p for p in unique.values() if p.id not in existing
                    or existing[p.id].get("study_types") != p.study_types

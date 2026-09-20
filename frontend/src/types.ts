@@ -20,6 +20,8 @@ export type Case = {
   started_at: string | null; finished_at: string | null; sequence: number;
   error: { code: string; message: string } | null;
   result: { schema_version: number; model_mode: 'mock' | 'live'; input_mode?: string;
+    video?: { status: 'pending' | 'rendering' | 'ready' | 'failed'; error?: string;
+      duration_seconds?: number; captions_url?: string; url?: string; sources_url?: string };
     submitted_at?: string;
     timings?: Record<string, number>; limitations?: string[]; outcome?: string;
     analysis?: { transcript: { start: number; end: number; text: string }[]; claims: Claim[]; omitted_claims: number };

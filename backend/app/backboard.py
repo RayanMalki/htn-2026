@@ -92,7 +92,7 @@ class BackboardModels(GeminiModels):
 
     async def analyze(self, audio: Path, duration: float | None = None) -> AudioAnalysis:
         self.fields()  # Fail before local work if credentials are absent.
-        if duration is None or not math.isfinite(duration) or not 0 < duration <= 60:
+        if duration is None or not math.isfinite(duration) or not 0 < duration <= 100:
             raise ValueError("Backboard transcription requires the validated video duration")
         limiter = asyncio.Semaphore(3)
         # Fixed windows provide honest coarse timestamps even when STT only returns text.
