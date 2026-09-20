@@ -1505,3 +1505,23 @@ queue: 503 videos already discovered
 [83/185] HUMAN_ONLY  ai=0.000  Creatine For Healt -
 [84/185] AI_ONLY     ai=1.000  Zooki              Sales-pitch tone
 [85/185] skip 9DqdIFoNMuk (transcript too short)
+[86/185] HUMAN_ONLY  ai=0.000  WholisticMatters   -
+[87/185] HUMAN_ONLY  ai=0.000  Protein Factory    -
+[88/185] AI_ONLY     ai=1.000  Zooki              Overblown importance, Sales-pitch tone
+[89/185] HUMAN_ONLY  ai=0.000  Good Morning Ameri -
+[90/185] HUMAN_ONLY  ai=0.153  SupplementBrief    Sales-pitch tone, Unnecessary caveats
+[91/185] HUMAN_ONLY  ai=0.000  KPRC 2 Click2Houst -
+[92/185] AI_ONLY     ai=1.000  Zooki              Empty commentary, Everything in threes, Sales-pitc
+[93/185] skip rFus6ND04TM (transcript too short)
+[94/185] HUMAN_ONLY  ai=0.000  Munzfitness        -
+    ! download failed WcwKtlJxthU: ERROR: 
+[download] Got error: 0 bytes read, 3769134 more expected. Giving up after 10 retr
+[95/185] skip WcwKtlJxthU (transcript too short)
+[96/185] AI_ONLY     ai=1.000  Zooki              Empty commentary, Everything in threes, Sales-pitc
+[97/185] HUMAN_ONLY  ai=0.000  Amanda Christodoul -
+[98/185] HUMAN_ONLY  ai=0.000  Dr. Bryant Esquejo -
+[99/185] HUMAN_ONLY  ai=0.005  Dr. Janine Bowring -
+[100/185] HUMAN_ONLY  ai=0.000  Dr. Janine Bowring -
+[101/185] HUMAN_ONLY  ai=0.000  Deborah Maragopoul -
+[102/185] HUMAN_ONLY  ai=0.000  Healthy Directions -
+[103/185] HUMAN_ONLY  ai=0.000  Geeta Sidhu-Robb   -
