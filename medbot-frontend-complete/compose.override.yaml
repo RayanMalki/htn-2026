@@ -1,0 +1,7 @@
+# Run from the repository root with both files; this selects this frontend.
+services:
+  web:
+    build:
+      dockerfile: medbot-frontend-complete/Dockerfile
+      args:
+        VITE_SENTRY_REPLAY_SESSION_SAMPLE_RATE: ${VITE_SENTRY_REPLAY_SESSION_SAMPLE_RATE:-0}

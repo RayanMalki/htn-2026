@@ -9,8 +9,9 @@ function sampleRate(value: string | undefined, fallback: number) {
   return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : fallback;
 }
 
-if (import.meta.env.VITE_SENTRY_DSN) {
-  void import('@sentry/react').then(Sentry => Sentry.init({
+export const sentryReady = import.meta.env.VITE_SENTRY_DSN
+  ? import('@sentry/react').then(Sentry => {
+    Sentry.init({
     dsn: import.meta.env.VITE_SENTRY_DSN,
     environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || 'development',
     integrations: [
@@ -23,7 +24,8 @@ if (import.meta.env.VITE_SENTRY_DSN) {
     tracesSampleRate: sampleRate(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE, 1),
     profileSessionSampleRate: sampleRate(import.meta.env.VITE_SENTRY_PROFILE_SESSION_SAMPLE_RATE, 0.1),
     profileLifecycle: 'trace',
-    replaysSessionSampleRate: 0,
+    // Keep normal sessions off by default; enable a sample explicitly for demos.
+    replaysSessionSampleRate: sampleRate(import.meta.env.VITE_SENTRY_REPLAY_SESSION_SAMPLE_RATE, 0),
     replaysOnErrorSampleRate: sampleRate(import.meta.env.VITE_SENTRY_REPLAY_ON_ERROR_SAMPLE_RATE, 1),
     tracePropagationTargets: [/^\/api\//], sendDefaultPii: false,
     beforeSend(event) {
@@ -34,14 +36,15 @@ if (import.meta.env.VITE_SENTRY_DSN) {
       delete event.request; delete event.user; delete event.breadcrumbs;
       return event;
     },
-  }));
-}
+    });
+    return Sentry;
+  }) : Promise.resolve(undefined);
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
   componentDidCatch(error: Error) {
-    if (import.meta.env.VITE_SENTRY_DSN) void import('@sentry/react').then(s => s.captureException(error));
+    void sentryReady.then(sentry => sentry?.captureException(error));
   }
   render() {
     return this.state.failed ? <main className="fatal"><h1>Something didn’t load.</h1>
