@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     # Appended rather than grouped with the other providers, so that concurrent
     # branches adding their own settings do not collide on the same anchor line.
     gptzero_api_key: str = ""
-    gptzero_filler_reading: bool = False
+    gptzero_filler_reading: bool = True
 
     @property
     def model_configured(self) -> bool:

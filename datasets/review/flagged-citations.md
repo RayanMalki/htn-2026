@@ -1,10 +1,10 @@
 # Citation check
 
-4894 citations checked across 136 papers. GPTZero called 62 of them fake. We resolved 58 of those ourselves on Crossref or ClinicalTrials.gov, leaving **4 unresolved**.
+5046 citations checked across 140 papers. GPTZero called 70 of them fake. We resolved 63 of those ourselves on Crossref or ClinicalTrials.gov, leaving **6 unresolved**.
 
 Only the unresolved ones are fabrication candidates, and even those need checking by hand before the word is used in public. The resolved ones are listed after them because the detector's error rate is part of the finding.
 
-**40 to review.**
+**42 to review.**
 
 ### Controlling for life-history traits in vertebrates reveals that effective population size does not affect mutation rate or genome size.
 
@@ -91,6 +91,75 @@ Only the unresolved ones are fabrication candidates, and even those need checkin
 > 29. Hammami, R., Sissons, M. Durum Wheat Products, Couscous. In Wheat Quality For Improving Processing And Human Health , (eds. Igrejas, G., Ikeda, T.M., Guzmán, C.) 347–367 ISBN 978-3-030-34162-6 (Sp
 
 - book chapter or thesis: outside Crossref coverage, not checkable
+
+---
+
+### Abnormal calcium release and delayed afterdepolarizations: A comparison of two mathematical models for human ventricular myocytes.
+
+- **Journal** PloS one · 2026 · PRESTIGE
+- **The paper itself** `MIXED` ai=0.19338526042421794
+- **Citations checked** 40 · statuses {'exist': 15, 'fake': 1, 'exist_with_issues': 20, 'unsure': 4}
+- <https://europepmc.org/article/PMC/PMC12893660>
+
+**Flagged, and we could not resolve it either:**
+
+> 3. Volders PG, Kulcśar A, Vos MA, Sipido KR, Wellens HJ, Lazzara R, et al. Similarities between early and delayed afterdepolarizations induced by isoproterenol in canine ventricular myocytes. Cardiova
+
+- verification: Crossref returned only weak matches
+- detector said: fake
+
+---
+
+### Alzheimer's disease prediction via an explainable CNN using genetic algorithm and SHAP values.
+
+- **Journal** PloS one · 2026 · PRESTIGE
+- **The paper itself** `MIXED` ai=0.15631880804695736
+- **Citations checked** 40 · statuses {'exist_with_issues': 14, 'exist': 17, 'fake': 7, 'unsure': 2}
+- <https://europepmc.org/article/PMC/PMC12810829>
+
+**Flagged, and we could not resolve it either:**
+
+> 34 Chun H , Kim S , Lee J . SHAP for local and global interpretation in multimodal Alzheimer’s disease prediction . Journal of Alzheimer’s Disease . 2024 ; 99 : 789 – 802 .
+
+- verification: Crossref returned only weak matches
+- detector said: fake
+
+**Flagged, and we could not resolve it either:**
+
+> 35 Zhang Q , Liu X , Wang T . SHAP-enhanced deep learning for three-class Alzheimer’s disease classification . Neuroinformatics . 2025 ; 23 : 123 – 35 .
+
+- verification: Crossref returned only weak matches
+- detector said: fake
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 29 Jha D , Kumar S . An explainable AI paradigm for Alzheimer’s diagnosis using deep transfer learning . Diagnostics . 2023 ; 13 : 945 . 38337861 10.3390/diagnostics14030345 PMC10855149
+
+- resolved on Crossref: 10.3390/diagnostics14030345 (An Explainable AI Paradigm for Alzheimer’s Diagnosis Using D)
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 30 Hakim M , Islam M , Hossain MA , Uddin MN , Baqui M , Hasan M . Explainable AI-based Alzheimer’s prediction and management using multimodal data . Cureus . 2024 ; 16 ( 7 ):e65833.
+
+- resolved on Crossref: 10.20944/preprints202203.0214.v1 (Explainable AI-based Alzheimer’s Prediction and Management U)
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 31 Nguyen T , Pham L , Tran D . Multimodal deep learning with explainable AI for Alzheimer’s disease diagnosis using MRI and genetic data . Journal of Alzheimer’s Disease . 2024 ; 98 : 567 – 80 .
+
+- resolved on Crossref: 10.3390/info16121058 (Beyond Accuracy: Explainable Deep Learning for Alzheimer’s D)
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 32 Zheng Y , Li W , Chen S . Graph neural networks with SHAP for Alzheimer’s disease classification using connectivity data . NeuroImage . 2025 ; 302 : 120876 .
+
+- resolved on Crossref: 10.1016/j.neuroimage.2025.121151 (Ensemble network using oblique coronal MRI for Alzheimer’s d)
+
+*Detector called this fake, but we resolved it. Not a fabrication:*
+
+> 36 Rezaeijo SM , Chegeni H . Explainable artificial intelligence in Alzheimer’s disease classification: a systematic review . Cognitive Computation . 2023 ; 15 : 1 – 22 .
+
+- resolved on Crossref: 10.1007/s12559-023-10192-x (Explainable Artificial Intelligence in Alzheimer’s Disease C)
 
 ---
 

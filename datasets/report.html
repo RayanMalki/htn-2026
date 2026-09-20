@@ -47,7 +47,7 @@ footer{border-top:1px solid var(--rule);margin-top:44px;padding-top:18px;color:v
 @media(max-width:700px){.sents li{grid-template-columns:36px 1fr;gap:8px}.barcell{width:35%}}
 </style>
 <div class="wrap">
-<p class="kicker">HypeCheck · 3,454 papers · 521 videos</p>
+<p class="kicker">HypeCheck · 3,456 papers · 521 videos</p>
 <h1>Machine-written text went from nothing to half the literature in three years.</h1>
 <p class="lede">Every paper and video below was scored by GPTZero. Sentences at or
 above 0.50 are shown in red. Nothing here is typed by hand: every figure is counted
@@ -55,7 +55,7 @@ from the raw scan data in this branch.</p>
 
 <h2>The trajectory</h2>
 <p class="lede">Share of published papers carrying machine-written text, by year.</p>
-<table><tr><td>2022</td><td class="n">0 / 35</td><td class="barcell"><span class="bar" style="width:0%"></span></td><td class="pct">0%</td></tr><tr><td>2023</td><td class="n">0 / 37</td><td class="barcell"><span class="bar" style="width:0%"></span></td><td class="pct">0%</td></tr><tr><td>2024</td><td class="n">264 / 1664</td><td class="barcell"><span class="bar" style="width:16%"></span></td><td class="pct">16%</td></tr><tr><td>2025</td><td class="n">119 / 334</td><td class="barcell"><span class="bar" style="width:36%"></span></td><td class="pct">36%</td></tr><tr><td>2026</td><td class="n">653 / 1384</td><td class="barcell"><span class="bar" style="width:47%"></span></td><td class="pct">47%</td></tr></table>
+<table><tr><td>2022</td><td class="n">0 / 35</td><td class="barcell"><span class="bar" style="width:0%"></span></td><td class="pct">0%</td></tr><tr><td>2023</td><td class="n">0 / 37</td><td class="barcell"><span class="bar" style="width:0%"></span></td><td class="pct">0%</td></tr><tr><td>2024</td><td class="n">265 / 1666</td><td class="barcell"><span class="bar" style="width:16%"></span></td><td class="pct">16%</td></tr><tr><td>2025</td><td class="n">119 / 334</td><td class="barcell"><span class="bar" style="width:36%"></span></td><td class="pct">36%</td></tr><tr><td>2026</td><td class="n">653 / 1384</td><td class="barcell"><span class="bar" style="width:47%"></span></td><td class="pct">47%</td></tr></table>
 <div class="note"><b>Why the early years matter.</b> Academic prose was just as
 formulaic in 2022, so if the detector simply flagged scholarly register those rows
 would light up too. They read zero across 72 papers. Something changed in 2024.</div>
@@ -78,16 +78,16 @@ to see which sentences are theirs.</p>
 
 <h2>The citation hunt came up empty</h2>
 <div class="note">
-<b>4,966 citations checked</b> across 134 papers. GPTZero called
-<b>63</b> fabricated. We resolved <b>58</b> of those ourselves on Crossref
-or ClinicalTrials.gov, leaving <b>5</b> unresolved.<br><br>
+<b>5,046 citations checked</b> across 136 papers. GPTZero called
+<b>70</b> fabricated. We resolved <b>63</b> of those ourselves on Crossref
+or ClinicalTrials.gov, leaving <b>7</b> unresolved.<br><br>
 Its <code>fake</code> label misfires on trial registrations, on book chapters, and on
 ordinary journal articles. The writing is being automated fast. The citation layer is
 still holding.
 </div>
 
 <h2>How it was made</h2>
-<table><tr><td><code>pure_ai</code></td><td class="pct">753</td></tr><tr><td><code>concatenated</code></td><td class="pct">228</td></tr><tr><td><code>polished</code></td><td class="pct">113</td></tr><tr><td><code>ai_paraphrased</code></td><td class="pct">12</td></tr></table>
+<table><tr><td><code>pure_ai</code></td><td class="pct">754</td></tr><tr><td><code>concatenated</code></td><td class="pct">228</td></tr><tr><td><code>polished</code></td><td class="pct">113</td></tr><tr><td><code>ai_paraphrased</code></td><td class="pct">12</td></tr></table>
 
 <footer>Detection by GPTZero. Papers from Europe PMC open access, full text only.
 Videos are YouTube Shorts, transcribed locally with whisper.cpp, so wording can differ

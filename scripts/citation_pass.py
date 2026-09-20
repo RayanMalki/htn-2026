@@ -48,7 +48,14 @@ def load():
 
 
 def rank(r):
-    """Machine-written first, prestige ahead of broad inside each group."""
+    """Machine-written first, prestige ahead of broad inside each group.
+
+    This is the cascade: detection says a paper carries machine-written text, and
+    that is what earns it the expensive checks. The citation scan and the claim
+    stance check both come back in the same response, so a hit on the text buys
+    the answer to "are its sources real" and "do those sources say what it claims"
+    at no extra cost.
+    """
     return (r.get("classification") == "HUMAN_ONLY", not r.get("prestige"), -r.get("year", 0))
 
 

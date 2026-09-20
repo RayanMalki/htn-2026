@@ -129,9 +129,13 @@ class Detector:
         try:
             async with asyncio.timeout(DEADLINE_SECONDS):
                 first = await self.predict(verbatim)
-                # Off by default. Measured across eight samples, stripping fillers never
-                # changed a classification, and Deezer (arXiv 2506.18488) report the same
-                # for transcript normalisation. The filler counts below stay either way.
+                # A second reading with speech fillers stripped. Across eight measured
+                # samples it never changed a classification, and Deezer (arXiv
+                # 2506.18488) report the same for transcript normalisation. It is on
+                # anyway: every one of those samples was unambiguous, clearly human or
+                # clearly machine, so the borderline case where a second reading could
+                # matter was never actually tested. It costs one call on a stage that
+                # already runs concurrently with the literature search.
                 second = None
                 if self.cfg.gptzero_filler_reading:
                     second = first if cleaned == verbatim else (

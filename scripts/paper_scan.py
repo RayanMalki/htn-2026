@@ -134,7 +134,14 @@ async def detect(client, text):
     return {"classification": d.get("document_classification"), "ai_prob": probs.get("ai"),
             "mixed_prob": probs.get("mixed"), "confidence": d.get("confidence_category"),
             "subclass": sub.get("predicted_class"),
-            "scripted_share": d.get("average_generated_prob")}
+            "scripted_share": d.get("average_generated_prob"),
+            # Every sentence with its score, always. A verdict without the
+            # highlighting behind it cannot be checked by anyone later.
+            "sentences": [{"text": (x.get("sentence") or "")[:500], "p": x.get("generated_prob")}
+                          for x in (d.get("sentences") or [])][:300],
+            "paragraphs": [{"index": i, "p": x.get("completely_generated_prob"),
+                            "sentences": x.get("num_sentences")}
+                           for i, x in enumerate(d.get("paragraphs") or [])][:60]}
 
 
 async def really_missing(client, text):
