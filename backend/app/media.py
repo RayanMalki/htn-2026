@@ -20,13 +20,16 @@ class MediaError(Exception):
     pass
 
 
-async def run_process(*args: str, timeout: float):
+async def run_process(*args: str, timeout: float | None = None):
     proc = await asyncio.create_subprocess_exec(
         *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
         start_new_session=True,
     )
     try:
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        if timeout is None:
+            stdout, _ = await proc.communicate()
+        else:
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
     except BaseException:
         # Playwright starts Chromium in a separate process group. Kill the complete
         # descendant tree as well as the renderer group so cancellation cannot orphan it.

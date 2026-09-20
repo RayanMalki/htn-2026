@@ -1,8 +1,8 @@
-# Staged fact-check videos (renderer version 3)
+# Staged fact-check videos (renderer version 4)
 
 The app automatically renders a complete live analysis when `VIDEO_ENABLED=true`.
 It selects the earliest contradicted claim, otherwise the earliest assessed claim.
-The finished video targets 45–60 seconds and shows only that claim. The app retains
+The finished video targets 45–120 seconds and shows only that claim. The app retains
 all other assessments. Mock, no-claim, incomplete, and invalid-citation analyses
 cannot produce medical videos.
 
@@ -20,14 +20,15 @@ saved verdict, and all its limitations remain in the downloadable manifest.
 The script does not infer individual study stances from the overall verdict. Counts
 refer to unique cited papers and health summaries separately. Optional excerpt shots
 are removed before any essential wording is dropped. If essential narration exceeds
-60 seconds, rendering fails with `script_budget_exceeded`; it never clips speech or
+120 seconds, rendering fails with `script_budget_exceeded`; it never clips speech or
 silently removes limitations. Shorter scripts leave time to read the closing card.
 
 ## Configuration
 
 - `OPENAI_API_KEY`, `TTS_MODEL=gpt-4o-mini-tts`, `TTS_VOICE=coral`: narration.
 - `VIDEO_ENABLED=true`: automatic generation for live analyses.
-- `VIDEO_TIMEOUT_SECONDS=150`: total rendering deadline, including subprocesses.
+- Rendering has no overall deadline. Provider calls and alignment retain bounded waits.
+- `VIDEO_ENCODER_PRESET=veryfast`, `VIDEO_ENCODER_THREADS=2`: benchmarkable encoder settings.
 - `WHISPER_MODEL=/opt/whisper/ggml-base.en.bin`: local alignment model.
 - `HYPECHECK_PLAYWRIGHT_DIR`: optional path to preinstalled Playwright.
 - `PLAYWRIGHT_BROWSERS_PATH`: browser installation location.
@@ -80,5 +81,30 @@ latest completed artifact. The bundled blue-light JSON is a synthetic contract f
 not verified medical evidence or a live acceptance case.
 
 Sound effects default on. `--brainrot` enables split-screen; `--gameplay FILE` supplies
-a licensed local clip. Without it, a procedural pattern is used. Captions are applied
-last so they stay at the split-screen seam. Social publishing is not implemented.
+a licensed local clip. Without it, a procedural pattern is used. ASS captions are applied after layout in the combined encode so they stay at the split-screen seam. Social publishing is not implemented.
+
+
+## Performance pipeline (version 4)
+
+Narration requests have concurrency two; local word alignment remains serial.
+Browser card layout overlaps narration. The voice cache is retained across visual
+changes. Narration durations and word timings are both divided by the 1.25 playback
+rate; original source audio is not accelerated. Complete explanations and every
+limitation are retained rather than truncating narration at a word count.
+
+Composition retains integrity-keyed scene clips for recovery, then performs one
+final encode containing transitions, optional split-screen, ASS captions, disclosure,
+and sound mixing. The post checkpoint is a compatibility bookkeeping stage; captions
+only publishes the final MP4 and downloadable VTT. No caption PNGs or separate
+caption video encode are used in production. Legacy helpers remain for comparisons.
+
+Stage fingerprints hash their source dependencies. The API checks the full renderer
+identity before returning a cached ready result. Visual changes invalidate layout and
+encoding, not narration. A changed scene gets a new clip key; interrupted unchanged
+scene rendering can resume. The manifest records request, alignment, scene encoding,
+final encoding and aggregate stage durations. Nested durations must not be summed
+with their parent stages. Cached runs explicitly list reused stages.
+
+`scripts/benchmark_video.py` produces isolated fresh audio/render caches with one or
+more concurrent runs from a saved live analysis. These are rendering benchmarks, not
+fresh research or intake benchmarks. Keep all generated output outside Git.

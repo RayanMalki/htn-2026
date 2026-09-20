@@ -11,7 +11,7 @@ Work from the repository containing this file. Do not use directories recorded i
   must remain visibly labeled. Never publish a mock or incomplete medical video.
 - One staged renderer, invoked through Celery using `app.video.render_video` and
   `result.video`. Automatic generation, manual generation and retries share it.
-- One selected claim per 45–60-second video: earliest contradicted, otherwise earliest
+- One selected claim per 45–120-second video: earliest contradicted, otherwise earliest
   assessed. Preserve the saved verdict, exact citations and every limitation.
 - OpenAI narration, local audio alignment, labeled source excerpts, caption/source
   downloads, durable stage recovery. Existing version-2 artifacts remain readable.

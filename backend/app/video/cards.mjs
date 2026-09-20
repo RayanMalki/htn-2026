@@ -60,7 +60,7 @@ function baseCss(W, H) {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; overflow-wrap: anywhere; }
     html, body { width: ${W}px; height: ${H}px; overflow: hidden; }
-    body { font-family: "DejaVu Sans", Arial, sans-serif; color: #1b1a17; background: #f4efe6;
+  body { font-family: "DejaVu Sans", Arial, sans-serif; color: #1b1a17; background: #f4efe6;
            -webkit-font-smoothing: antialiased; }
     .serif { font-family: "DejaVu Serif", Georgia, serif; }
     .eyebrow { font-size: 15px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #6d6558; }

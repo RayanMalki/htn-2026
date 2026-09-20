@@ -57,7 +57,7 @@ async def render_video(case):
         args.append('--brainrot')
     if not options.get('sfx', True):
         args.append('--no-sfx')
-    task = asyncio.create_task(run_process(*args, timeout=cfg.video_timeout_seconds))
+    task = asyncio.create_task(run_process(*args, timeout=None))
     last = None
     try:
         while not task.done():

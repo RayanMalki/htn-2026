@@ -1,5 +1,6 @@
 import asyncio
 import shutil
+import threading
 from datetime import timedelta
 
 import httpx
@@ -14,12 +15,24 @@ from app.queue import celery, enqueue, redis_client
 
 @celery.task(name="app.tasks.process_case")
 def process_case(case_id: str):
-    lock = redis_client().lock(f"processing:{case_id}", timeout=330, blocking=False)
+    lock = redis_client().lock(f"processing:{case_id}", timeout=180, blocking=False, thread_local=False)
     if not lock.acquire(blocking=False):
         return
+    stopped = threading.Event()
+    def renew():
+        while not stopped.wait(30):
+            try:
+                lock.extend(180, replace_ttl=True)
+            except Exception as exc:
+                sentry_sdk.capture_exception(exc)
+                return
+    heartbeat = threading.Thread(target=renew, daemon=True)
+    heartbeat.start()
     try:
         asyncio.run(run_case(case_id))
     finally:
+        stopped.set()
+        heartbeat.join(timeout=3)
         try:
             lock.release()
         except Exception:

@@ -308,7 +308,8 @@ def queue_retry(case_id: str, request: Request, render_options: dict | None = No
                 available = True
             except HTTPException:
                 available = False
-            if available and (render_options is None or current.get('version') == VERSION):
+            from app.video.render import renderer_identity
+            if available and current.get('version') == VERSION and current.get('renderer_identity') == renderer_identity():
                 return case
         acquired = lock.acquire(blocking=False)
         if not acquired or case['status'] not in {'incomplete', 'complete'}:

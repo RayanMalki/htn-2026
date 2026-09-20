@@ -13,7 +13,11 @@ card stage rendered at double resolution so the push has pixels to spare.
 
 from __future__ import annotations
 
+import hashlib
+import json
+import os
 import subprocess
+import time
 from pathlib import Path
 
 from app.video.plan import RenderPlan, Scene
@@ -23,7 +27,8 @@ from app.video.runtime import ff as _ff
 T = 0.3            # seconds a transition takes, centred on the scene boundary
 T_NONE = 0.04      # "none" still goes through xfade, as a cut this short
 ZOOM = 1.06        # how far the paper push-in goes
-ENC = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p", "-threads", "2"]
+ENC = ["-c:v", "libx264", "-preset", os.environ.get('VIDEO_ENCODER_PRESET', 'veryfast'),
+       "-crf", "20", "-pix_fmt", "yuv420p", "-threads", os.environ.get('VIDEO_ENCODER_THREADS', '2')]
 
 
 
@@ -42,7 +47,7 @@ def probe_duration(path: str | Path) -> float:
 
 
 def _still(png: str | Path, seconds: float, fps: int) -> list[str]:
-    return ["-loop", "1", "-framerate", str(fps), "-t", f"{seconds:.3f}", "-i", str(png)]
+    return ["-loop", "1", "-framerate", "1", "-t", f"{seconds:.3f}", "-i", str(png)]
 
 
 def _timing(plan: RenderPlan) -> tuple[list[float], list[float], list[float]]:
@@ -71,7 +76,11 @@ def _t_for(name: str) -> float:
 
 def _render_scene(plan: RenderPlan, scene: Scene, length: float, out_dir: Path, idx: int) -> Path:
     W, H, fps = plan.width, plan.height, plan.fps
-    out = out_dir / f"scene_{idx}.mp4"
+    identity = hashlib.sha256(json.dumps([scene.model_dump(), length, W, H, fps, ENC,
+        hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        hashlib.sha256(Path(scene.card_png).read_bytes()).hexdigest() if scene.card_png else None,
+        plan.source_clip, plan.source_start], sort_keys=True).encode()).hexdigest()[:16]
+    out = out_dir / f"scene_{idx}_{identity}.mp4"
     if valid_media(out, video=True, duration=length, size=(W, H)):
         return out
     if scene.kind == "clip" and plan.source_clip and Path(plan.source_clip).exists():
@@ -98,7 +107,7 @@ def _render_scene(plan: RenderPlan, scene: Scene, length: float, out_dir: Path, 
               f":y='clip({cy:.1f}-ih/zoom/2,0,ih-ih/zoom)':d=1:s={W}x{H}:fps={fps}")
         _ff([*_still(scene.card_png, length, fps), "-vf", vf, "-t", f"{length:.3f}", *ENC, str(out)])
         return out
-    vf = f"scale={W}:{H}" if scale != 1 else "null"
+    vf = f"fps={fps},scale={W}:{H}" if scale != 1 else f"fps={fps}"
     _ff([*_still(scene.card_png, length, fps), "-vf", vf, "-t", f"{length:.3f}", *ENC, str(out)])
     return out
 
@@ -165,7 +174,7 @@ def _caption_concat(pages: list[dict], plan: RenderPlan, out_dir: Path, total: f
     return path
 
 
-def compose(plan: RenderPlan, out_dir: Path, caption_pages: list[dict] | None = None) -> RenderPlan:
+def compose(plan: RenderPlan, out_dir: Path, caption_pages: list[dict] | None = None, *, final=False) -> RenderPlan:
     """Render every scene, join them, overlay captions, mux the voice. Sets and
     returns plan.output_path."""
     if not plan.scenes:
@@ -174,8 +183,11 @@ def compose(plan: RenderPlan, out_dir: Path, caption_pages: list[dict] | None = 
     out_dir.mkdir(parents=True, exist_ok=True)
     d, lengths, offsets = _timing(plan)
     total = sum(d)
+    scene_started = time.monotonic()
     clips = [_render_scene(plan, s, lengths[i], out_dir, i) for i, s in enumerate(plan.scenes)]
 
+    plan.timings['scene_encoding'] = round(time.monotonic() - scene_started, 3)
+    final_started = time.monotonic()
     args: list[str] = []
     for c in clips:
         args += ["-i", str(c)]
@@ -198,18 +210,51 @@ def compose(plan: RenderPlan, out_dir: Path, caption_pages: list[dict] | None = 
         filters.append(f"[{cap_idx}:v]fps={plan.fps},format=rgba[cap]")
         filters.append(f"[{video}][cap]overlay=0:0:eof_action=pass[vcap]")
         video = "vcap"
-    filters.append(f"[{video}]format=yuv420p[out]")
-
     audio_idx = n + (1 if concat else 0)
     if plan.voice and Path(plan.voice.audio_path).exists():
         args += ["-i", str(plan.voice.audio_path)]
     else:
         args += ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono"]
 
+    audio = f'{audio_idx}:a'
+    if final:
+        from app.video import captions, post
+        next_idx = audio_idx + 1
+        if plan.brainrot:
+            bot_h = plan.height - post.TOP_H
+            if plan.gameplay_path and Path(plan.gameplay_path).exists():
+                args += ['-stream_loop', '-1', '-i', plan.gameplay_path]
+            else:
+                args += ['-f', 'lavfi', '-i', f'mandelbrot=s={plan.width}x{bot_h}:rate={plan.fps}']
+            filters += [f'[{video}]scale={plan.width}:{post.TOP_H}:force_original_aspect_ratio=decrease,'
+                        f'pad={plan.width}:{post.TOP_H}:(ow-iw)/2:(oh-ih)/2[top]',
+                        f'[{next_idx}:v]fps={plan.fps},scale={plan.width}:{bot_h}:force_original_aspect_ratio=increase,'
+                        f'crop={plan.width}:{bot_h},setsar=1[bottom]',
+                        '[top][bottom]vstack=inputs=2[stacked]']
+            video = 'stacked'
+            next_idx += 1
+        if plan.sfx:
+            sounds = post.synth_sfx(out_dir / 'sfx')
+            labels = []
+            for i, (name, at) in enumerate(post.cues(plan)):
+                args += ['-i', str(sounds[name])]
+                filters.append(f'[{next_idx}:a]adelay={round(at * 1000)}:all=1,volume={post.SFX_GAIN[name]}[sfx{i}]')
+                labels.append(f'[sfx{i}]')
+                next_idx += 1
+            if labels:
+                filters.append(f'[{audio}]{"".join(labels)}amix=inputs={len(labels)+1}:normalize=0:dropout_transition=0[mixed]')
+                audio = '[mixed]'
+        ass = captions.write_ass(plan, out_dir / 'captions.ass')
+        escaped = str(ass).replace('\\', '\\\\').replace(':', '\\:').replace("'", "'\\''")
+        filters.append(f"[{video}]subtitles=filename='{escaped}'[subtitled]")
+        video = 'subtitled'
+    filters.append(f"[{video}]format=yuv420p[out]")
+
     out = out_dir / "rebuttal.mp4"
-    _ff([*args, "-filter_complex", ";".join(filters), "-map", "[out]", "-map", f"{audio_idx}:a",
+    _ff([*args, "-filter_complex", ";".join(filters), "-map", "[out]", "-map", audio,
          "-t", f"{total:.3f}", *ENC, "-r", str(plan.fps), "-c:a", "aac", "-b:a", "160k",
          "-movflags", "+faststart", str(out)])
+    plan.timings['final_encoding'] = round(time.monotonic() - final_started, 3)
     plan.output_path = str(out)
     return plan
 

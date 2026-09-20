@@ -93,3 +93,44 @@ def pages(plan: RenderPlan) -> list[dict]:
                    "text": out[-2]["text"] + " " + out[-1]["text"]}
         out.pop()
     return out
+
+
+def write_ass(plan: RenderPlan, path):
+    """Timed fragments burned by libass in the final encode, without PNG pages."""
+    def stamp(t):
+        cs = max(0, round(t * 100))
+        return f'{cs // 360000}:{cs // 6000 % 60:02}:{cs // 100 % 60:02}.{cs % 100:02}'
+
+    def escape(text):
+        # Prevent source text from becoming ASS override commands.
+        return text.replace('\\', '＼').replace('{', '｛').replace('}', '｝').replace('\n', ' ')
+
+    header = f'''[Script Info]
+ScriptType: v4.00+
+PlayResX: {plan.width}
+PlayResY: {plan.height}
+WrapStyle: 0
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Caption,DejaVu Sans,46,&H00FFFFFF,&H004AD5FF,&H00201614,&H80201614,-1,0,0,0,100,100,0,0,1,3,1,5,36,110,0,1
+Style: Disclosure,DejaVu Sans,13,&H00FFFFFF,&H00FFFFFF,&H80201614,&H80201614,0,0,0,0,100,100,0,0,3,4,0,9,28,28,28,1
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+'''
+    events = [f'Dialogue: 1,0:00:00.00,{stamp(plan.duration)},Disclosure,,0,0,0,,AI-generated voice']
+    y = 760 if plan.brainrot else round(plan.height * .67)
+    for page in pages(plan):
+        text = escape(page['text'])
+        words = text.split()
+        # Emphasize one substantive word without changing or dropping the quote.
+        if words:
+            i = max(range(len(words)), key=lambda i: len(words[i]))
+            words[i] = r'{\c&H4AD5FF&}' + words[i] + r'{\c&HFFFFFF&}'
+        overlay = f'{{\\pos({round(plan.width * .45)},{y})\\fad(45,45)}}' + ' '.join(words)
+        events.append(f"Dialogue: 0,{stamp(page['start'])},{stamp(page['end'])},Caption,,0,0,0,,{overlay}")
+    if plan.source_clip and plan.source_transcript:
+        # Source timestamps are coarse; keep this explicitly separate from aligned narration.
+        text = escape(plan.source_transcript)
+        events.append(f'Dialogue: 0,0:00:00.00,{stamp(plan.source_duration)},Caption,,0,0,0,,{{\\pos({round(plan.width * .45)},{y})}}{text}')
+    path.write_text(header + '\n'.join(events) + '\n')
+    return path

@@ -1,6 +1,6 @@
 FROM node:22-bookworm-slim AS node
 FROM debian:bookworm-slim AS whisper
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential cmake curl ca-certificates && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential cmake curl ca-certificates git && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 # Immutable whisper.cpp v1.7.6 commit and immutable base.en model repository revision.
 RUN curl -fsSL https://github.com/ggml-org/whisper.cpp/archive/a8d002cfd879315632a579e73f0148d06959de36.tar.gz | tar xz --strip-components=1 \
