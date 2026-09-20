@@ -1392,3 +1392,23 @@ queue: 503 videos already discovered
 [123/150] HUMAN_ONLY  ai=0.000  TaiwanPlus News    -
 [124/150] HUMAN_ONLY  ai=0.021  Plastic Soup Found -
 [125/150] HUMAN_ONLY  ai=0.000  Spiritful Healing  -
+[126/150] MIXED       ai=0.341  Finite Future      Everything in threes, Overblown importance
+[127/150] HUMAN_ONLY  ai=0.000  News Direct        -
+[128/150] HUMAN_ONLY  ai=0.000  Arirang News       -
+[129/150] HUMAN_ONLY  ai=0.000  MD network | TV Ch -
+[130/150] skip Y-_FIxqlyKU (transcript too short)
+[131/150] skip c1EBzmZzHrk (transcript too short)
+[132/150] HUMAN_ONLY  ai=0.022  Let Them Talk Beau -
+[133/150] HUMAN_ONLY  ai=0.000  KSAT 12            Everything in threes
+[134/150] HUMAN_ONLY  ai=0.000  CBS New York       -
+[135/150] HUMAN_ONLY  ai=0.000  Rita Savoia        -
+[136/150] HUMAN_ONLY  ai=0.036  Natural Health Lis Everything in threes, Sales-pitch tone
+[137/150] HUMAN_ONLY  ai=0.000  CanXida            -
+[138/150] HUMAN_ONLY  ai=0.000  Addictive Wellness -
+[139/150] HUMAN_ONLY  ai=0.000  CanXida            -
+[140/150] skip 4b4yIgPfaXI (transcript too short)
+[141/150] HUMAN_ONLY  ai=0.002  CanXida Customer Q -
+[142/150] HUMAN_ONLY  ai=0.000  CanXida            -
+[143/150] HUMAN_ONLY  ai=0.000  Dr. Michael Ruscio -
+[144/150] skip bPn0U_uS9IU (transcript too short)
+[145/150] HUMAN_ONLY  ai=0.000  Agape Nutrition    -
