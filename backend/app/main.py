@@ -14,7 +14,7 @@ from sqlalchemy import and_, func, or_, select, text
 from app.config import settings
 from app.db import Case, Event, init_db, now, read_case, session, update_case
 from app.media import MAX_BYTES
-from app.observability import configure_sentry
+from app.observability import configure_sentry, log_event
 from app.queue import enqueue, redis_client
 from app.schemas import CaseCreate
 from app.search import ElasticSearch
@@ -273,6 +273,67 @@ def controlled_failure(authorization: str | None = Header(default=None)):
     except RuntimeError as exc:
         event_id = sentry_sdk.capture_exception(exc)
     return JSONResponse({"injected": True, "sentry_event_id": event_id}, status_code=503)
+
+
+@app.post("/api/admin/sentry-demo")
+def sentry_demo(authorization: str | None = Header(default=None)):
+    """Emit a bounded, data-free event set for a Sentry product demo."""
+    admin(authorization)
+    cfg = settings()
+    if not cfg.sentry_demo_enabled or not cfg.sentry_dsn:
+        raise HTTPException(404, "Sentry demo is disabled")
+
+    sentry_sdk.set_tag("sentry_demo", "true")
+    error_event_id = None
+    warning_event_id = None
+    with sentry_sdk.start_transaction(op="demo", name="sentry.demo") as transaction:
+        transaction.set_data("demo.products", "errors,traces,profiles,logs")
+        with sentry_sdk.start_span(op="demo.failure", name="simulated dependency failure") as span:
+            span.set_data("demo.step", "failure")
+            try:
+                raise RuntimeError("Sentry showcase failure: simulated dependency outage")
+            except RuntimeError as exc:
+                error_event_id = sentry_sdk.capture_exception(exc)
+                span.set_status("internal_error")
+
+        warning_event_id = sentry_sdk.capture_message(
+            "Sentry showcase warning: degraded dependency", level="warning"
+        )
+        log_event("Sentry showcase failure path", stage="demo", case_status="failed",
+                  model_mode=cfg.model_mode, provider=cfg.model_provider)
+        with sentry_sdk.start_span(op="gen_ai.request", name="Sentry showcase AI request") as ai_span:
+            ai_span.set_data("gen_ai.operation.name", "demo")
+            ai_span.set_data("gen_ai.request.model", "sentry-showcase-fixture")
+            ai_span.set_data("gen_ai.system", "demo")
+            ai_span.set_data("gen_ai.usage.input_tokens", 0)
+            ai_span.set_data("gen_ai.usage.output_tokens", 0)
+            ai_span.set_data("gen_ai.usage.total_tokens", 0)
+            ai_span.set_data("gen_ai.response.finish_reasons", ["STOP"])
+
+        # Keep the transaction alive briefly so trace-lifecycle profiling can sample work.
+        checksum = 0
+        for value in range(150_000):
+            checksum = (checksum + value * value) % 1_000_003
+        transaction.set_data("demo.checksum", checksum)
+        transaction.set_status("internal_error")
+        trace_id = transaction.trace_id
+
+    sentry_sdk.flush(timeout=2)
+    return JSONResponse({
+        "demo": True,
+        "sentry_event_id": error_event_id,
+        "warning_event_id": warning_event_id,
+        "trace_id": trace_id,
+        "products": {
+            "errors": "captured exception and warning",
+            "traces": "transaction with failure span",
+            "profiles": "eligible when the configured profile sampler selects this trace",
+            "logs": "structured failure log emitted",
+            "ai_monitoring": "gen_ai.request span with data-free fixture metadata",
+            "session_replay": "browser-only; trigger from the React app",
+            "uptime_monitoring": "scheduled by Celery Beat, not by this request",
+        },
+    }, 503)
 
 
 @app.post("/api/cases/{case_id}/retry", status_code=202)

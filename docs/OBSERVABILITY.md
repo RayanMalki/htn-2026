@@ -112,6 +112,23 @@ Limitations (cache state, sample count, mock/live):
 
 No real Sentry finding is claimed until a connected workspace receives a real run.
 
+## Sentry product showcase endpoint
+
+For a bounded sponsor demo, set `SENTRY_DEMO_ENABLED=true` alongside the server
+`SENTRY_DSN` and `ADMIN_TOKEN`, then call:
+
+```sh
+curl -i -X POST https://YOUR_DOMAIN/api/admin/sentry-demo \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+The endpoint intentionally returns `503` and emits one data-free exception, warning,
+structured log, trace transaction, failure span, synthetic `gen_ai.request` span, and short profiling candidate. The
+JSON response includes the event IDs and trace ID to paste into Sentry. It does not
+generate a browser Session Replay or a missed uptime check-in: open the React app to
+exercise Replay, while the existing Celery Beat task owns the `hypecheck-api-uptime`
+monitor. Keep this endpoint disabled outside a controlled demo.
+
 Official references: [Python tracing](https://docs.sentry.io/platforms/python/tracing/), [Python logs](https://docs.sentry.io/platforms/python/logs/), [Python profiling](https://docs.sentry.io/platforms/python/profiling/), [React Session Replay](https://docs.sentry.io/platforms/javascript/guides/react/session-replay/), [React profiling](https://docs.sentry.io/platforms/javascript/guides/react/profiling/), [Uptime Monitoring](https://docs.sentry.io/product/uptime-monitoring/), and [LLM monitoring](https://docs.sentry.io/product/llm-monitoring/getting-started/).
 
 ## Staged renderer

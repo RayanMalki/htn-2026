@@ -22,6 +22,7 @@ def isolated(tmp_path, monkeypatch):
     monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "100")
     monkeypatch.setenv("ADMIN_TOKEN", "test-admin")
     monkeypatch.setenv("ENABLE_FAILURE_INJECTION", "false")
+    monkeypatch.setenv("SENTRY_DEMO_ENABLED", "false")
     from app.config import settings
     from app.db import engine, init_db
     settings.cache_clear()
