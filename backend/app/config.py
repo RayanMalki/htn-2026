@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     release: str = "hypecheck-local"
     admin_token: str = ""
     enable_failure_injection: bool = False
+    sentry_demo_enabled: bool = False
     max_active_cases: int = 10
     rate_limit_per_minute: int = 6
     case_timeout_seconds: int = 120
