@@ -18,6 +18,7 @@ OUT = Path("frontend/src/investigation.json")
 FOLLOWUP = "channel-followup"
 THRESHOLD = 0.5
 SENTENCES_SHOWN = 10
+FRAGMENT = 25
 
 
 def load(path, key):
@@ -64,7 +65,17 @@ def sentences(rows):
     do. A mixed one is only interesting at the seam, where flagged and clean lines
     sit next to each other, so the window slides to wherever that mix is richest.
     """
-    scored = [{"text": clean(s.get("text")), "p": round(s.get("p") or 0, 2)} for s in rows or []]
+    scored = []
+    for s in rows or []:
+        text = clean(s.get("text"))
+        # GPTZero splits on full stops, so "(e.g., ref. 12)." leaves "12 )." behind as
+        # its own sentence with its own score. A score on five characters is noise, and
+        # on screen it reads as if two characters were judged. Fold each fragment back
+        # into the sentence it was cut from, which keeps that sentence's score.
+        if scored and (len(text) < FRAGMENT or len(text.split()) < 3):
+            scored[-1]["text"] = clean(scored[-1]["text"] + " " + text)
+            continue
+        scored.append({"text": text, "p": round(s.get("p") or 0, 2)})
     best, best_mix = 0, -1
     for i in range(max(1, len(scored) - SENTENCES_SHOWN + 1)):
         window = scored[i:i + SENTENCES_SHOWN]

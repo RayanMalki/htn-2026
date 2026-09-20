@@ -67,12 +67,8 @@
      "p": 0.3
     },
     {
-     "text": "11 ) and being often cited as a general principle of genome evolution (e.g., ref.",
+     "text": "11 ) and being often cited as a general principle of genome evolution (e.g., ref. 12 ).",
      "p": 0.16
-    },
-    {
-     "text": "12 ).",
-     "p": 0.26
     },
     {
      "text": "N e is the effective population size.",
@@ -81,11 +77,15 @@
     {
      "text": "μ is the rate at which new mutations arise in the germline per base per generation.",
      "p": 0.25
+    },
+    {
+     "text": "GS refers to genome size.",
+     "p": 0.25
     }
    ],
    "offset": 3,
-   "total": 84,
-   "flagged": 76
+   "total": 82,
+   "flagged": 75
   },
   {
    "pmcid": "PMC12920147",
@@ -396,24 +396,16 @@
       "p": 0.04
      },
      {
-      "text": "Certainly is a list of points explaining how to drink apple cider vinegar for weight loss.",
+      "text": "Certainly is a list of points explaining how to drink apple cider vinegar for weight loss. First, dilution.",
       "p": 0.04
-     },
-     {
-      "text": "First, dilution.",
-      "p": 0.3
      },
      {
       "text": "Mix 1 to tablespoon of apple cider vinegar with 8 to 16 ounces of water.",
       "p": 0.38
      },
      {
-      "text": "Using more water can help to reduce the acidity.",
+      "text": "Using more water can help to reduce the acidity. Frequency.",
       "p": 0.59
-     },
-     {
-      "text": "Frequency.",
-      "p": 0.73
      },
      {
       "text": "Start with once a day and gradually increase if desired.",
@@ -428,13 +420,21 @@
       "p": 0.96
      },
      {
-      "text": "However, avoid drinking it on an empty stomach as it might lead to discomfort.",
+      "text": "However, avoid drinking it on an empty stomach as it might lead to discomfort. 4. Avoid pure ACV.",
       "p": 0.95
+     },
+     {
+      "text": "It can be too acidic and harmful to your teeth, throat and stomach lining.",
+      "p": 0.93
+     },
+     {
+      "text": "5. Combined with a healthy lifestyle.",
+      "p": 0.94
      }
     ],
     "offset": 0,
-    "total": 18,
-    "flagged": 14
+    "total": 14,
+    "flagged": 11
    },
    {
     "title": "“Lose Belly Fat Naturally – Metabolically Lean Review",
