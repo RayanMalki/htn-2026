@@ -1333,3 +1333,24 @@ queue: 503 videos already discovered
 [64/150] HUMAN_ONLY  ai=0.000  Dr. Ford Brewer MD -
 [65/150] AI_ONLY     ai=1.000  GENAI              Unnecessary caveats
 [66/150] HUMAN_ONLY  ai=0.000  Kristina Hess      -
+[67/150] HUMAN_ONLY  ai=0.000  Dr. E the NP with  -
+[68/150] skip Bgbe9UGiqqs (transcript too short)
+[69/150] AI_ONLY     ai=1.000  CellTimer          Overblown importance, Phantom experts
+[70/150] HUMAN_ONLY  ai=0.000  The CTC            -
+[71/150] skip V3Fs_R1wJn4 (transcript too short)
+[72/150] HUMAN_ONLY  ai=0.000  DietTube India     -
+[73/150] HUMAN_ONLY  ai=0.000  Fuel Health & Well -
+[74/150] HUMAN_ONLY  ai=0.000  Sleep Doctor Glass -
+[75/150] HUMAN_ONLY  ai=0.000  Dillard Berger     -
+[76/150] HUMAN_ONLY  ai=0.000  Upgraded Life Chir -
+[77/150] HUMAN_ONLY  ai=0.000  WTI                -
+[78/150] skip yC5M3xwdMyA (transcript too short)
+[79/150] skip TrPBhnYXn6U (transcript too short)
+[80/150] HUMAN_ONLY  ai=0.000  Jeffrey Tran, MD   -
+[81/150] HUMAN_ONLY  ai=0.000  Benicci            -
+[82/150] HUMAN_ONLY  ai=0.000  The Blue Light Die -
+[83/150] HUMAN_ONLY  ai=0.000  WTI                -
+[84/150] HUMAN_ONLY  ai=0.000  The Blue Light Die -
+[85/150] HUMAN_ONLY  ai=0.000  Adam’s Simple & Fa -
+[86/150] HUMAN_ONLY  ai=0.000  FIRST CLASS AMATEU -
+[87/150] HUMAN_ONLY  ai=0.000  Suzy Valentin      -
