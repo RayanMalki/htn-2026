@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, type FormEvent } from 'react';
 import { api, finished, seconds } from './api';
 import Authorship from './Authorship';
 import Evidence, { safeSource } from './Evidence';
 import type { Case, ClaimResult } from './types';
 import { ClaimCarousel, Overview, Scanner, ShareResult, Sheet } from './MedbotUI';
+
+// The scan findings carry their own data file, so they load after the intake is usable.
+const Investigation = lazy(() => import('./Investigation'));
 
 const stages = ['queued', 'downloading', 'transcribing', 'researching', 'judging', 'rendering', 'complete'];
 const labels: Record<string, string> = { queued: 'Queued', downloading: 'Reading the video', rendering: 'Creating your video', transcribing: 'Finding spoken claims', researching: 'Searching the literature', judging: 'Checking the evidence', complete: 'Analysis complete', awaiting_upload: 'Video upload needed', incomplete: 'Analysis incomplete', no_claims: 'No spoken medical claims' };
@@ -228,7 +231,8 @@ export default function App() {
     </section>
     {connection ? <p className="notice" role="status">{connection}</p> : null}
     {caseId && !caseValue && !error ? <p role="status">Opening your saved check…</p> : null}
-    {caseValue ? <CaseView key={caseValue.id} value={caseValue} onUpdate={updateCase} /> : null}</main>
+    {caseValue ? <CaseView key={caseValue.id} value={caseValue} onUpdate={updateCase} /> : null}
+    {!caseValue && !caseId ? <Suspense fallback={null}><Investigation /></Suspense> : null}</main>
     <p className="medical-disclaimer">For understanding health research, not diagnosis or treatment. Results can be wrong. Talk to a qualified health professional about medical decisions.</p>
     <footer className="site-footer"><b className="footer-brand">medbot<span>.</span></b><span>A research companion.<br />Not personal medical advice.</span><div><span>Search by <b>Elasticsearch</b></span><span>Traced with <b>Sentry</b></span></div></footer></div>
     <div className="reading-progress" aria-hidden="true"><span style={{ transform: `scaleY(${scrollProgress})` }} /></div>

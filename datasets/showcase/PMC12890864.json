@@ -1,0 +1,417 @@
+{
+ "pmcid": "PMC12890864",
+ "title": "Controlling for life-history traits in vertebrates reveals that effective population size does not affect mutation rate or genome size.",
+ "journal": "Proceedings of the National Academy of Sciences of the United States of America",
+ "year": 2026,
+ "prestige": true,
+ "url": "https://europepmc.org/article/PMC/PMC12890864",
+ "classification": "AI_ONLY",
+ "ai_probability": 0.9252338771524451,
+ "human_probability": 0,
+ "mixed_probability": 0.0747661228475549,
+ "confidence": "high",
+ "summary": "Our detector is highly confident that the text is written by AI.",
+ "subclass": "pure_ai",
+ "flagged_share": 1,
+ "detector_version": "2026-09-13-base",
+ "sentences": [
+  {
+   "text": "Understanding the evolution of germline mutation rates ( \u03bc ) and genome sizes (GS) is fundamental to evolutionary genetics, as together they capture both the rate at which new genetic changes arise and the accumulation of DNA over time.",
+   "p": 0.9998388622917732
+  },
+  {
+   "text": "While \u03bc governs the supply of heritable variation and thus the tempo of molecular evolution ( 1 , 2 ), GS reflects the long-term balance between mutational input and DNA loss ( 3 ).",
+   "p": 0.9998568159227583
+  },
+  {
+   "text": "Species vary enormously in both traits, spanning several orders of magnitude across eukaryotes, but the evolutionary forces underlying this variation remain debated.",
+   "p": 0.9999085042808198
+  },
+  {
+   "text": "Two influential hypotheses propose that effective population size ( N e ) is central to the evolution of both GS and \u03bc .",
+   "p": 0.9989862305132069
+  },
+  {
+   "text": "The drift-barrier hypothesis (DBH) claims that natural selection minimizes \u03bc until improvements in replication fidelity become too subtle to overcome genetic drift ( 4 \u2013 6 ).",
+   "p": 0.9972676532705558
+  },
+  {
+   "text": "In this view, species with large N e can achieve lower \u03bc , while those with small N e are constrained to higher \u03bc because slightly deleterious mutator alleles cannot be purged.",
+   "p": 0.997522683257373
+  },
+  {
+   "text": "The mutational-hazard hypothesis (MHH) extends this logic to GS ( 7 \u2013 10 ), arguing that larger genomes pose a mutational liability and will only persist in species where selection against such liabilities is weak.",
+   "p": 0.9873124190054116
+  },
+  {
+   "text": "Together, the DBH and MHH claim that species with large N e should evolve low \u03bc and streamlined genomes, while species with small N e should accumulate higher \u03bc and larger genomes ( Table 1 ).",
+   "p": 0.8803641016368586
+  },
+  {
+   "text": "These expectations have become increasingly influential, appearing in textbooks (e.g., ref.",
+   "p": 0.301175990735769
+  },
+  {
+   "text": "11 ) and being often cited as a general principle of genome evolution (e.g., ref.",
+   "p": 0.16446864293690266
+  },
+  {
+   "text": "12 ).",
+   "p": 0.26338692028586547
+  },
+  {
+   "text": "N e is the effective population size.",
+   "p": 0.2560976064514101
+  },
+  {
+   "text": "\u03bc is the rate at which new mutations arise in the germline per base per generation.",
+   "p": 0.2466801797540162
+  },
+  {
+   "text": "GS refers to genome size.",
+   "p": 0.24587387970277846
+  },
+  {
+   "text": "See Introduction for more details.",
+   "p": 0.21352832529700724
+  },
+  {
+   "text": "Recently, Bergeron et al.",
+   "p": 0.21641863244520898
+  },
+  {
+   "text": "( 13 ) reported a significant negative correlation between historical N e (inferred from pairwise sequentially Markovian coalescent (PSMC) analyses) and \u03bc (estimated from 151 high-coverage parent\u2013offspring trios) across 55 vertebrate species, and interpreted this pattern as empirical support for the DBH.",
+   "p": 0.9833900239255252
+  },
+  {
+   "text": "Their results were cited by Lynch et al.",
+   "p": 0.9668179068765087
+  },
+  {
+   "text": "12 ), who declared the DBH an \u201cestablished fact.\u201d",
+   "p": 0.9785537429544163
+  },
+  {
+   "text": "A recent meta analysis by Wang and Obbard 14 similarly reported a negative N e u correlation across a broader set of taxa reinforcing the perceived generality of this relationship.",
+   "p": 0.9985621110716942
+  },
+  {
+   "text": "However, several recent arguments urge caution.",
+   "p": 0.9967999773178253
+  },
+  {
+   "text": "First, Charlesworth and Jensen ( 15 ) emphasized that both N e and \u03bc covary with life-history traits (LHTs) like generation time (GT) and body mass (BM), making their apparent association potentially confounded.",
+   "p": 0.9971054109917408
+  },
+  {
+   "text": "Second, Galtier and Rousselle ( 16 ) noted that N e spans several orders of magnitude across metazoans, yet \u03bc varies much less, suggesting that drift alone may not be the dominant constraint on \u03bc .",
+   "p": 0.9945063808226245
+  },
+  {
+   "text": "Third, experimental work in yeast by Liu and Zhang ( 17 ) showed that antimutator alleles are common but often fail to fix even in high- N e populations, suggesting that \u03bc is maintained above the drift barrier due to an inherent cost of fidelity [though Lynch ( 12 ) noted the possibility of selection against pleiotropic effects of the studied antimutators].",
+   "p": 0.9890438825860446
+  },
+  {
+   "text": "Finally, Saber et al.",
+   "p": 0.9876983120893363
+  },
+  {
+   "text": "( 18 ) expanded this perspective by showing that different classes of mutations (substitutions, indels, and structural variants) exhibit divergent patterns of evolutionary constraint, suggesting roles for mutation-class-specific selection, fidelity costs, and repair dynamics and thus urging a more nuanced and pluralistic portrait of mutation-rate evolution.",
+   "p": 0.999555386340127
+  },
+  {
+   "text": "In recent discussions of GS, the MHH and DBH remain influential, though coexisting with a broad suite of other models.",
+   "p": 0.9994011667051994
+  },
+  {
+   "text": "Among the adaptive hypotheses, the nucleotypic model posits that GS evolves under selection for cell and nuclear architecture, with larger genomes promoting larger nuclei and slower cell cycles, especially in species with large body sizes or extended development ( 19 , 20 ).",
+   "p": 0.99883389810056
+  },
+  {
+   "text": "Similarly, Cavalier-Smith\u2019s \u201cskeletal DNA\u201d model ( 21 , 22 ) suggests that noncoding DNA serves a structural role in maintaining nuclear integrity.",
+   "p": 0.9993948010528708
+  },
+  {
+   "text": "Both frameworks imply that GS may be subject to relatively strong directional or stabilizing selection and, as a result, may evolve relatively independently of N e . Such views could help explain the remarkably stable GSs observed in birds and mammals despite dramatic interspecific variation in N e ( 23",
+   "p": 0.9996792615780057
+  },
+  {
+   "text": "Moreover, traits implicated in GS evolution, including replication timing and metabolic rate, may also influence \u03bc , raising the possibility that GS and \u03bc covary due to shared physiological constraints rather than being shaped solely by selection or drift ( 2 ).",
+   "p": 0.9997828815024927
+  },
+  {
+   "text": "Recent comparative studies reinforce these concerns.",
+   "p": 0.999851607324592
+  },
+  {
+   "text": "Studying paleognath birds, we previously found that reduced mitochondrial N e caused by expansion of nonrecombining W chromosomes led to relaxed purifying selection on mitochondrial proteins, yet did not increase mitochondrial GS, as would be predicted by the MHH ( 24 ).",
+   "p": 0.9994415660402514
+  },
+  {
+   "text": "Similarly, in frogs, Rubio et al.",
+   "p": 0.9994832746906569
+  },
+  {
+   "text": "25 ) showed that GS variation reflects recent species-specific bursts of transposable elements (TEs), modulated by LHTs like larval development time, rather than by N e . Marino et al.",
+   "p": 0.9994397243463962
+  },
+  {
+   "text": "( 26 ) analyzed over 800 animal species and reported no general association between N e and GS after accounting for LHT proxies [e.g., d N /d S , lifespan (LS), BM], concluding that TE regulation, not drift, is the dominant force in GS evolution.",
+   "p": 0.9996025158604238
+  },
+  {
+   "text": "These conclusions align with Roddy et al.",
+   "p": 0.9996204926995507
+  },
+  {
+   "text": "( 27 ), who found no relationship between N e and GS across 199 mammals, again after controlling for key LHTs such as metabolic rate and BM that often confound N e -based predictions.",
+   "p": 0.9997611566029971
+  },
+  {
+   "text": "Collectively, these studies suggest that GS is shaped by a broader set of constraints, including TE control, developmental timing, and epigenetic silencing, rather than by N e or \u03bc .",
+   "p": 0.9997959828244136
+  },
+  {
+   "text": "Overall, concerns about the explanatory power of the MHH and DBH have been voiced for decades.",
+   "p": 0.9996916421623687
+  },
+  {
+   "text": "For example, Charlesworth and Barton ( 28 ) questioned whether any single mechanism, be it genetic drift, mutation pressure, or cellular constraint, could fully explain the vast diversity of GSs observed across taxa and instead called for a more pluralistic, context-dependent approach.",
+   "p": 0.997016545662978
+  },
+  {
+   "text": "Whitney and Garland ( 29 ) later reanalyzed the seminal Lynch and Conery ( 7 ) dataset, accounting for shared phylogenetic history, and found no support for the predicted negative N e \u03bc -GS correlation, casting further doubt on foundational MHH observations.",
+   "p": 0.9880126376304346
+  },
+  {
+   "text": "Given this complexity, the extent to which N e , \u03bc , and GS are causally linked remains uncertain.",
+   "p": 0.9674721710924025
+  },
+  {
+   "text": "Here, we reanalyze the vertebrate dataset compiled by Bergeron et al.",
+   "p": 0.9731377381331059
+  },
+  {
+   "text": "( 13 ) to examine the evidence for causal links among N e , \u03bc , and GS using a comprehensive phylogenetic path analysis framework.",
+   "p": 0.9789594387344859
+  },
+  {
+   "text": "We obtained the primary dataset from Bergeron et al.",
+   "p": 0.9762868510463323
+  },
+  {
+   "text": "( 13 ), imported it into R version 4.4.3 (R Core Team, 2025), and log 10 -transformed continuous variables before analysis.",
+   "p": 0.9810639456707199
+  },
+  {
+   "text": "Nucleotide silent site diversity (\u03c0), which was not included, was sourced from Wang and Obbard ( 14 ) for 51 of the 55 species from the Bergeron dataset.",
+   "p": 0.9702583731786486
+  },
+  {
+   "text": "We first evaluated competing causal hypotheses concerning the relationships among N e , \u03bc , and GS using phylogenetic confirmatory path analysis implemented in the phylopath R package ( 30 , 31 ).",
+   "p": 0.9858188129141797
+  },
+  {
+   "text": "Each hypothesized causal model was formalized as a directed acyclic graph (DAG), which encodes conditional independence statements (\u201c d -separation\u201d statements) among the variables.",
+   "p": 0.9944223015669331
+  },
+  {
+   "text": "These statements yield testable predictions about expected null relationships: Namely, that particular variables should show no significant association once relevant mediators are controlled for.",
+   "p": 0.996377946554104
+  },
+  {
+   "text": "Violations of these \u201c d -separation\u201d predictions (i.e., detecting associations where the model predicts none) indicate structural misfit and provide empirical grounds for rejecting or revising the DAG.",
+   "p": 0.998543324411249
+  },
+  {
+   "text": "All models were assessed using d -separation tests that account for phylogenetic nonindependence ( 32 ).",
+   "p": 0.9953544832761534
+  },
+  {
+   "text": "To summarize model fit, we calculated Shipley\u2019s C-statistic, which aggregates the evidence from d -separation tests.",
+   "p": 0.9939156855828494
+  },
+  {
+   "text": "Low C-statistics with nonsignificant P -values indicate acceptable models, while significant values ( P < 0.05) suggest that at least one assumption of conditional independence was violated.",
+   "p": 0.9995109147523189
+  },
+  {
+   "text": "We computed the C-statistic information criterion corrected for small sample size (CICc) to compare models, which balances model complexity with explanatory power.",
+   "p": 0.9995158364010847
+  },
+  {
+   "text": "Models with lower CICc values are considered better supported.",
+   "p": 0.9995565378838662
+  },
+  {
+   "text": "\u0394CICc values were used to rank alternatives.",
+   "p": 0.9994770126001975
+  },
+  {
+   "text": "To interpret relationships in the accepted models, we examined standardized path coefficients, representing the expected change in the outcome variable (in units of SD) per SD change in the predictor, holding other variables constant.",
+   "p": 0.9995072193395833
+  },
+  {
+   "text": "The statistical significance of path coefficients was assessed via nonparametric bootstrapping with 1,000 replicates, and coefficients were deemed significant if their 95% CI excluded zero.",
+   "p": 0.9995363438631498
+  },
+  {
+   "text": "Although the DAGs capture additive effects, phylopath does not explicitly allow interaction or product terms.",
+   "p": 0.9996434044186284
+  },
+  {
+   "text": "To directly evaluate the role of the compound predictor N e u which is central both for formulations of the MHH and DBH Table 1 and for multiple regression we conducted phylogenetic generalized least squares PGLS analyses using the R package caper 33 with Pagel s l estimated concurrently via maximum likelihood ML.",
+   "p": 0.9997394918882283
+  },
+  {
+   "text": "We set out to test the idea that N e has a causal relationship with u using the dataset of Bergeron et al.",
+   "p": 0.9995560548773588
+  },
+  {
+   "text": "13 which includes diverse life history characteristics estimates of u and long term effective N e across 55 vertebrate species encompassing mammals birds reptiles and fishes Table 2 lists variable definitions and abbreviations.",
+   "p": 0.9996562035606311
+  },
+  {
+   "text": "We first examined how LHTs N e u and p covary in the dataset.",
+   "p": 0.9996383453766047
+  },
+  {
+   "text": "GT shows especially strong associations with several traits including u and N e Fig.",
+   "p": 0.9997394437459246
+  },
+  {
+   "text": "1 ), and for multiple regression, we conducted phylogenetic generalized least squares (PGLS) analyses using the R package caper ( 33 ) with Pagel\u2019s \u03bb estimated concurrently via maximum likelihood (ML).\n\nWe set out to test the idea that N e has a causal relationship with \u03bc , using the dataset of Bergeron et al. ( 13 ), which includes diverse life-history characteristics, estimates of \u03bc , and long-term effective N e across 55 vertebrate species encompassing mammals, birds, reptiles, and fishes ( Table 2 lists variable definitions and abbreviations). We first examined how LHTs, N e , \u03bc , and \u03c0 covary in the dataset. GT shows especially strong associations with several traits including \u03bc and N e ( Fig. 1 ). Such pervasive covariation confounds simple pairwise correlations.",
+   "p": 0.9998520718070044
+  },
+  {
+   "text": "For example, any apparent relationship between N e and \u03bc might arise just because both vary with GT.",
+   "p": 0.9996308857282769
+  },
+  {
+   "text": "This underscores the need for an explicit causal modeling framework to distinguish spurious associations from genuine causal effects.",
+   "p": 0.9998829040177987
+  },
+  {
+   "text": "While narrower in taxonomic scope than recent cross-eukaryotic analyses, this vertebrate focus offers a key advantage: it allows tighter alignment between LHTs and genomic parameters such as N e and \u03bc , enhancing causal interpretability.",
+   "p": 0.9991006360410954
+  },
+  {
+   "text": "Pairwise relationships between generation time (GT) and other traits.",
+   "p": 0.9736818540351128
+  },
+  {
+   "text": "Scatter plots showing the Bergeron et al.",
+   "p": 0.9783654870116126
+  },
+  {
+   "text": "( 23 ) raw data plotted between GT and ( A ) body mass, ( B ) maturation age, ( C ) lifespan, ( D ) germline mutation rate ( \u03bc ), ( E ) effective population size ( N e ) estimated over the past million years, and ( F ) genome-wide nucleotide silent site diversity (\u03c0).",
+   "p": 0.9783904281224145
+  },
+  {
+   "text": "Colors represent different taxonomic groups: mammals (purple), birds (yellow), reptiles (blue), and fish (red).",
+   "p": 0.9775980522215149
+  },
+  {
+   "text": "To distinguish causation from correlation, we constructed a series of phylogenetic path models representing alternative hypotheses for how \u03bc , GS, N e , and LHTs interact.",
+   "p": 0.9989561062309313
+  },
+  {
+   "text": "Each model is formalized as a DAG, which encodes assumptions about direct causal relationships among variables.",
+   "p": 0.9992075085661805
+  },
+  {
+   "text": "These assumptions imply testable conditional independencies, known as d -separation statements.",
+   "p": 0.9989134141544026
+  },
+  {
+   "text": "A conditional dependency describes the case in which two variables should be statistically uncorrelated once appropriate confounders are controlled for.",
+   "p": 0.998925747532415
+  },
+  {
+   "text": "For instance, if variable A affects B solely through a mediator C, then A and B should be independent when conditioning on C. When such expected independencies are violated in the data, it indicates that the model omits one or more causal pathways.",
+   "p": 0.9987395470879756
+  },
+  {
+   "text": "We began with Model A ( Fig.",
+   "p": 0.9944253781875105
+  },
+  {
+   "text": "2 A ), a fully additive DAG in which all predictors are assumed to influence \u03bc independently, and not to influence each other.",
+   "p": 0.9954276456540948
+  },
+  {
+   "text": "Unsurprisingly, model A was strongly rejected by the data ( Table 3 ; C = 408.7; P < 0.001), with 15 out of 21 d -separation tests failing ( SI Appendix , Table S1 ).",
+   "p": 0.9948610465778271
+  },
+  {
+   "text": "All traits except mating system (MS) showed unexplained residual associations, indicating that \u03bc is embedded in a dense web of trait covariation.",
+   "p": 0.9961879660944681
+  },
+  {
+   "text": "Accordingly, we explored a sequence of more realistic models incorporating additional or redirected causal paths among LHTs, N e , and \u03bc , aimed at recovering the true structure underlying their interdependence.",
+   "p": 0.9995600881040215
+  }
+ ],
+ "paragraphs": [
+  {
+   "index": 0,
+   "p": 0.3879991262334155,
+   "sentences": 11
+  },
+  {
+   "index": 1,
+   "p": 0.0006564766595293492,
+   "sentences": 4
+  },
+  {
+   "index": 2,
+   "p": 0.8622905584735021,
+   "sentences": 11
+  },
+  {
+   "index": 3,
+   "p": 0.8871651474786718,
+   "sentences": 5
+  },
+  {
+   "index": 4,
+   "p": 0.9187750751329665,
+   "sentences": 8
+  },
+  {
+   "index": 5,
+   "p": 0.9000234362273952,
+   "sentences": 6
+  },
+  {
+   "index": 6,
+   "p": 0.9187750751329665,
+   "sentences": 8
+  },
+  {
+   "index": 7,
+   "p": 0.9257822263275673,
+   "sentences": 9
+  },
+  {
+   "index": 8,
+   "p": 0.9187750751329665,
+   "sentences": 8
+  },
+  {
+   "index": 9,
+   "p": 0.8708627247549962,
+   "sentences": 4
+  },
+  {
+   "index": 10,
+   "p": 0.8871651474786718,
+   "sentences": 5
+  },
+  {
+   "index": 11,
+   "p": 0.8871651474786718,
+   "sentences": 5
+  }
+ ]
+}
