@@ -11,7 +11,6 @@ V=$(wc -l < datasets/videos/results.jsonl 2>/dev/null || echo 0)
 P=$(wc -l < datasets/papers/results.jsonl 2>/dev/null || echo 0)
 git add -f datasets >/dev/null
 git diff --cached --quiet && { echo "no change"; exit 0; }
-git -c user.name="Ezechiel Miranda" -c user.email="ezekieljoseph2005@gmail.com" \
-    commit -q -m "Scan data: ${V} video rows, ${P} paper rows"
+git commit -q -m "Scan data: ${V} video rows, ${P} paper rows"
 git push -q origin gptzero-data
 echo "pushed: ${V} video rows, ${P} paper rows"
