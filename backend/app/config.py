@@ -43,6 +43,10 @@ class Settings(BaseSettings):
     tts_model: str = "gpt-4o-mini-tts"
     tts_voice: str = "coral"
     uptime_url: str = "http://127.0.0.1:8000/healthz"
+    # Appended rather than grouped with the other providers, so that concurrent
+    # branches adding their own settings do not collide on the same anchor line.
+    gptzero_api_key: str = ""
+    gptzero_filler_reading: bool = False
 
     @property
     def model_configured(self) -> bool:

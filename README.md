@@ -28,6 +28,7 @@ The repository includes `.env.example`; `scripts/init_env.py` creates an ignored
 | `SENTRY_DSN`, `VITE_SENTRY_DSN` | Backend and frontend Sentry project DSNs; frontend DSN is public by design |
 | `SENTRY_*_SAMPLE_RATE`, `VITE_SENTRY_*_SAMPLE_RATE` | Trace, profile, and masked error-Replay sampling; see `docs/OBSERVABILITY.md` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL`, `MODEL_MODE=live` | Enable real video transcription and evidence judgment |
+| `GPTZERO_API_KEY` | Authorship detection over the transcript; the stage is skipped when unset |
 | `OPENAI_API_KEY`, `MODEL_PROVIDER=openai`, `MODEL_MODE=live` | Direct OpenAI transcription and evidence judgment |
 | `OPENAI_MODEL` | Text model; defaults to `gpt-4.1-mini` |
 | `DOMAIN` | Public DNS name for Caddy HTTPS |
@@ -81,6 +82,7 @@ Use http://127.0.0.1:5173. Vite proxies `/api` to FastAPI. For a local worker, s
 - Events are committed to PostgreSQL before a Redis notification is published. SSE replays persisted events using `Last-Event-ID`; its one-second database poll remains usable if notifications are missed.
 - Celery jobs are acknowledged after processing. A Redis lease prevents duplicate execution; persisted checkpoints reuse transcription and completed claim research after interruption. Beat recovers abandoned cases after three minutes.
 - PostgreSQL holds the versioned case result and event history. Temporary source video/audio are deleted after 24 hours; standalone HTML and JSON replay artifacts remain available separately.
+- GPTZero scores the transcript sentence by sentence, and sentences at or above 0.5 are shown as read from a script rather than spoken off the cuff. The vendor's own highlight flag is ignored: it marked 9 of 9 sentences including one scoring 0.18. This measures how the words were produced, never whether a claim is true, it never enters a verdict, and a detector failure never fails a case. `GPTZERO_FILLER_READING=true` adds a second reading with speech fillers stripped; it is off because across eight measured samples it never changed a classification, which matches the negative result reported for transcript normalisation in arXiv 2506.18488.
 - The 90-second goal includes queue wait, excludes human upload time, and is measured separately from cached-paper runs. A hard 120-second worker pipeline deadline preserves partial results. Three simultaneous requests receive case IDs immediately; the third can wait for one of two workers.
 
 ## API

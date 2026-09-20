@@ -19,6 +19,25 @@ const complete = {
   },
 };
 
+const adlib = 'For me personally I get very strong heart palpitations when I take it.';
+const detection = {
+  provider: 'GPTZero', status: 'scored', scanned_at: new Date().toISOString(),
+  detector_version: '2026-09-13-base', prepared_transcript: false, script_threshold: 0.5,
+  fillers_removed: 9, filler_ratio: 0.08, removed_examples: ['basically', 'like', 'um'],
+  verbatim: {
+    basis: 'verbatim', characters: 880, predicted_class: 'mixed', document_classification: 'MIXED',
+    ai_probability: 0.76, human_probability: 0, mixed_probability: 0.24,
+    confidence_category: 'medium', summary: 'Detector message.', flagged_share: 0.6,
+    sentences: [
+      { text: 'Caffeine is the most widely consumed psychoactive substance in the world.', generated_prob: 0.9998 },
+      { text: adlib, generated_prob: 0.1795 },
+      { text: 'The practical implication is about timing rather than quantity.', generated_prob: 0.9938 },
+    ],
+    paragraphs: [{ index: 0, sentences: 3, generated_prob: 0.76 }],
+  },
+  cleaned: null, note: null,
+};
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/api/config', route => route.fulfill({ json: { model_mode: 'mock' } }));
 });
@@ -66,6 +85,24 @@ test('download failure offers upload and resumes the same case', async ({ page }
   await page.getByLabel('Upload video').setInputFiles({ name: 'clip.mp4', mimeType: 'video/mp4', buffer: Buffer.from('browser fixture') });
   await expect(page.getByRole('heading', { name: 'Analysis complete' })).toBeVisible();
   expect(uploaded).toBeTruthy();
+});
+
+test('authorship panel separates scripted sentences from the creator own words', async ({ page }, testInfo) => {
+  const scanned = { ...complete, result: { ...complete.result, detection } };
+  await page.route('**/api/cases', route => route.fulfill({ status: 202, json: scanned }));
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: scanned }));
+  await page.goto('/');
+  await page.getByLabel('Start with an Instagram Reel').fill(complete.source_url);
+  await page.getByRole('button', { name: 'Check the evidence' }).click();
+  await expect(page.getByRole('heading', { name: 'Partly read from a script' })).toBeVisible();
+  await expect(page.getByText('of 3 sentences read as written')).toBeVisible();
+  // The one ad-libbed sentence must not be shaded as machine-written.
+  const spoken = page.locator('.sentence-map li', { hasText: adlib });
+  await expect(spoken).toHaveClass(/spontaneous/);
+  await expect(page.locator('.sentence-map li.scripted')).toHaveCount(2);
+  await expect(page.getByText('This measures how the words were produced', { exact: false })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+  await page.screenshot({ path: `../artifacts/authorship-${testInfo.project.name}.png`, fullPage: true });
 });
 
 test('observatory renders recorded measurements', async ({ page }) => {

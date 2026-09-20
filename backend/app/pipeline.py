@@ -8,6 +8,7 @@ import sentry_sdk
 
 from app.config import settings
 from app.db import now, read_case, update_case
+from app.detection import Detector
 from app.literature import DiscoveryIncomplete, Literature
 from app.media import MediaError, download, extract_audio
 from app.models import models
@@ -149,8 +150,19 @@ async def run_case(case_id: str):
                             "timings": local_timings}
                     save(claims=dict(completed))
 
+                async def detect():
+                    # Authorship is a side signal: it never gates a verdict and never fails a case.
+                    if result.get("detection"):
+                        return
+                    try:
+                        with stage("detection", timings):
+                            outcome = await Detector(client).scan(analysis)
+                        save(detection=outcome.model_dump())
+                    except Exception as exc:
+                        sentry_sdk.capture_exception(exc)
+
                 with stage("research", timings):
-                    await asyncio.gather(*(research(c) for c in analysis.claims))
+                    await asyncio.gather(detect(), *(research(c) for c in analysis.claims))
 
             stage_name = "judgment"
             update_case(case_id, status="judging")

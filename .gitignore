@@ -16,3 +16,4 @@ artifacts/
 playwright-report/
 test-results/
 *.tsbuildinfo
+data/slop-scan/

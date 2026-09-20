@@ -115,6 +115,68 @@ class Verdict(StrictModel):
     limitations: list[str] = Field(max_length=10)
 
 
+class DetectedSentence(StrictModel):
+    text: str = Field(max_length=1000)
+    generated_prob: float = Field(ge=0, le=1)
+
+
+class DetectedParagraph(StrictModel):
+    index: int = Field(ge=0)
+    sentences: int = Field(ge=0)
+    generated_prob: float = Field(ge=0, le=1)
+
+
+class Subclass(StrictModel):
+    """How the text was produced within its class. Empty for human-written text.
+
+    ai: pure_ai (straight from a model) or ai_paraphrased (run through a humaniser).
+    mixed: concatenated (distinct blocks stitched) or polished (a person wrote it,
+    a model smoothed it).
+    """
+
+    kind: Literal["ai", "mixed"]
+    predicted_class: str = Field(max_length=60)
+    confidence_category: str | None = None
+    probabilities: dict[str, float] = Field(default_factory=dict)
+
+
+class Scan(StrictModel):
+    basis: Literal["verbatim", "filler_removed"]
+    characters: int = Field(ge=0)
+    predicted_class: str | None = None
+    document_classification: str | None = None
+    ai_probability: float | None = Field(default=None, ge=0, le=1)
+    human_probability: float | None = Field(default=None, ge=0, le=1)
+    mixed_probability: float | None = Field(default=None, ge=0, le=1)
+    confidence_category: str | None = None
+    summary: str | None = None
+    flagged_share: float | None = Field(default=None, ge=0, le=1)
+    subclass: Subclass | None = None
+    # Every sentence, so the transcript can be shaded in place. The vendor's own
+    # highlight flag is not used: it marked 9 of 9 sentences including one at 0.18.
+    sentences: list[DetectedSentence] = Field(default_factory=list, max_length=200)
+    paragraphs: list[DetectedParagraph] = Field(default_factory=list, max_length=40)
+
+
+class Detection(StrictModel):
+    """Authorship signal for the spoken script. Never an input to a medical verdict."""
+
+    provider: str = "GPTZero"
+    status: Literal["scored", "skipped", "unavailable"]
+    scanned_at: str
+    detector_version: str | None = None
+    prepared_transcript: bool = False
+    # Sentences at or above this are treated as read from a script. Measured: a
+    # creator's ad-lib scored 0.18 and 0.29, the script around it 0.74 to 1.00.
+    script_threshold: float = Field(default=0.5, ge=0, le=1)
+    fillers_removed: int = Field(default=0, ge=0)
+    filler_ratio: float = Field(default=0.0, ge=0, le=1)
+    removed_examples: list[str] = Field(default_factory=list, max_length=12)
+    verbatim: Scan | None = None
+    cleaned: Scan | None = None
+    note: str | None = Field(default=None, max_length=500)
+
+
 def validate_verdict(verdict: Verdict, passages: list[Passage]) -> Verdict:
     evidence = {p.id: p for p in passages if not p.known_retracted}
     if verdict.label != "uncertain" and not verdict.citations:
