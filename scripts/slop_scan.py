@@ -14,7 +14,9 @@ from pathlib import Path
 
 import httpx
 
-KEY = os.environ["KEY"]
+KEY = os.environ.get("GPTZERO_API_KEY") or os.environ.get("KEY") or ""
+if not KEY:
+    sys.exit("Set GPTZERO_API_KEY to the same key the app uses, then re-run.")
 ROOT = Path(os.environ.get("SLOP_SCAN_DIR", "data/slop-scan"))
 AUDIO, TEXT = ROOT / "audio", ROOT / "text"
 RESULTS = ROOT / "results.jsonl"
