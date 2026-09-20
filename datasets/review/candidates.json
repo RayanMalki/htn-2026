@@ -1,0 +1,90 @@
+{
+ "note": "Citations GPTZero flagged as fake that a person then checked by hand. Two kinds. not_found: zero exact-title hits on Europe PMC and no record on Crossref whose title matches, in journals both services index fully. wrong_authors: the title is a real paper, but the record lists different authors from the ones cited. Neither kind proves intent. A reference manager can corrupt a citation too.",
+ "checked_on": "2026-09-20",
+ "candidates": [
+  {
+   "citing_pmcid": "PMC12810829",
+   "citing_journal": "PLoS One",
+   "citing_year": 2026,
+   "citing_title": "Alzheimer's disease prediction via an explainable CNN using genetic algorithm and SHAP values.",
+   "citing_url": "https://europepmc.org/article/PMC/PMC12810829",
+   "kind": "wrong_authors",
+   "reference": "Jha D, Kumar S. An explainable AI paradigm for Alzheimer's diagnosis using deep transfer learning. Diagnostics. 2023;13:945.",
+   "actual": "The real paper is by Mahmud, Barua, Habiba and others. Diagnostics, 2024, volume 14, article 345.",
+   "doi": "10.3390/diagnostics14030345"
+  },
+  {
+   "citing_pmcid": "PMC12810829",
+   "citing_journal": "PLoS One",
+   "citing_year": 2026,
+   "citing_title": "Alzheimer's disease prediction via an explainable CNN using genetic algorithm and SHAP values.",
+   "citing_url": "https://europepmc.org/article/PMC/PMC12810829",
+   "kind": "wrong_authors",
+   "reference": "Hakim M, Islam M, Hossain MA, Uddin MN, Baqui M, Hasan M. Explainable AI-based Alzheimer's prediction and management using multimodal data. Cureus. 2024;16(7):e65833.",
+   "actual": "The real paper is by Jahan, Abu Taher, Kaiser and others. It ran in PLoS One in 2023, not Cureus.",
+   "doi": "10.1371/journal.pone.0294253"
+  },
+  {
+   "citing_pmcid": "PMC12810829",
+   "citing_journal": "PLoS One",
+   "citing_year": 2026,
+   "citing_title": "Alzheimer's disease prediction via an explainable CNN using genetic algorithm and SHAP values.",
+   "citing_url": "https://europepmc.org/article/PMC/PMC12810829",
+   "kind": "not_found",
+   "reference": "Nguyen T, Pham L, Tran D. Multimodal deep learning with explainable AI for Alzheimer's disease diagnosis using MRI and genetic data. Journal of Alzheimer's Disease. 2024;98:567-80.",
+   "actual": "No record on Crossref. Zero exact-title hits on Europe PMC."
+  },
+  {
+   "citing_pmcid": "PMC12810829",
+   "citing_journal": "PLoS One",
+   "citing_year": 2026,
+   "citing_title": "Alzheimer's disease prediction via an explainable CNN using genetic algorithm and SHAP values.",
+   "citing_url": "https://europepmc.org/article/PMC/PMC12810829",
+   "kind": "not_found",
+   "reference": "Zheng Y, Li W, Chen S. Graph neural networks with SHAP for Alzheimer's disease classification using connectivity data. NeuroImage. 2025;302:120876.",
+   "actual": "No record on Crossref. Zero exact-title hits on Europe PMC."
+  },
+  {
+   "citing_pmcid": "PMC12810829",
+   "citing_journal": "PLoS One",
+   "citing_year": 2026,
+   "citing_title": "Alzheimer's disease prediction via an explainable CNN using genetic algorithm and SHAP values.",
+   "citing_url": "https://europepmc.org/article/PMC/PMC12810829",
+   "kind": "not_found",
+   "reference": "Chun H, Kim S, Lee J. SHAP for local and global interpretation in multimodal Alzheimer's disease prediction. Journal of Alzheimer's Disease. 2024;99:789-802.",
+   "actual": "No record on Crossref. Zero exact-title hits on Europe PMC."
+  },
+  {
+   "citing_pmcid": "PMC12810829",
+   "citing_journal": "PLoS One",
+   "citing_year": 2026,
+   "citing_title": "Alzheimer's disease prediction via an explainable CNN using genetic algorithm and SHAP values.",
+   "citing_url": "https://europepmc.org/article/PMC/PMC12810829",
+   "kind": "not_found",
+   "reference": "Zhang Q, Liu X, Wang T. SHAP-enhanced deep learning for three-class Alzheimer's disease classification. Neuroinformatics. 2025;23:123-35.",
+   "actual": "No record on Crossref. Zero exact-title hits on Europe PMC."
+  },
+  {
+   "citing_pmcid": "PMC12810829",
+   "citing_journal": "PLoS One",
+   "citing_year": 2026,
+   "citing_title": "Alzheimer's disease prediction via an explainable CNN using genetic algorithm and SHAP values.",
+   "citing_url": "https://europepmc.org/article/PMC/PMC12810829",
+   "kind": "wrong_authors",
+   "reference": "Rezaeijo SM, Chegeni H. Explainable artificial intelligence in Alzheimer's disease classification: a systematic review. Cognitive Computation. 2023;15:1-22.",
+   "actual": "The real paper is by Viswan, Shaffi, Mahmud and others.",
+   "doi": "10.1007/s12559-023-10192-x"
+  },
+  {
+   "citing_pmcid": "PMC13175353",
+   "citing_journal": "PLoS Medicine",
+   "citing_year": 2026,
+   "citing_title": "First-trimester nonsteroidal anti-inflammatory drugs exposure and risk of major congenital malformations: A retrospective register-based cohort study.",
+   "citing_url": "https://europepmc.org/article/PMC/PMC13175353",
+   "kind": "wrong_authors",
+   "reference": "Sun CW, Chen ZW, He ZG, Zhou PJ, Liu SJ. Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties. J Econom. 1985;29:305-25.",
+   "actual": "The real paper is by MacKinnon and White. The DOI printed beside it belongs to a different article.",
+   "doi": "10.1016/0304-4076(85)90158-7"
+  }
+ ]
+}

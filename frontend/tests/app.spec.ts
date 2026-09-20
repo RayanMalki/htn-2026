@@ -492,3 +492,25 @@ test('detailed phone layout keeps rendering independent from evidence and GPTZer
   await page.evaluate(() => scrollTo(0, 0));
   await page.screenshot({path:`../artifacts/medbot-detailed-${testInfo.project.name}.png`, fullPage:true});
 });
+
+test('the investigation shows counted findings, a scored paper and working links', async ({ page }) => {
+  await page.goto('/');
+  const section = page.getByRole('region', { name: /We scanned the research/ });
+  await expect(section).toBeVisible();
+  await expect(section.getByText('papers scanned')).toBeVisible();
+  expect(await section.locator('.year-bars li').count()).toBeGreaterThanOrEqual(3);
+  await expect(section.locator('.findings-map').first().locator('li.scripted').first()).toBeVisible();
+  await section.getByRole('button', { name: /control/ }).click();
+  await expect(section.getByText(/This is the control/)).toBeVisible();
+  await expect(section.getByRole('link', { name: 'Open the paper ↗' })).toHaveAttribute('href', /europepmc\.org/);
+  await expect(section.getByRole('link', { name: 'Watch on YouTube ↗' })).toHaveAttribute('href', /youtu/);
+  await expect(section.getByText('A signal, not a verdict.')).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
+test('the investigation stays off a saved result', async ({ page }) => {
+  await page.route(`**/api/cases/${id}`, route => route.fulfill({ json: complete }));
+  await page.goto(`/?case=${id}`);
+  await expect(page.getByRole('heading', { name: /Your check|Analysis complete|Seen online/ }).first()).toBeVisible();
+  await expect(page.getByRole('region', { name: /We scanned the research/ })).toHaveCount(0);
+});

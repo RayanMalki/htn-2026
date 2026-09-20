@@ -1,0 +1,720 @@
+{
+ "generated_at": "2026-09-20",
+ "threshold": 0.5,
+ "papers": {
+  "n": 3456,
+  "machine": 1037,
+  "years": [
+   {
+    "year": 2022,
+    "n": 35,
+    "machine": 0
+   },
+   {
+    "year": 2023,
+    "n": 37,
+    "machine": 0
+   },
+   {
+    "year": 2024,
+    "n": 1666,
+    "machine": 265
+   },
+   {
+    "year": 2025,
+    "n": 334,
+    "machine": 119
+   },
+   {
+    "year": 2026,
+    "n": 1384,
+    "machine": 653
+   }
+  ]
+ },
+ "showcase": [
+  {
+   "pmcid": "PMC12890864",
+   "title": "Controlling for life-history traits in vertebrates reveals that effective population size does not affect mutation rate or genome size.",
+   "journal": "PNAS",
+   "year": 2026,
+   "classification": "AI_ONLY",
+   "url": "https://europepmc.org/article/PMC/PMC12890864",
+   "ai": 0.925,
+   "shown": [
+    {
+     "text": "Two influential hypotheses propose that effective population size ( N e ) is central to the evolution of both GS and μ .",
+     "p": 1.0
+    },
+    {
+     "text": "The drift-barrier hypothesis (DBH) claims that natural selection minimizes μ until improvements in replication fidelity become too subtle to overcome genetic drift ( 4 – 6 ).",
+     "p": 1.0
+    },
+    {
+     "text": "In this view, species with large N e can achieve lower μ , while those with small N e are constrained to higher μ because slightly deleterious mutator alleles cannot be purged.",
+     "p": 1.0
+    },
+    {
+     "text": "The mutational-hazard hypothesis (MHH) extends this logic to GS ( 7 – 10 ), arguing that larger genomes pose a mutational liability and will only persist in species where selection against such liabilities is weak.",
+     "p": 0.99
+    },
+    {
+     "text": "Together, the DBH and MHH claim that species with large N e should evolve low μ and streamlined genomes, while species with small N e should accumulate higher μ and larger genomes ( Table 1 ).",
+     "p": 0.88
+    },
+    {
+     "text": "These expectations have become increasingly influential, appearing in textbooks (e.g., ref.",
+     "p": 0.3
+    },
+    {
+     "text": "11 ) and being often cited as a general principle of genome evolution (e.g., ref.",
+     "p": 0.16
+    },
+    {
+     "text": "12 ).",
+     "p": 0.26
+    },
+    {
+     "text": "N e is the effective population size.",
+     "p": 0.26
+    },
+    {
+     "text": "μ is the rate at which new mutations arise in the germline per base per generation.",
+     "p": 0.25
+    }
+   ],
+   "offset": 3,
+   "total": 84,
+   "flagged": 76
+  },
+  {
+   "pmcid": "PMC12920147",
+   "title": "A multimodal sleep foundation model for disease prediction.",
+   "journal": "Nature medicine",
+   "year": 2026,
+   "classification": "AI_ONLY",
+   "url": "https://europepmc.org/article/PMC/PMC12920147",
+   "ai": 1,
+   "shown": [
+    {
+     "text": "Sleep is a complex process characterized by intricate interactions across physiological systems, including brain, heart, respiratory and muscle activity 1 .",
+     "p": 1.0
+    },
+    {
+     "text": "PSG—the gold standard for sleep evaluation—captures these interactions through recordings of several modalities, including brain activity signals (BAS, including electroencephalogram (EEG) and electrooculogram (EOG)), electrocardiography…",
+     "p": 1.0
+    },
+    {
+     "text": "Sleep disorders affect millions of people and are increasingly recognized as indicators of, and contributors to, various health conditions 3 .",
+     "p": 1.0
+    },
+    {
+     "text": "Sleep disturbances often precede the clinical onset of numerous conditions, such as psychiatric disorders 4 , neurodegenerative diseases 5 and cardiovascular disorders 6 .",
+     "p": 1.0
+    },
+    {
+     "text": "These associations highlight the important role sleep plays in maintaining overall health and underscores its predictive potential across a wide spectrum of diseases.",
+     "p": 1.0
+    },
+    {
+     "text": "However, most existing studies have focused on identifying links between sleep and specific diseases using isolated metrics or manual annotations, leaving much of the complexity of sleep physiology, as captured in PSG, underutilized.",
+     "p": 1.0
+    },
+    {
+     "text": "Recent advances in deep learning have enabled the use of PSG’s multimodal data for tasks ranging from sleep staging and apnea detection to predicting conditions such as atrial fibrillation, biological aging and narcolepsy 3 , 7 – 10 .",
+     "p": 1.0
+    },
+    {
+     "text": "Despite this progress, current approaches face key limitations: they focus on individual outcomes, depend on supervised learning with expert-labeled data and are trained on relatively small datasets (2,500–15,913 recordings) 3 , 7 , 9 –…",
+     "p": 1.0
+    },
+    {
+     "text": "Manual annotations are time consuming and prone to inter-rater variability, making scaling difficult.",
+     "p": 1.0
+    },
+    {
+     "text": "Moreover, existing models lack flexibility across recording environments, generalize poorly across cohorts and often fail to exploit the richness of multimodal sleep signals.",
+     "p": 1.0
+    }
+   ],
+   "offset": 0,
+   "total": 57,
+   "flagged": 57
+  },
+  {
+   "pmcid": "PMC13123963",
+   "title": "The principles of Population-Level Approaches to Dementia Risk Reduction (PLADRR).",
+   "journal": "PLoS medicine",
+   "year": 2026,
+   "classification": "HUMAN_ONLY",
+   "url": "https://europepmc.org/article/PMC/PMC13123963",
+   "ai": 0.0,
+   "shown": [
+    {
+     "text": "Dementia is a leading health policy challenge.",
+     "p": 0.0
+    },
+    {
+     "text": "As the global population ages, the number of people living with dementia is forecast to almost triple to over 150 million by 2050, with the majority living in low- and middle-income countries (LMICs) [ 1 ].",
+     "p": 0.0
+    },
+    {
+     "text": "However, epidemiological evidence from high-income countries over the last two decades has indicated declining age-specific incidence rates [ 2 , 3 ], and evidence has highlighted risk and protective factors that could be amenable to risk…",
+     "p": 0.0
+    },
+    {
+     "text": "This is a growing research field, with multiple lines of enquiry ongoing.",
+     "p": 0.0
+    },
+    {
+     "text": "Most prominent have been multidomain interventions, usually based on encouraging or facilitating lifestyle change (e.g., healthier diet, more physical activity) and sometimes inclusive of medical approaches (e.g., anti-hypertensives) in…",
+     "p": 0.0
+    },
+    {
+     "text": "These studies are typically too short to examine an effect on dementia occurrence.",
+     "p": 0.0
+    },
+    {
+     "text": "Where it has been examined, there has typically been no evidence of a reduction in dementia following these individual-level interventions [ 5 ], with the possible exception of treating hypertension [ 6 , 7 ].",
+     "p": 0.0
+    },
+    {
+     "text": "The scale of dementia, coupled with the unequal lifecourse accumulation of factors influencing risk across multiple domains, requires that research and policy approaches pay particular attention to the development of population-level…",
+     "p": 0.0
+    },
+    {
+     "text": "However, such approaches have received inadequate research focus to date [ 9 ].",
+     "p": 0.0
+    },
+    {
+     "text": "There are considerable challenges, extending from study design and causal inference methods to implementation and evaluation of policy [ 10 ].",
+     "p": 0.0
+    }
+   ],
+   "offset": 0,
+   "total": 45,
+   "flagged": 0
+  }
+ ],
+ "flagged_papers": [
+  {
+   "title": "Psychological and emotional outcomes after bariatric surgery: a cross-sectional comparison of sleeve gastrectomy and…",
+   "journal": "BMJ open",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12983895",
+   "ai": 1
+  },
+  {
+   "title": "Vocal biomarkers for geriatric health assessment: a scoping review protocol.",
+   "journal": "BMJ open",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12931537",
+   "ai": 1
+  },
+  {
+   "title": "Older adults as active research partners: protocol for an umbrella review.",
+   "journal": "BMJ open",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC13007083",
+   "ai": 1
+  },
+  {
+   "title": "Role of Devine gastric partitioning in locally advanced gastric cancer: palliation and bridge to definitive…",
+   "journal": "BMJ open",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12958961",
+   "ai": 1
+  },
+  {
+   "title": "Artificial Intelligence for Exosomal Biomarker Discovery for Cardiovascular Diseases: Multi-Omics Integration,…",
+   "journal": "Cells",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12896558",
+   "ai": 1
+  },
+  {
+   "title": "Decoding the Endocrine Code of Skeletal Muscle: Myokines, Exerkines, and Inter-Organ Crosstalk in Metabolic Health and…",
+   "journal": "Cells",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12939756",
+   "ai": 1
+  },
+  {
+   "title": "Genetic Determinants of Wound Healing: Monogenic Disorders and Polygenic Influence.",
+   "journal": "Cells",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12786084",
+   "ai": 1
+  },
+  {
+   "title": "Network Rewiring in the Aging Immune System: From Chronic Inflammation to Age-Related Pathologies.",
+   "journal": "Cells",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12984825",
+   "ai": 1
+  },
+  {
+   "title": "Oncolytic Viruses in Cancer Immunotherapy: From Molecular Engineering to Clinical Translation.",
+   "journal": "Cells",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12984100",
+   "ai": 1
+  },
+  {
+   "title": "TGF-β Signaling as a Pathological Continuum Linking Idiopathic Pulmonary Fibrosis and Lung Cancer.",
+   "journal": "Cells",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12985053",
+   "ai": 1
+  },
+  {
+   "title": "Lipoprotein(a) and Cardiovascular Disease: From Genetic Risk Factor to Therapeutic Target.",
+   "journal": "Cells",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12939432",
+   "ai": 1
+  },
+  {
+   "title": "When Testosterone Fades: Leydig Cell Aging Shaped by Environmental Toxicants, Metabolic Dysfunction, and Testicular…",
+   "journal": "Cells",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12839678",
+   "ai": 1
+  }
+ ],
+ "laundered": [
+  {
+   "title": "Oxidative Stress and &lt;i&gt;SIRT1&lt;/i&gt;-Nrf2 Anti-Ferroptotic Pathways in Granulosa Cells: A Molecular Key to Follicular…",
+   "journal": "International journal of molecular sciences",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12842262"
+  },
+  {
+   "title": "Nanomaterial-Based Therapeutic Delivery: Integrating Redox Biology, Genetic Engineering, and Imaging-Guided Treatment.",
+   "journal": "Antioxidants (Basel, Switzerland)",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC13113825"
+  },
+  {
+   "title": "Multilingual news dataset about Ukraine (2022-2025): data collection and documentation.",
+   "journal": "Scientific data",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC13144685"
+  },
+  {
+   "title": "Polyphenol metabolites in fermented foods: biotransformation, bioavailability, and functional roles.",
+   "journal": "Frontiers in nutrition",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12900385"
+  },
+  {
+   "title": "Evaluation of nutritional interventions and their impact on metabolic syndrome risk markers in older adults.",
+   "journal": "Frontiers in nutrition",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12999786"
+  },
+  {
+   "title": "Auditing and Monitoring Artificial Intelligence Systems in Healthcare: A Multilayer Framework for Bias Detection,…",
+   "journal": "Cureus",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC13042206"
+  },
+  {
+   "title": "Clinical Trial Design and Regulatory Requirements for Artificial Intelligence as a Medical Device: A PRISMA-ScR-Guided Scoping…",
+   "journal": "Journal of clinical medicine",
+   "year": 2026,
+   "url": "https://europepmc.org/article/PMC/PMC12985890"
+  },
+  {
+   "title": "Artificial Intelligence in Nursing: Technological Benefits to Nurse's Mental Health and Patient Care Quality.",
+   "journal": "Healthcare (Basel, Switzerland)",
+   "year": 2024,
+   "url": "https://europepmc.org/article/PMC/PMC11675209"
+  },
+  {
+   "title": "A Systematic Review and Meta-Analysis of Artificial Intelligence Tools in Medicine and Healthcare: Applications, Considerations,…",
+   "journal": "Diagnostics (Basel, Switzerland)",
+   "year": 2024,
+   "url": "https://europepmc.org/article/PMC/PMC10802884"
+  },
+  {
+   "title": "Toward a cure - Advancing HIV/AIDs treatment modalities beyond antiretroviral therapy: A Review.",
+   "journal": "Medicine",
+   "year": 2024,
+   "url": "https://europepmc.org/article/PMC/PMC11224816"
+  },
+  {
+   "title": "The Integration of Radiomics and Artificial Intelligence in Modern Medicine.",
+   "journal": "Life (Basel, Switzerland)",
+   "year": 2024,
+   "url": "https://europepmc.org/article/PMC/PMC11508875"
+  },
+  {
+   "title": "Mechanisms of microbiota modulation: Implications for health, disease, and therapeutic interventions.",
+   "journal": "Medicine",
+   "year": 2024,
+   "url": "https://europepmc.org/article/PMC/PMC11081615"
+  }
+ ],
+ "videos": {
+  "n": 473,
+  "machine": 26,
+  "views": 17063638,
+  "machine_views": 134823,
+  "farms": [
+   {
+    "name": "A.M. Health & Fitness Workout",
+    "n": 28,
+    "machine": 24
+   },
+   {
+    "name": "Kings Health Today",
+    "n": 11,
+    "machine": 11
+   },
+   {
+    "name": "Common Health Doc",
+    "n": 8,
+    "machine": 8
+   },
+   {
+    "name": "Wellness Nutrition Hub",
+    "n": 1,
+    "machine": 1
+   }
+  ],
+  "stitched": [
+   {
+    "title": "Weight Loss Tips: Right Way To Drink Apple Cider Vinegar For Fast Fat Loss |The Health Site",
+    "channel": "TheHealthSite.com",
+    "views": 6060,
+    "url": "https://www.youtube.com/watch?v=MQ81cfD4hqk",
+    "subclass": "concatenated",
+    "shown": [
+     {
+      "text": "From potentially curbing appetite to aiding digestion its acetic acid content is believed by some to contribute to weight loss efforts.",
+      "p": 0.04
+     },
+     {
+      "text": "Certainly is a list of points explaining how to drink apple cider vinegar for weight loss.",
+      "p": 0.04
+     },
+     {
+      "text": "First, dilution.",
+      "p": 0.3
+     },
+     {
+      "text": "Mix 1 to tablespoon of apple cider vinegar with 8 to 16 ounces of water.",
+      "p": 0.38
+     },
+     {
+      "text": "Using more water can help to reduce the acidity.",
+      "p": 0.59
+     },
+     {
+      "text": "Frequency.",
+      "p": 0.73
+     },
+     {
+      "text": "Start with once a day and gradually increase if desired.",
+      "p": 0.94
+     },
+     {
+      "text": "Some people find success with 2-3 times daily but listen to your body response.",
+      "p": 0.96
+     },
+     {
+      "text": "3. Timing Drinking ACV before meals may help control appetite and aid digestion.",
+      "p": 0.96
+     },
+     {
+      "text": "However, avoid drinking it on an empty stomach as it might lead to discomfort.",
+      "p": 0.95
+     }
+    ],
+    "offset": 0,
+    "total": 18,
+    "flagged": 14
+   },
+   {
+    "title": "“Lose Belly Fat Naturally – Metabolically Lean Review",
+    "channel": "A.M. Health & Fitness Workout",
+    "views": 146,
+    "url": "https://www.youtube.com/watch?v=dTj4SXNdSSA",
+    "subclass": "concatenated",
+    "shown": [
+     {
+      "text": "The Good Bug Metabolically Lean Advanced Metabolic System offers a clinically proven, natural, and gut-centered pathway to weight management.",
+      "p": 0.99
+     },
+     {
+      "text": "With significant weight loss, appetite control, and digestive relief, all documented in clinical trials, it's a strong contender in holistic health.",
+      "p": 1.0
+     },
+     {
+      "text": "Your metabolic journey deserves more than quick gimmicks.",
+      "p": 1.0
+     },
+     {
+      "text": "With Metabolically Lean, you're investing in a system that nurtures your body's microbiome, boosts natural satiety, and supports sustainable change.",
+      "p": 1.0
+     },
+     {
+      "text": "Start with 90 days, nurture your gut, and unlock the lean-you.",
+      "p": 0.96
+     },
+     {
+      "text": "Built on rigorous research, this product avoids the side effects and high price tags of GLP1 medications.",
+      "p": 0.01
+     },
+     {
+      "text": "According to Munnapal Hospitals Dr. Minnohar, its efficacy is comparable to the best drugs available today.",
+      "p": 0.01
+     },
+     {
+      "text": "This metabolic system addresses weight loss through gut health, appetite regulation, and fat burning.",
+      "p": 0.02
+     },
+     {
+      "text": "Designed for both women and men, this powerful combo supports your fitness goals.",
+      "p": 0.01
+     }
+    ],
+    "offset": 0,
+    "total": 9,
+    "flagged": 5
+   },
+   {
+    "title": "Microplastics: The Invisible Danger Inside You | Future Technology & Science News 316",
+    "channel": "Finite Future",
+    "views": 75,
+    "url": "https://www.youtube.com/watch?v=tUBYVK8ztPk",
+    "subclass": "concatenated",
+    "shown": [
+     {
+      "text": "A new study has found that microplastics have become a widespread problem in our intestines and other tissues.",
+      "p": 0.51
+     },
+     {
+      "text": "Microplastics are found everywhere in the environment and can accumulate in our bodies over time.",
+      "p": 0.93
+     },
+     {
+      "text": "We consume them through food, water, and even the air we breathe.",
+      "p": 0.9
+     },
+     {
+      "text": "The study used human intestinal organoids to understand the effects of microplastics on our health.",
+      "p": 0.85
+     },
+     {
+      "text": "The research found that microplastics can cause inflammation in the intestines, similar to inflammatory bowel disease.",
+      "p": 0.87
+     },
+     {
+      "text": "Smaller plastic particles were absorbed by cells lining the intestines while larger particles were absorbed by immune cells in the gut.",
+      "p": 0.5
+     },
+     {
+      "text": "When there were high concentrations of small plastic particles and the presence of immune cells, the organoids showed damage and released proteins associated with inflammation.",
+      "p": 0.16
+     },
+     {
+      "text": "This provides a promising approach to studying the toxicity of microplastics and other environmental particles using human cell organoids.",
+      "p": 0.53
+     },
+     {
+      "text": "Understanding microplastic risks is crucial for protecting our health and finding solutions to reduce plastic pollution.",
+      "p": 0.94
+     }
+    ],
+    "offset": 0,
+    "total": 9,
+    "flagged": 8
+   }
+  ],
+  "flagged": [
+   {
+    "title": "What Is Graves’ Disease? | UCLA Endocrine Center",
+    "channel": "UCLA Health",
+    "views": 77419,
+    "url": "https://www.youtube.com/watch?v=QBeq0Kf03lI"
+   },
+   {
+    "title": "How Good Is NeoCell Super Collagen Powder Honest Review",
+    "channel": "Chugixyra",
+    "views": 28465,
+    "url": "https://www.youtube.com/watch?v=tnN_QIqzLMo"
+   },
+   {
+    "title": "Boost Your Testosterone Naturally with Onions! Learn How!",
+    "channel": "Natural Cures",
+    "views": 8165,
+    "url": "https://www.youtube.com/watch?v=mcJ74W4xkjY"
+   },
+   {
+    "title": "What does Ashwagandha do for men? | An Easy Guide To Ashwagandha | Zooki",
+    "channel": "Zooki",
+    "views": 7764,
+    "url": "https://www.youtube.com/watch?v=d_fRQKaRxjw"
+   },
+   {
+    "title": "Collagen Supplements: Do They Work?",
+    "channel": "Dr Jean-Paul Leva",
+    "views": 2122,
+    "url": "https://www.youtube.com/watch?v=Hs2WqoIzEDE"
+   },
+   {
+    "title": "The Effects of Ashwagandha On Brain Power, Memory & Cognition | An Easy Guide To…",
+    "channel": "Zooki",
+    "views": 1401,
+    "url": "https://www.youtube.com/watch?v=cY_wVu8unXw"
+   },
+   {
+    "title": "Your Body Isn't Absorbing Your Supplements! Here's Why #shorts",
+    "channel": "NootropicsExpert",
+    "views": 1130,
+    "url": "https://www.youtube.com/watch?v=DOGBMFwmChk"
+   },
+   {
+    "title": "Unlock Better Sleep with Magnesium Rich Foods",
+    "channel": "Focus Forward",
+    "views": 878,
+    "url": "https://www.youtube.com/watch?v=XI9ulIoiHJc"
+   }
+  ],
+  "tells": [
+   {
+    "name": "Sales-pitch tone",
+    "count": 103
+   },
+   {
+    "name": "Everything in threes",
+    "count": 64
+   },
+   {
+    "name": "Overblown importance",
+    "count": 14
+   },
+   {
+    "name": "Phantom experts",
+    "count": 12
+   },
+   {
+    "name": "Not just X, but Y",
+    "count": 10
+   }
+  ]
+ },
+ "citations": {
+  "papers": 140,
+  "checked": 5206,
+  "flagged": 73,
+  "real": 35,
+  "wrong_authors": 4,
+  "uncheckable": 23,
+  "not_found": 11,
+  "kinds": [
+   {
+    "name": "Ordinary journal articles",
+    "count": 44
+   },
+   {
+    "name": "Books and chapters",
+    "count": 10
+   },
+   {
+    "name": "Guidelines and reports",
+    "count": 8
+   },
+   {
+    "name": "Websites and datasets",
+    "count": 8
+   },
+   {
+    "name": "Preprints and conference papers",
+    "count": 3
+   }
+  ],
+  "candidates": [
+   {
+    "reference": "Jha D, Kumar S. An explainable AI paradigm for Alzheimer's diagnosis using deep transfer learning. Diagnostics. 2023;13:945.",
+    "kind": "wrong_authors",
+    "actual": "The real paper is by Mahmud, Barua, Habiba and others. Diagnostics, 2024, volume 14, article 345.",
+    "journal": "PLoS One",
+    "year": 2026,
+    "url": "https://europepmc.org/article/PMC/PMC12810829"
+   },
+   {
+    "reference": "Hakim M, Islam M, Hossain MA, Uddin MN, Baqui M, Hasan M. Explainable AI-based Alzheimer's prediction and management using multimodal data. Cureus. 2024;16(7):e65833.",
+    "kind": "wrong_authors",
+    "actual": "The real paper is by Jahan, Abu Taher, Kaiser and others. It ran in PLoS One in 2023, not Cureus.",
+    "journal": "PLoS One",
+    "year": 2026,
+    "url": "https://europepmc.org/article/PMC/PMC12810829"
+   },
+   {
+    "reference": "Nguyen T, Pham L, Tran D. Multimodal deep learning with explainable AI for Alzheimer's disease diagnosis using MRI and genetic data. Journal of Alzheimer's Disease. 2024;98:567-80.",
+    "kind": "not_found",
+    "actual": "No record on Crossref. Zero exact-title hits on Europe PMC.",
+    "journal": "PLoS One",
+    "year": 2026,
+    "url": "https://europepmc.org/article/PMC/PMC12810829"
+   },
+   {
+    "reference": "Zheng Y, Li W, Chen S. Graph neural networks with SHAP for Alzheimer's disease classification using connectivity data. NeuroImage. 2025;302:120876.",
+    "kind": "not_found",
+    "actual": "No record on Crossref. Zero exact-title hits on Europe PMC.",
+    "journal": "PLoS One",
+    "year": 2026,
+    "url": "https://europepmc.org/article/PMC/PMC12810829"
+   },
+   {
+    "reference": "Chun H, Kim S, Lee J. SHAP for local and global interpretation in multimodal Alzheimer's disease prediction. Journal of Alzheimer's Disease. 2024;99:789-802.",
+    "kind": "not_found",
+    "actual": "No record on Crossref. Zero exact-title hits on Europe PMC.",
+    "journal": "PLoS One",
+    "year": 2026,
+    "url": "https://europepmc.org/article/PMC/PMC12810829"
+   },
+   {
+    "reference": "Zhang Q, Liu X, Wang T. SHAP-enhanced deep learning for three-class Alzheimer's disease classification. Neuroinformatics. 2025;23:123-35.",
+    "kind": "not_found",
+    "actual": "No record on Crossref. Zero exact-title hits on Europe PMC.",
+    "journal": "PLoS One",
+    "year": 2026,
+    "url": "https://europepmc.org/article/PMC/PMC12810829"
+   },
+   {
+    "reference": "Rezaeijo SM, Chegeni H. Explainable artificial intelligence in Alzheimer's disease classification: a systematic review. Cognitive Computation. 2023;15:1-22.",
+    "kind": "wrong_authors",
+    "actual": "The real paper is by Viswan, Shaffi, Mahmud and others.",
+    "journal": "PLoS One",
+    "year": 2026,
+    "url": "https://europepmc.org/article/PMC/PMC12810829"
+   },
+   {
+    "reference": "Sun CW, Chen ZW, He ZG, Zhou PJ, Liu SJ. Some heteroskedasticity-consistent covariance matrix estimators with improved finite sample properties. J Econom. 1985;29:305-25.",
+    "kind": "wrong_authors",
+    "actual": "The real paper is by MacKinnon and White. The DOI printed beside it belongs to a different article.",
+    "journal": "PLoS Medicine",
+    "year": 2026,
+    "url": "https://europepmc.org/article/PMC/PMC13175353"
+   }
+  ],
+  "proof": {
+   "real": 30,
+   "real_found": 28,
+   "same_doi": 27,
+   "fake": 20,
+   "fake_cleared": 0,
+   "fake_cleared_loose": 11
+  }
+ },
+ "subclasses": {
+  "pure_ai": 754,
+  "concatenated": 228,
+  "polished": 113,
+  "ai_paraphrased": 12
+ }
+}
