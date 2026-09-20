@@ -1,0 +1,261 @@
+{
+ "pmcid": "PMC13123963",
+ "title": "The principles of Population-Level Approaches to Dementia Risk Reduction (PLADRR).",
+ "journal": "PLoS medicine",
+ "year": 2026,
+ "prestige": true,
+ "url": "https://europepmc.org/article/PMC/PMC13123963",
+ "classification": "HUMAN_ONLY",
+ "ai_probability": 0.000329507520505183,
+ "human_probability": 0.9996704924794948,
+ "mixed_probability": 0,
+ "confidence": "high",
+ "summary": "Our detector is highly confident that the text is written entirely by a human.",
+ "subclass": null,
+ "flagged_share": 0,
+ "detector_version": "2026-09-13-base",
+ "sentences": [
+  {
+   "text": "Dementia is a leading health policy challenge.",
+   "p": 5.786791755657743e-05
+  },
+  {
+   "text": "As the global population ages, the number of people living with dementia is forecast to almost triple to over 150 million by 2050, with the majority living in low- and middle-income countries (LMICs) [ 1 ].",
+   "p": 5.23078028365769e-05
+  },
+  {
+   "text": "However, epidemiological evidence from high-income countries over the last two decades has indicated declining age-specific incidence rates [ 2 , 3 ], and evidence has highlighted risk and protective factors that could be amenable to risk reduction strategies [ 4 ].",
+   "p": 2.5342203458265635e-05
+  },
+  {
+   "text": "This is a growing research field, with multiple lines of enquiry ongoing.",
+   "p": 1.5449286173896873e-05
+  },
+  {
+   "text": "Most prominent have been multidomain interventions, usually based on encouraging or facilitating lifestyle change (e.g., healthier diet, more physical activity) and sometimes inclusive of medical approaches (e.g., anti-hypertensives) in those identified at higher risk of developing dementia\u2014with randomized controlled trial evidence suggesting these can achieve small cognitive benefits [ 5 ].",
+   "p": 1.3032110618395281e-05
+  },
+  {
+   "text": "These studies are typically too short to examine an effect on dementia occurrence.",
+   "p": 1.2785286416855887e-05
+  },
+  {
+   "text": "Where it has been examined, there has typically been no evidence of a reduction in dementia following these individual-level interventions [ 5 ], with the possible exception of treating hypertension [ 6 , 7 ].",
+   "p": 1.2459148964905688e-05
+  },
+  {
+   "text": "The scale of dementia, coupled with the unequal lifecourse accumulation of factors influencing risk across multiple domains, requires that research and policy approaches pay particular attention to the development of population-level strategies with broad, equitable impact [ 8 ].",
+   "p": 1.2086652879443341e-05
+  },
+  {
+   "text": "However, such approaches have received inadequate research focus to date [ 9 ].",
+   "p": 1.0794537247604811e-05
+  },
+  {
+   "text": "There are considerable challenges, extending from study design and causal inference methods to implementation and evaluation of policy [ 10 ].",
+   "p": 1.2094722350788912e-05
+  },
+  {
+   "text": "Some of these challenges are shared with other population-level non-communicable disease (NCD) research agendas [ 11 ], whilst others are more specific to dementia, owing to its late-life nature, often decades-long pre-clinical phase, incomplete knowledge of risk factors and causal mechanisms, and the complexities of tracking changes in prevalence over time and across diverse populations [ 3 , 10 , 12 , 13 ].",
+   "p": 1.6447468225792882e-05
+  },
+  {
+   "text": "A particular research challenge is producing valid research findings with broad relevance, whilst also recognizing the need for local tailoring of prevention strategies, owing to differing risk profiles and sociopolitical contexts [ 14 ].",
+   "p": 2.5502636370747616e-05
+  },
+  {
+   "text": "The Population-Level Approaches to Dementia Risk Reduction ( PLADRR ) research group is an international network of researchers working together to address these challenges within and across countries and global contexts.",
+   "p": 5.44005888862977e-05
+  },
+  {
+   "text": "PLADRR is a diverse, international, cross-disciplinary group with expertise across public health, epidemiology, a range of clinical specialties, health economics, ethics, and public policy.",
+   "p": 0.0003101667511117753
+  },
+  {
+   "text": "In February 2025, a delegation from PLADRR met with local clinical, research, and policy leaders in the unique socio-cultural context of Aotearoa New Zealand (see Box 1 ).",
+   "p": 0.00019017265493742556
+  },
+  {
+   "text": "During the meeting, delegates discussed key foundational research, evidence gaps, and future opportunities for evidence-based, population-level dementia risk reduction policy strategies.",
+   "p": 0.00020660402442651175
+  },
+  {
+   "text": "This Policy Forum article was subsequently developed to capture the complexities and nuances from these discussions, but also to map the principles and building blocks of our approach, and the next steps for this vital research field.",
+   "p": 0.00010797910991625126
+  },
+  {
+   "text": "PLADRR has a global focus, whilst also recognizing the importance of tailored place-based approaches to research and policy engagement.",
+   "p": 0.00013183775183239614
+  },
+  {
+   "text": "As an example, Aotearoa, New Zealand, the location of the first PLADRR summit, presents a unique socio-cultural context, shaped by its bicultural foundations under Te Tiriti o Waitangi (Treaty of Waitangi) and growing ethnic diversity due to immigration.",
+   "p": 0.00014391715649963015
+  },
+  {
+   "text": "As of 2023, 16% of the population was aged \u226565, with M\u0101ori (6%) and Pacific peoples (5%) underrepresented in this age group due to earlier mortality.",
+   "p": 0.00017930365148217546
+  },
+  {
+   "text": "M\u0101ori and Pacific Peoples also experience higher rates and earlier onset of age-related conditions, including dementia, yet existing services often lack cultural responsiveness [ 15 ].",
+   "p": 0.00026736618700048714
+  },
+  {
+   "text": "Marked differences in the dementia prevention potential have been estimated between ethnic groups in Aotearoa, New Zealand, ranging from 40.8% for New Zealanders of Asian descent and 47.6% for European New Zealanders, to 50.8% for Pacific Peoples and 51.4% for M\u0101ori [ 16 ].",
+   "p": 0.00020508819813376634
+  },
+  {
+   "text": "It is widely argued that the aforementioned inequities in New Zealand are associated with structural racism and have been attributed in part to colonialism and historical disadvantage [ 17 \u2013 19 ].",
+   "p": 0.00017720196821264335
+  },
+  {
+   "text": "Higher rates of dementia are seen in many First Nations peoples globally [ 20 ], associated with higher rates of established risk factors, including cardiometabolic conditions, head injury, and poor mental health [ 21 ].",
+   "p": 0.00026819273509951744
+  },
+  {
+   "text": "Inequalities in dementia risk by ethnicity, as well as by socioeconomic deprivation, have also been demonstrated in countries without a history of colonization [ 22 ], demonstrating the complexity of interpreting these social trends.",
+   "p": 0.00160305650423676
+  },
+  {
+   "text": "Recognition of these inequalities in dementia risk has significant implications for tailoring of brain health policies to promote equity, as well as broader societal action to address deeper structural influences on health and wellbeing opportunities [ 23 ].",
+   "p": 0.0016822286025944984
+  },
+  {
+   "text": "In New Zealand, the 2022 Pae Ora (Healthy Futures) Act centred M\u0101ori leadership in health promotion\u2014though the dedicated M\u0101ori Health Authority created by the Act has subsequently been disestablished, speaking to the political and live nature of these debates\u2014and emphasized community partnerships and family-centered approaches, whilst prioritizing improved health opportunities for other priority populations [ 24 ].",
+   "p": 0.001521406262187261
+  },
+  {
+   "text": "PLADRR involves changing structural, social, and environmental conditions to promote brain health and reduce dementia risk across the life course for all.",
+   "p": 0.001513375362517729
+  },
+  {
+   "text": "The PLADRR research group aims to produce rigorous evidence-based research to support the successful translation and implementation of PLADRR into policy and practice.",
+   "p": 0.001486971850503318
+  },
+  {
+   "text": "Most population risk of disease is held by the large group at \u2018normal risk\u2019 rather than the smaller group at \u2018high risk\u2019 ( Fig 1 ) [ 25 ].",
+   "p": 0.001463254782025632
+  },
+  {
+   "text": "For example, in a UK study, 70%\u201390% of dementia cases occurred in \u2018normal risk\u2019 individuals over three decades of follow-up [ 26 ].",
+   "p": 0.001437566983961887
+  },
+  {
+   "text": "This means that reducing risk for large swathes of the population, not just high-risk groups, is necessary to drive reductions in prevalence.",
+   "p": 0.0015636856339416474
+  },
+  {
+   "text": "This includes factors largely beyond individuals\u2019 control, such as access to healthy foods, green space, active travel infrastructure, clean air, high-quality education, good-quality work, and freedom from poverty.",
+   "p": 0.0012230107157622046
+  },
+  {
+   "text": "Though under-researched in the past [ 9 ], there is growing evidence based on the interplay among these factors and dementia risk [ 23 , 27 ].",
+   "p": 0.0010563838037132213
+  },
+  {
+   "text": "Examples of research studies that have added direct, empirical evidence to support PLADRR include natural experiment studies on the effects of historic changes in education [ 28 ] and air pollution [ 29 ] policies on cognitive aging.",
+   "p": 0.0012624654108607102
+  },
+  {
+   "text": "Further opportunities for similar studies have been hypothesized [ 12 ], for example, examining the effects of alcohol, tobacco, or obesity taxation or licensing policies on dementia incidence through interrupted time series or difference-in-difference analyses, and should be pursued as part of a broader research agenda.",
+   "p": 0.0013866794393237918
+  },
+  {
+   "text": "A Population-Level Approach to Dementia Risk Reduction (PLADRR) focuses on lowering dementia risk (i.e., shifting the whole population risk distribution to the left) by a small amount (depicted on curve B ), rather than other primary prevention approaches, for example, identifying a smaller high-risk group and working only with those individuals (depicted on curve A ).",
+   "p": 0.003466025805930639
+  },
+  {
+   "text": "To achieve shifting of the whole population risk distribution, PLADRR prioritizes interventions which change the social, structural, or environmental conditions that dictate what the easiest or default choice is, such that the brain-healthy option is easier for everyone to adopt, irrespective of personal resources, motivation, or agency.",
+   "p": 0.0038805632398366805
+  },
+  {
+   "text": "Examples of population-level initiatives include social condition changes that make healthier behaviors (e.g., healthier diet, physical activity) the easier or default option.",
+   "p": 0.0035710146614981314
+  },
+  {
+   "text": "Attempting to lower population disease risk in other ways (e.g., through health education and risk awareness campaigns) can risk widening health inequalities, because conditions tend to be socially patterned such that less privileged groups have fewer resources, reduced health literacy, and/or agency to overcome barriers [ 30 ].",
+   "p": 0.0027660570629829844
+  },
+  {
+   "text": "Changes can be achieved through large-scale policies such as excise taxation on products like tobacco and alcohol, through to smaller-scale interventions such as built environment changes to make physical activity easier and/or safer or behavioral \u2018nudges\u2019 such as increasing the prominence of healthier options in cafeterias and supermarkets [ 31 ].",
+   "p": 0.00238053318378478
+  },
+  {
+   "text": "PLADRR builds upon successful programs from other disease areas.",
+   "p": 0.0026045037601469304
+  },
+  {
+   "text": "For example, \u2018Sure Start\u2019, a community-based support program for young families in deprived areas within the UK, has been shown to improve educational and a range of health outcomes, including neurodevelopmental outcomes [ 32 ].",
+   "p": 0.002557064893833353
+  },
+  {
+   "text": "Another example, the North Karelia project, successfully reduced cardiovascular disease in a Finnish region through a large-scale public health program that included a food reformulation program to lower salt intake, broader dietary improvements in schools, hospitals, and workplaces, as well as legislative change to reduce smoking rates [ 33 ].",
+   "p": 0.002530684660156271
+  },
+  {
+   "text": "Applying interventions like these to PLADRR, the effects of evidence-based population-level interventions relevant to dementia can be modeled for specific effects on dementia risk, after accounting for effects on competing mortality risk [ 34 ].",
+   "p": 0.0028305049411894412
+  }
+ ],
+ "paragraphs": [
+  {
+   "index": 0,
+   "p": 2.1228438805416278e-06,
+   "sentences": 7
+  },
+  {
+   "index": 1,
+   "p": 0.00010005932717626924,
+   "sentences": 5
+  },
+  {
+   "index": 2,
+   "p": 0.00010005932717626924,
+   "sentences": 5
+  },
+  {
+   "index": 3,
+   "p": 0.02318840472169716,
+   "sentences": 2
+  },
+  {
+   "index": 4,
+   "p": 0.00408719312638748,
+   "sentences": 3
+  },
+  {
+   "index": 5,
+   "p": 0.00408719312638748,
+   "sentences": 3
+  },
+  {
+   "index": 6,
+   "p": 0.02318840472169716,
+   "sentences": 2
+  },
+  {
+   "index": 7,
+   "p": 0.02318840472169716,
+   "sentences": 2
+  },
+  {
+   "index": 8,
+   "p": 2.1228438805416278e-06,
+   "sentences": 7
+  },
+  {
+   "index": 9,
+   "p": 0.02318840472169716,
+   "sentences": 2
+  },
+  {
+   "index": 10,
+   "p": 0.00408719312638748,
+   "sentences": 3
+  },
+  {
+   "index": 11,
+   "p": 0.0006564766595293492,
+   "sentences": 4
+  }
+ ]
+}

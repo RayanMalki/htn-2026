@@ -1,0 +1,309 @@
+{
+ "pmcid": "PMC12920147",
+ "title": "A multimodal sleep foundation model for disease prediction.",
+ "journal": "Nature medicine",
+ "year": 2026,
+ "prestige": true,
+ "url": "https://europepmc.org/article/PMC/PMC12920147",
+ "classification": "AI_ONLY",
+ "ai_probability": 1,
+ "human_probability": 0,
+ "mixed_probability": 0,
+ "confidence": "high",
+ "summary": "Our detector is highly confident that the text is written by AI.",
+ "subclass": "pure_ai",
+ "flagged_share": 1,
+ "detector_version": "2026-09-13-base",
+ "sentences": [
+  {
+   "text": "Sleep is a complex process characterized by intricate interactions across physiological systems, including brain, heart, respiratory and muscle activity 1 .",
+   "p": 0.9991481738029477
+  },
+  {
+   "text": "PSG\u2014the gold standard for sleep evaluation\u2014captures these interactions through recordings of several modalities, including brain activity signals (BAS, including electroencephalogram (EEG) and electrooculogram (EOG)), electrocardiography (ECG), electromyography (EMG) and respiratory signals 2 .",
+   "p": 0.9992273669458926
+  },
+  {
+   "text": "Sleep disorders affect millions of people and are increasingly recognized as indicators of, and contributors to, various health conditions 3 .",
+   "p": 0.9994297088625934
+  },
+  {
+   "text": "Sleep disturbances often precede the clinical onset of numerous conditions, such as psychiatric disorders 4 , neurodegenerative diseases 5 and cardiovascular disorders 6 .",
+   "p": 0.9993863447045844
+  },
+  {
+   "text": "These associations highlight the important role sleep plays in maintaining overall health and underscores its predictive potential across a wide spectrum of diseases.",
+   "p": 0.9996722152873729
+  },
+  {
+   "text": "However, most existing studies have focused on identifying links between sleep and specific diseases using isolated metrics or manual annotations, leaving much of the complexity of sleep physiology, as captured in PSG, underutilized.",
+   "p": 0.9995821830399185
+  },
+  {
+   "text": "Recent advances in deep learning have enabled the use of PSG\u2019s multimodal data for tasks ranging from sleep staging and apnea detection to predicting conditions such as atrial fibrillation, biological aging and narcolepsy 3 , 7 \u2013 10 .",
+   "p": 0.9997289756213988
+  },
+  {
+   "text": "Despite this progress, current approaches face key limitations: they focus on individual outcomes, depend on supervised learning with expert-labeled data and are trained on relatively small datasets (2,500\u201315,913 recordings) 3 , 7 , 9 \u2013 11 .",
+   "p": 0.9998549403866095
+  },
+  {
+   "text": "Manual annotations are time consuming and prone to inter-rater variability, making scaling difficult.",
+   "p": 0.9999428456288251
+  },
+  {
+   "text": "Moreover, existing models lack flexibility across recording environments, generalize poorly across cohorts and often fail to exploit the richness of multimodal sleep signals.",
+   "p": 0.9999525893894077
+  },
+  {
+   "text": "There remains a need for robust, generalizable architectures and systematic evaluation of sleep\u2019s predictive value across a broad range of health conditions.",
+   "p": 0.9999510987895964
+  },
+  {
+   "text": "Foundation models have emerged as a transformative approach in machine learning, enabling robust representation learning from large-scale, unlabeled data 12 .",
+   "p": 0.9999305577125754
+  },
+  {
+   "text": "By leveraging self-supervised learning, these models can be fine-tuned efficiently for diverse applications.",
+   "p": 0.999909399407216
+  },
+  {
+   "text": "In biomedicine, foundation models have demonstrated remarkable capabilities in analyzing complex, heterogeneous datasets, driving advances in disease prediction, patient stratification and therapeutic discovery 13 , 14 .",
+   "p": 0.9999401279523732
+  },
+  {
+   "text": "Their ability to extract meaningful patterns from large-scale data has addressed many challenges associated with the diverse and high-dimensional nature of clinical datasets.",
+   "p": 0.9998496840656861
+  },
+  {
+   "text": "Despite these successes, their application to sleep remains limited.",
+   "p": 0.9996359749027299
+  },
+  {
+   "text": "Sleep data, particularly from PSG, presents unique challenges due to its complexity and variability, including differences in the number and types of recording channel across clinical cohorts.",
+   "p": 0.9997197680986077
+  },
+  {
+   "text": "Most sleep studies have focused narrowly on sleep-specific outcomes, constraining the broader potential of foundation models for disease prediction.",
+   "p": 0.9997040180903507
+  },
+  {
+   "text": "In preliminary work, we explored self-supervised learning on PSG data in a smaller cohort of participants 11 .",
+   "p": 0.9995333524840231
+  },
+  {
+   "text": "Although this effort highlighted the potential of foundation models for analyzing sleep data, it targeted primarily sleep-specific outcomes and lacked the flexibility to accommodate the diverse configurations of PSG recordings.",
+   "p": 0.9996793419577144
+  },
+  {
+   "text": "These limitations emphasize the need for models that can generalize across heterogeneous datasets and systematically uncover the role of sleep in predicting a wider range of diseases.",
+   "p": 0.9996389286449956
+  },
+  {
+   "text": "In this paper we present SleepFM, a foundation model trained on over 585,000 h of PSG data from 65,000+ participants.",
+   "p": 0.9982788850637079
+  },
+  {
+   "text": "SleepFM captures the diverse information present in multimodal sleep recordings\u2014integrating EEG, ECG, EMG and respiratory signals.",
+   "p": 0.9996786686041954
+  },
+  {
+   "text": "Its channel-agnostic architecture enables joint learning across several modalities, producing representations that generalize across environments.",
+   "p": 0.9997121165889995
+  },
+  {
+   "text": "We also introduce a new leave-one-out (LOO) contrastive learning (CL) (LOO-CL) algorithm that aligns information across modalities during pretraining while remaining resilient to missing or heterogeneous channels during inference.",
+   "p": 0.9989928553495939
+  },
+  {
+   "text": "Our model uses 5\u201325 times more data than previously trained supervised sleep 3 , 7 , 9 , 10 or biosignal models 15 , 16 .",
+   "p": 0.9946480981912394
+  },
+  {
+   "text": "Inspired by phenome-wide association studies (PheWAS) 17 , we examined whether sleep characteristics, as captured by SleepFM, can predict the onset of a wide range of diseases.",
+   "p": 0.9975995503985293
+  },
+  {
+   "text": "Leveraging electronic health record (EHR) disease codes, we develop a framework to systematically explore predictive associations between multimodal sleep and diverse health conditions.",
+   "p": 0.9982616125743814
+  },
+  {
+   "text": "We describe our dataset and training procedures in detail in Methods .",
+   "p": 0.998102681393766
+  },
+  {
+   "text": "Briefly, we used PSG data from four primary cohorts: Stanford Sleep Clinic (SSC) 11 , BioSerenity 18 , 19 , the Multi-Ethnic Study of Atherosclerosis (MESA) 20 , 21 and the Outcomes of Sleep Disorders in Older Men (MrOS) 20 , 22 .",
+   "p": 0.9977090882219701
+  },
+  {
+   "text": "SSC includes 35,052 studies from participants aged 1\u2013100 years; BioSerenity adds 18,900 studies from people aged 7\u201390 years; MESA and MrOS contribute 2,237 and 3,930 PSGs, respectively, from older adults.",
+   "p": 0.9983659161346414
+  },
+  {
+   "text": "Together, these cohorts span 65,000 participants and more than 585,000 h of sleep recordings.",
+   "p": 0.999002051396467
+  },
+  {
+   "text": "We further evaluated generalization using the Sleep Heart Health Study (SHHS) 20 , 23 \u2014a multicenter dataset of 6,441 adults aged 40 years and older, held out from pretraining and used solely for transfer learning.",
+   "p": 0.9988638708488351
+  },
+  {
+   "text": "Dataset distributions postfiltering are shown in Table 1 .",
+   "p": 0.9969292583402547
+  },
+  {
+   "text": "Demographics for SSC and BioSerenity appear in Extended Data Tables 1 and 2 , whereas details for SHHS, MrOS and MESA are available in their respective publications.",
+   "p": 0.9968223413718855
+  },
+  {
+   "text": "Table 1 Distribution of PSG recordings across cohorts and data splits Split SSC BioSerenity MESA MROS SHHS Total Train 24,137 18,869 1,747 3,340 3,291 51,384 Validation 764 100 10 18 500 1,392 Test 5,019 \u2013 150 286 2,000 7,455 Temporal test 5,132 \u2013 \u2013 \u2013 \u2013 5,132 Total 35,052 18,969 1,907 3,644 5,791 65,363 The model was first pretrained on SSC, BioSerenity, MESA and MROS data, following which these same recordings were used for task-specific fine-tuning.",
+   "p": 0.9896591173614041
+  },
+  {
+   "text": "The SHHS dataset is reserved exclusively for evaluating transfer learning capabilities and was used only during fine-tuning not during pretraining.",
+   "p": 0.9909290335734525
+  },
+  {
+   "text": "The temporal test set consists of SSC recordings from 2020 onwards, used to evaluate model robustness to temporal distribution shifts.",
+   "p": 0.9929553022128893
+  },
+  {
+   "text": "Dashes (\u2013) indicate that no data is available for that split.",
+   "p": 0.9899010923362875
+  },
+  {
+   "text": "The model was first pretrained on SSC, BioSerenity, MESA and MROS data, following which these same recordings were used for task-specific fine-tuning.",
+   "p": 0.9844868953466441
+  },
+  {
+   "text": "The SHHS dataset is reserved exclusively for evaluating transfer learning capabilities and was used only during fine-tuning not during pretraining.",
+   "p": 0.9860128078714545
+  },
+  {
+   "text": "The temporal test set consists of SSC recordings from 2020 onwards, used to evaluate model robustness to temporal distribution shifts.",
+   "p": 0.9807909205555916
+  },
+  {
+   "text": "Dashes (\u2013) indicate that no data is available for that split.",
+   "p": 0.9856107589125432
+  },
+  {
+   "text": "Our preprocessing pipeline begins by resampling all signals to 128 Hz for consistency across cohorts.",
+   "p": 0.999905994824889
+  },
+  {
+   "text": "Signals are then segmented into 5-s windows, which serve as the model\u2019s fundamental input tokens.",
+   "p": 0.9999353998658209
+  },
+  {
+   "text": "The architecture includes one-dimensional (1D) convolutional layers for feature extraction, followed by channel-agnostic attention pooling to address variability in channel number and order across cohorts.",
+   "p": 0.9999190475459966
+  },
+  {
+   "text": "A transformer block captures temporal dependencies over a 5-min context window.",
+   "p": 0.9998554451759951
+  },
+  {
+   "text": "During pretraining, we use a multimodal CL objective to align representations across all modalities.",
+   "p": 0.9998249989442685
+  },
+  {
+   "text": "The robustness of the model stems from its channel-agnostic design, enabling it to accommodate missing channels, varying channel counts and heterogeneous signal types.",
+   "p": 0.9998844038958019
+  },
+  {
+   "text": "For downstream tasks, we leverage the pretrained model\u2019s embeddings through lightweight fine-tuning.",
+   "p": 0.9996459917328538
+  },
+  {
+   "text": "The token embeddings from different modalities are pooled again and processed by a two-layer long short-term memory (LSTM) network before passing through task-specific output heads.",
+   "p": 0.9973383043506716
+  },
+  {
+   "text": "For patient-level prediction tasks (for example, disease prediction), an additional temporal pooling layer before the output layer compresses all token embeddings into a single 128-dimensional embedding.",
+   "p": 0.9954340551984038
+  },
+  {
+   "text": "To evaluate model performance across tasks, we use appropriate task-specific metrics.",
+   "p": 0.9992435763076379
+  },
+  {
+   "text": "For classification tasks such as sex classification, we report area under the receiver operating characteristic curve (AUROC) and area under the precision-recall curve (AUPRC); for sleep apnea classification we show confusion matrices and report accuracy; for age estimation, we use mean absolute error (MAE) and Pearson correlation.",
+   "p": 0.9987952514300544
+  },
+  {
+   "text": "Sleep staging is evaluated using the F 1 score, which is well suited for class-imbalanced settings.",
+   "p": 0.9989670124856245
+  },
+  {
+   "text": "For disease prediction, we report AUROC and Harrell\u2019s concordance index (C-Index)\u2014a standard survival analysis metric that measures the proportion of correctly ranked risk pairs.",
+   "p": 0.9988665610983188
+  },
+  {
+   "text": "All metrics range from 0 to 1, with higher values indicating better performance; 95% confidence intervals (CIs) are computed using bootstrapping.",
+   "p": 0.9986331418623247
+  }
+ ],
+ "paragraphs": [
+  {
+   "index": 0,
+   "p": 0.8254776901813464,
+   "sentences": 2
+  },
+  {
+   "index": 1,
+   "p": 0.8708627247549962,
+   "sentences": 4
+  },
+  {
+   "index": 2,
+   "p": 0.8871651474786718,
+   "sentences": 5
+  },
+  {
+   "index": 3,
+   "p": 0.8708627247549962,
+   "sentences": 4
+  },
+  {
+   "index": 4,
+   "p": 0.9000234362273952,
+   "sentences": 6
+  },
+  {
+   "index": 5,
+   "p": 0.8871651474786718,
+   "sentences": 5
+  },
+  {
+   "index": 6,
+   "p": 0.8254776901813464,
+   "sentences": 2
+  },
+  {
+   "index": 7,
+   "p": 0.9367359127724141,
+   "sentences": 11
+  },
+  {
+   "index": 8,
+   "p": 0.8708627247549962,
+   "sentences": 4
+  },
+  {
+   "index": 9,
+   "p": 0.9000234362273952,
+   "sentences": 6
+  },
+  {
+   "index": 10,
+   "p": 0.850090677245877,
+   "sentences": 3
+  },
+  {
+   "index": 11,
+   "p": 0.8871651474786718,
+   "sentences": 5
+  }
+ ]
+}

@@ -1,0 +1,233 @@
+{
+ "pmcid": "PMC12842199",
+ "title": "The Impact of the Menopausal Transition on Body Composition and Abdominal Fat Redistribution.",
+ "journal": "Journal of clinical medicine",
+ "year": 2026,
+ "prestige": true,
+ "url": "https://europepmc.org/article/PMC/PMC12842199",
+ "classification": "AI_ONLY",
+ "ai_probability": 1,
+ "human_probability": 0,
+ "mixed_probability": 0,
+ "confidence": "high",
+ "summary": "Our detector is highly confident that the text is written by AI.",
+ "subclass": "pure_ai",
+ "flagged_share": 1,
+ "detector_version": "2026-09-13-base",
+ "sentences": [
+  {
+   "text": "Early research indicates that the menopausal transition is associated with unfavorable shifts in body fat distribution, particularly an increase in abdominal adiposity, which elevates cardiovascular risk [ 1 ].",
+   "p": 0.9997094607549631
+  },
+  {
+   "text": "Estrogen plays a central role in regulating body fat distribution and white adipose tissue health.",
+   "p": 0.9997459461953658
+  },
+  {
+   "text": "Its bioavailability promotes the accumulation of metabolically healthy subcutaneous fat rather than visceral fat and protects against metabolic dysfunction [ 2 ].",
+   "p": 0.9996513154018143
+  },
+  {
+   "text": "Beyond shaping fat distribution, ovarian estrogen also confers protection against obesogenic factors and metabolic diseases.",
+   "p": 0.9997814175466717
+  },
+  {
+   "text": "Declines in circulating estrogen\u2014whether due to menopause or ovariectomy\u2014are linked to increased risks of obesity, type 2 diabetes, and cardiovascular disease.",
+   "p": 0.9997384572870326
+  },
+  {
+   "text": "In both humans and animal models, estradiol replacement therapy or hormone replacement therapy (HRT) counteracts obesity by reducing visceral fat mass and improving metabolic health [ 2 ].",
+   "p": 0.9994803825427194
+  },
+  {
+   "text": "Estrogen deficiency during the perimenopausal period contributes to increased fat tissue mass and reduced lean tissue mass [ 3 ].",
+   "p": 0.9993968509720839
+  },
+  {
+   "text": "Hormone therapy with estrogen and progestogen in early postmenopausal women may help prevent these changes by reducing fat accumulation and preserving lean mass [ 3 ].",
+   "p": 0.9996300181599416
+  },
+  {
+   "text": "The endocrine alterations associated with menopause further amplify the effects of body weight and fat distribution.",
+   "p": 0.9996818651848682
+  },
+  {
+   "text": "These hormonal shifts promote visceral fat deposition and may explain the higher incidence of cardiovascular disease in postmenopausal women [ 4 ].",
+   "p": 0.9997175988593342
+  },
+  {
+   "text": "Previous studies have shown that postmenopausal women tend to exhibit higher total and visceral fat and lower lean mass compared with premenopausal women; however, findings remain inconsistent due to differences in study design, age disparities between comparison groups, and limited consideration of body mass index (BMI) and metabolic status.",
+   "p": 0.999892321936095
+  },
+  {
+   "text": "While abdominal fat redistribution across the menopausal transition has been relatively well described, less is known about concurrent changes in skeletal muscle mass and other body composition compartments, including body water, protein, and mineral content, particularly among women with overweight or obesity.",
+   "p": 0.9999143944256881
+  },
+  {
+   "text": "Importantly, the clinical implications of these compositional changes\u2014especially their relevance to cardiometabolic risk and sarcopenic obesity\u2014remain insufficiently characterized in routine clinical practice.",
+   "p": 0.9999621563872806
+  },
+  {
+   "text": "Therefore, this study aims to address this gap by providing a detailed assessment of body composition across pre-, peri-, and postmenopausal stages, stratified by BMI, to improve understanding of menopause-related changes that may inform early risk identification and targeted preventive strategies for preserving muscle health and reducing adverse metabolic outcomes in midlife women.",
+   "p": 0.99270720100123
+  },
+  {
+   "text": "The aim of this study was to evaluate the impact of the menopausal transition on body composition in women across different body mass categories and to identify menopause-related changes in lean and fat tissue distribution.",
+   "p": 0.916122534005921
+  },
+  {
+   "text": "This retrospective study included 325 healthy women hospitalized at the Department of Gynecological Endocrinology, Gynecology, and Obstetrics at the University Hospital of the Pozna\u0144 University of Medical Sciences between 1 January and 30 April 2022.",
+   "p": 0.8534926790141474
+  },
+  {
+   "text": "Participants were recruited using convenience sampling, based on availability during hospitalization and fulfillment of predefined inclusion criteria.",
+   "p": 0.976342604974353
+  },
+  {
+   "text": "Women were classified into three groups based on menopausal status: premenopausal, perimenopausal, and postmenopausal.",
+   "p": 0.907750815153122
+  },
+  {
+   "text": "The perimenopausal group comprised 58 women (29 normal weight, 16 overweight, and 13 with obesity).",
+   "p": 0.89761812011044
+  },
+  {
+   "text": "Inclusion criteria for this group were: age 45\u201355 years, regular or irregular menstrual cycles, follicle-stimulating hormone (FSH) levels of 15\u201325 mIU/mL, and estradiol (E2) levels > 100 pg/mL.",
+   "p": 0.8899673919365134
+  },
+  {
+   "text": "The postmenopausal group included 50 women (19 normal weight, 16 overweight, and 15 with obesity).",
+   "p": 0.8520482182502747
+  },
+  {
+   "text": "Inclusion criteria for this group were: at least one year since the last menstrual period, FSH levels > 25 mIU/mL, and E2 levels < 10 pg/mL.",
+   "p": 0.8481018416866386
+  },
+  {
+   "text": "Within each menopausal group, women were further stratified according to body mass index (BMI) into the following categories: normal weight (18.5\u201324.9 kg/m 2 ), overweight (25.0\u201329.9 kg/m 2 ), and obesity (30.0\u201339.9 kg/m 2 ) categories.",
+   "p": 0.9055118167142231
+  },
+  {
+   "text": "The control (premenopausal) group consisted of 217 healthy women, including 126 with normal weight, 47 who were overweight, and 44 with obesity.",
+   "p": 0.8648767938483239
+  },
+  {
+   "text": "Eligible participants were required to have regular menstrual cycles, defined as menses occurring at consistent intervals of 27\u201335 days for at least six consecutive months prior to enrollment, based on medical history.",
+   "p": 0.9976137869986835
+  },
+  {
+   "text": "Inclusion criteria further required the absence of hormonal abnormalities, as confirmed by screening hormonal and metabolic profiles, and no evidence of kidney or liver disease, as assessed by hematocrit, complete blood count, aspartate aminotransferase (AST), alanine aminotransferase (ALT), and creatinine measurements, as well as pelvic examination and anamnesis.",
+   "p": 0.9973144154076863
+  },
+  {
+   "text": "A eugonadal ovulatory status was confirmed by serum progesterone concentrations > 5 ng/mL during the luteal phase of the menstrual cycle, corresponding to the time of examination.",
+   "p": 0.9974587057019538
+  },
+  {
+   "text": "Exclusion criteria, applied uniformly across all study groups, included the use of hormonal therapy at the time of examination or within the preceding six months, the presence of severe chronic disease, with particular emphasis on cardiovascular disease, and any history of oncological treatment.",
+   "p": 0.9993903783080796
+  },
+  {
+   "text": "Fifty-six women who initially met the age and hormonal inclusion criteria were subsequently excluded due to comorbid conditions and/or the use of medications that could affect body composition.",
+   "p": 0.9984335634341868
+  },
+  {
+   "text": "The study was conducted in accordance with the principles of the Declaration of Helsinki.",
+   "p": 0.996977185973793
+  },
+  {
+   "text": "The research protocol was reviewed and approved by the Bioethical Committee of the Pozna\u0144 University of Medical Sciences (approval No.",
+   "p": 0.9954669119043785
+  },
+  {
+   "text": "125/23).",
+   "p": 0.9973661035832421
+  },
+  {
+   "text": "Informed consent was not required due to the retrospective nature of the study.",
+   "p": 0.9977242661106737
+  },
+  {
+   "text": "Body composition was assessed in all participants using the ACCUNIQ BC380 bioelectrical impedance analyzer (SELVAS Healthcare, Daejeon, Republic of Korea).",
+   "p": 0.997444756774493
+  },
+  {
+   "text": "This device provides non-invasive measurements of fat mass, lean mass, and other body composition parameters.",
+   "p": 0.998135573459747
+  },
+  {
+   "text": "For each participant, the following parameters were evaluated: body composition, hormonal profile, lipid profile, glucose, and insulin levels.",
+   "p": 0.9992119021257958
+  },
+  {
+   "text": "All body composition measurements were performed in the morning under fasting conditions.",
+   "p": 0.9981665047209874
+  },
+  {
+   "text": "Participants were instructed to refrain from food and fluid intake for 8\u201310 h prior to assessment to minimize hydration-related variability, which can influence BIA-derived estimates.",
+   "p": 0.9996503744216158
+  }
+ ],
+ "paragraphs": [
+  {
+   "index": 0,
+   "p": 0.850090677245877,
+   "sentences": 3
+  },
+  {
+   "index": 1,
+   "p": 0.850090677245877,
+   "sentences": 3
+  },
+  {
+   "index": 2,
+   "p": 0.8708627247549962,
+   "sentences": 4
+  },
+  {
+   "index": 3,
+   "p": 0.8708627247549962,
+   "sentences": 4
+  },
+  {
+   "index": 4,
+   "p": 0.8181818033057853,
+   "sentences": 1
+  },
+  {
+   "index": 5,
+   "p": 0.9103421900070616,
+   "sentences": 7
+  },
+  {
+   "index": 6,
+   "p": 0.8181818033057853,
+   "sentences": 1
+  },
+  {
+   "index": 7,
+   "p": 0.8708627247549962,
+   "sentences": 4
+  },
+  {
+   "index": 8,
+   "p": 0.8254776901813464,
+   "sentences": 2
+  },
+  {
+   "index": 9,
+   "p": 0.8708627247549962,
+   "sentences": 4
+  },
+  {
+   "index": 10,
+   "p": 0.850090677245877,
+   "sentences": 3
+  },
+  {
+   "index": 11,
+   "p": 0.8254776901813464,
+   "sentences": 2
+  }
+ ]
+}
