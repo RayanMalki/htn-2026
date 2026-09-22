@@ -1,3 +1,5 @@
+### Winner of Hack the North’s GPTZero Track — 1st Place
+
 # MedBot (HypeCheck)
 
 Public short video → spoken health claims → medical literature → cited findings → a narrated explanation.
