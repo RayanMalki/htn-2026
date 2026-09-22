@@ -1,4 +1,4 @@
-## Winner of Hack the North’s GPTZero Track — 1st Place
+# Winner of Hack the North’s GPTZero Track — 1st Place
 
 # MedBot (HypeCheck)
 
